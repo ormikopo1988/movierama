@@ -1,0 +1,200 @@
+<?php
+
+//TODO - ORGANISATION INFORMATION
+
+class VO_OrganisationData {
+	const _ECP = 'ORD';	// Error Code Prefix
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $orgId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getMainInfo( WOOOF $wo, $orgId)
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  $orgId" );
+	
+		$organisation = $wo->db->getRow('organisations', $orgId); //fernei olo to row
+		if($organisation === FALSE || $organisation === NULL) { return false; }
+		$main['organisationId'] = $organisation['id'];
+		
+		$mainElems = ['name', 'logoImage', 'orgURL', 'orgDomain', 'description', 'createdDateTime', 'updatedDateTime', 'orgTypeDVId', 'isReallyInVOICE', 'logoURL', 'addressText'];
+		
+		WOOOF_Util::filterOnKeys($main, $mainElems, $organisation);
+		
+		return $main;
+	} //getMainInfo
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $orgId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getServices( WOOOF $wo, $orgId)
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  $orgId" );
+		
+		$voiceUser = $wo->db->getRow('voice_users', $orgId); //fernei olo to row
+		if($voiceUser === FALSE) { return false; }
+		
+		$services = []; //array to be sent to react element
+		$services['genericType'] = 'PRS';
+		$services['genericId'] = $voiceUser['personProfileId'];
+		$services['list'] = [];
+		$addressElems = ['id', 'areaId', 'addressTypeDVId', 'addressText', 'fromYear', 'toYear', 'areaText', 'addressTypeDesc'];
+		
+		$v_person = new WOOOF_dataBaseTable($wo->db, 'v_person_profile_addresses');
+		if ( !$v_person->constructedOk ) { return false; }
+		
+		$res = $v_person->getResult(
+			[
+				'PROF_id' => $voiceUser['personProfileId']
+			],
+			'fromYear',
+			'', '', '',
+			true, false
+		);
+		if ( $res === FALSE ) { return false; }
+		
+		if ( $res['totalRows'] != 0 ) {
+			foreach($v_person->resultRows as $v_address) {
+				$address = [];
+				WOOOF_Util::filterOnKeys($address, $addressElems, $v_address);
+				$addresses['list'][] = $address;
+			}
+		}
+	
+		return $services;
+	} //getServices
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $orgId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getSocialAccounts( WOOOF $wo, $orgId)
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  $orgId" );
+	
+		$voiceUser = $wo->db->getRow('voice_users', $orgId); //fernei olo to row
+		if($voiceUser === FALSE) { return false; }
+	
+		$socialAccounts = []; //array to be sent to react element
+		$socialAccountElems = ['id', 'socialAccountDVId', 'url', 'credentials'];
+	
+		$personSocialTbl = new WOOOF_dataBaseTable($wo->db, 'person_profile_social_accounts');
+		if ( !$personSocialTbl->constructedOk ) { return false; }
+	
+		$res = $personSocialTbl->getResult(
+			[
+				'personProfileId' => $voiceUser['personProfileId']
+			],
+			'socialAccountDVId',
+			'', '', '',
+			true, false
+		);
+		if ( $res === FALSE ) { return false; }
+	
+		if ( $res['totalRows'] != 0 ) {
+			foreach($personSocialTbl->resultRows as $v_social) {
+				$social = [];
+				WOOOF_Util::filterOnKeys($social, $socialAccountElems, $v_social);
+	
+				$accountType = $wo->db->getRow('__domain_values', $social['socialAccountDVId']); //fernei olo to row
+				$social['socialAccountDesc'] = $accountType['description'];
+				$social['socialAccountIcon'] = $accountType['iconFont'];
+	
+				array_push($socialAccounts, $social);
+			}
+		}
+	
+		return $socialAccounts;
+	} //getSocialAccounts
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $orgId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getTags( WOOOF $wo, $orgId)
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  $orgId" );
+	
+		$voiceUser = $wo->db->getRow('voice_users', $orgId); //fernei olo to row
+		if($voiceUser === FALSE) { return false; }
+	
+		$skills = []; //array to be sent to react element
+		$skillElems = ['id', 'tagId', 'fromYear', 'proficiencyTypeDVId', 'comments', 'organisationId'];
+	
+		$personSkillsTbl = new WOOOF_dataBaseTable($wo->db, 'person_profile_skills');
+		if ( !$personSkillsTbl->constructedOk ) { return false; }
+		
+		$res = $personSkillsTbl->getResult(
+			[
+				'personProfileId' => $voiceUser['personProfileId']
+			],
+			'fromYear',
+			'', '', '',
+			true, false
+		);
+		
+		if ( $res === FALSE ) { return false; }
+		
+		if ( $res['totalRows'] != 0 ) {
+			foreach($personSkillsTbl->resultRows as $v_skill) {
+				
+				$skill = [];
+				WOOOF_Util::filterOnKeys($skill, $skillElems, $v_skill);
+				
+				$proficiency = $wo->db->getRow('__domain_values', $skill['proficiencyTypeDVId']); //fernei olo to row
+				if($proficiency === FALSE) { return false; }
+				$skill['proficiency'] = $proficiency['domainValueCode'];
+				
+				$tag = $wo->db->getRow('tags', $skill['tagId']); //fernei olo to row
+				if($tag === FALSE) { return false; }
+				$skill['name'] = $tag['tagPhrase'];
+				$skill['categoryTypeVal'] = $tag['categoryType'];
+				
+				$belongsTo = $wo->db->getRow('tags', $tag['belongsToTagId']); //fernei olo to row
+				if($belongsTo === FALSE) { return false; }
+				
+				$skill['belongsTo'] = [
+					'id' => $belongsTo['id'],
+					'tagPhrase' => $belongsTo['tagPhrase'],
+					'synonyms' => $belongsTo['synonyms'],
+					'categoryType' => $belongsTo['categoryType']
+				];
+	
+				array_push($skills, $skill);
+			}
+		}
+	
+		return $tags;
+	} //getTags
+	
+}	// VO_OrganisationData

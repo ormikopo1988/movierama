@@ -1,0 +1,1286 @@
+<?php
+
+class VO_Ideas {
+	const _ECP = 'IDE';	// Error Code Prefix
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param VO_TblIdeaOtherContents $obj	// Returns actually saved $obj if $fetchBack is set to true
+	 * @param bool $fetchBack
+	 * @return false | id
+	 *
+	 */
+	public static
+	function saveIdeaOtherContent( WOOOF $wo, VO_TblIdeaOtherContents &$obj, $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	
+		$tblIdeaOtherContents = new WOOOF_dataBaseTable($wo->db, 'idea_other_contents');
+		if(!$tblIdeaOtherContents->constructedOk) { return false; }
+	
+		if(!$wo->hasContent($obj->id)) {
+			//insert
+			$obj->addedDate = $wo->currentGMTDateTime();
+	
+			// insert new idea other content in idea_other_contents table
+			$newId = $tblIdeaOtherContents->insertRowFromArraySimple( $obj->toArray() );
+			if ( $newId === FALSE ) { return false; }
+			$obj->id = $newId;
+		}
+	
+		else {
+			//update
+			$obj->addedDate = $wo->currentGMTDateTime();
+				
+			$updatedId = $tblIdeaOtherContents->updateRowFromArraySimple( $obj->toArray() );
+			if ( $updatedId === FALSE ) { return false; }
+		}
+	
+		if ( $fetchBack ) {
+			// Get back into $obj based on id
+			// TODO:
+		}
+	
+		return $obj->id;
+	}	// saveIdeaOtherContent
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param VO_TblIdeas $obj	// Returns actually saved $obj if $fetchBack is set to true
+	 * @param bool $fetchBack
+	 * @return false | id
+	 *
+	 */
+	public static
+	function saveIdea( WOOOF $wo, VO_TblIdeas &$obj, $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	
+		$tblIdeas = new WOOOF_dataBaseTable($wo->db, 'ideas');
+		if(!$tblIdeas->constructedOk) { return false; }
+	
+		if(!$wo->hasContent($obj->id)) {
+			//insert
+			$obj->effectiveDate = $wo->currentGMTDateTime();
+				
+			// insert new idea in ideas table
+			$newId = $tblIdeas->insertRowFromArraySimple( $obj->toArray() );
+			if ( $newId === FALSE ) { return false; }
+			$obj->id = $newId;
+		}
+	
+		else {
+			//update
+			$obj->effectiveDate = $wo->currentGMTDateTime();
+			
+			$updatedId = $tblIdeas->updateRowFromArraySimple( $obj->toArray() );
+			if ( $updatedId === FALSE ) { return false; }
+		}
+	
+		if ( $fetchBack ) {
+			// Get back into $obj based on id
+			// TODO:
+		}
+	
+		return $obj->id;
+	}	// saveIdea
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param VO_TblIdeaVersions $obj	// Returns actually saved $obj if $fetchBack is set to true
+	 * @param bool $fetchBack
+	 * @return false | id
+	 *
+	 */
+	public static
+	function saveIdeaVersion( WOOOF $wo, VO_TblIdeaVersions &$obj, $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	
+		$tblIdeaVersions = new WOOOF_dataBaseTable($wo->db, 'idea_versions');
+		if(!$tblIdeaVersions->constructedOk) { return false; }
+	
+		if(!$wo->hasContent($obj->id)) {
+			//insert
+			$obj->fromDate = $wo->currentGMTDateTime();
+	
+			// insert new idea in ideas table
+			$newId = $tblIdeaVersions->insertRowFromArraySimple( $obj->toArray() );
+			if ( $newId === FALSE ) { return false; }
+			$obj->id = $newId;
+		}
+	
+		else {
+			//update
+			//$obj->fromDate = $wo->currentGMTDateTime();
+			
+			$updatedId = $tblIdeaVersions->updateRowFromArraySimple( $obj->toArray() );
+			if ( $updatedId === FALSE ) { return false; }
+	
+		}
+	
+		if ( $fetchBack ) {
+			// Get back into $obj based on id
+			// TODO:
+		}
+	
+		return $obj->id;
+	}	// saveIdeaVersion
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param VO_TblIdeaStatuses $obj	// Returns actually saved $obj if $fetchBack is set to true
+	 * @param bool $fetchBack
+	 * @return false | id
+	 *
+	 */
+	public static
+	function saveIdeaStatus( WOOOF $wo, VO_TblIdeaStatuses &$obj, $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	
+		$tblIdeaStatuses = new WOOOF_dataBaseTable($wo->db, 'idea_statuses');
+		if(!$tblIdeaStatuses->constructedOk) { return false; }
+	
+		if(!$wo->hasContent($obj->id)) {
+			//insert
+			$obj->fromDate = $wo->currentGMTDateTime();
+	
+			// insert new idea in ideas table
+			$newId = $tblIdeaStatuses->insertRowFromArraySimple( $obj->toArray() );
+			if ( $newId === FALSE ) { return false; }
+			$obj->id = $newId;
+		}
+	
+		else {
+			//update
+			//$obj->fromDate = $wo->currentGMTDateTime();
+			
+			$updatedId = $tblIdeaStatuses->updateRowFromArraySimple( $obj->toArray() );
+			if ( $updatedId === FALSE ) { return false; }
+		}
+	
+		if ( $fetchBack ) {
+			// Get back into $obj based on id
+			// TODO:
+		}
+	
+		return $obj->id;
+	}	// saveIdeaStatus
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @param id $groupId | '' -> mySelf
+	 * @return false | id
+	 * Returns actually saved $obj
+	 */
+	public static
+	function createIdea( WOOOF $wo, $in, $groupId, $userId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  SaveIdea" );
+		
+		//insert idea
+		//first check if $groupId is mySelf
+		
+		if(!$wo->hasContent($groupId)) {
+			//go and make a team to be the submitted team of the idea
+			$tblGroupInsert = new VO_TblGroups();
+			$tblGroupInsert->title = $in['title'] . ' - ' . $wo->app->voicePersonRow['VUS_slug'];
+			$tblGroupInsert->description = $in['title'];
+			$tblGroupInsert->comments = '';
+			$tblGroupInsert->isActive = '1';
+			$tblGroupInsert->isPrivate = '1';
+			$tblGroupInsert->isFreeToFollow = '0';
+			$tblGroupInsert->isOpenForPosts = '0';
+			$tblGroupInsert->groupType = 'TEA';
+				
+			$groupIdToSave = VO_Groups::save($wo, $tblGroupInsert, $userId);
+			if($groupIdToSave === FALSE) { return false; }
+				
+			// create team action
+			$usActId = VO_Users::saveAction(
+				$wo, 'TEC', null, null,
+				null, null, $groupIdToSave
+			);
+		}
+		else {
+			//check if the groupId i belong indeed to the group
+			$checkGroupMembership = VO_Groups::isUserTeamMember($wo, $userId, $groupId);
+			if($checkGroupMembership === FALSE) { return false; }
+
+			if($checkGroupMembership === '0') {
+				$wo->logError(self::_ECP."3140 I am sorry it seems you are not a member of this team!");
+				return false;
+			}
+			
+			$groupIdToSave = $groupId;
+			
+		}
+		
+		//create new group to be the owner of the idea
+		$tblGroupInsert = new VO_TblGroups();
+		$tblGroupInsert->title = $in['title'] . ' - ' . $wo->app->voicePersonRow['VUS_slug'] . ' (owner)' . ' - ' . $groupIdToSave;
+		$tblGroupInsert->description = $in['title'];
+		$tblGroupInsert->comments = '';
+		$tblGroupInsert->isActive = '1';
+		$tblGroupInsert->isPrivate = '1';
+		$tblGroupInsert->isFreeToFollow = '0';
+		$tblGroupInsert->isOpenForPosts = '0';
+		$tblGroupInsert->groupType = 'OWN';
+		
+		$ideaOwnerGroupId = VO_Groups::save($wo, $tblGroupInsert, $userId);
+		if($ideaOwnerGroupId === FALSE) { return false; }
+		
+		if($wo->hasContent($groupId)) {
+			//save all other members of team as members of the newly created group ownership
+			$tblGroupMembers = new WOOOF_dataBaseTable($wo->db, 'voice_user_groups');
+			if($tblGroupMembers === FALSE) { return false; }
+			
+			$res = $tblGroupMembers->getResult(
+				[
+					'groupId' => $groupId,
+					'isDeleted' => '0',
+					'isActive' => '1'
+				],
+				'', '', '', '', false, true
+			);
+			
+			if ( $res === FALSE ) { return false; }
+			
+			$noOfGroupMembers = count($tblGroupMembers->resultRows);
+			
+			foreach( $tblGroupMembers->resultRows as $aRow ) {
+				$tblVoiceUserMembership = new VO_TblVoiceUserGroups();
+				$tblVoiceUserMembership->participationRatio = $noOfGroupMembers;
+									
+				//yourself is already a member from above
+				if($aRow['voiceUserId'] === $userId) {
+					continue;
+				}
+				
+				//here save all the other members of the group to the ideaOwnerGroup
+				$tblVoiceUserMembership->groupMembershipType = 'isMemberOf';
+				$tblVoiceUserMembership->isAdmin = '0';
+				$tblVoiceUserMembership->isActive = '1';
+				$tblVoiceUserMembership->voiceUserId = $aRow['voiceUserId'];
+				$tblVoiceUserMembership->groupId = $ideaOwnerGroupId;
+				$tblVoiceUserMembership->isAllowedToPost = '1';
+				$tblVoiceUserMembership->fromDate = $wo->currentGMTDateTime();
+					
+				$newMemberId = $tblGroupMembers->insertRowFromArraySimple( $tblVoiceUserMembership->toArray() );
+				if ( $newMemberId === FALSE ) { return false; }
+			}
+			
+			//hacking the ratio for all users of group to be equal to $noOfGroupMembers
+			$sql = "UPDATE voice_user_groups SET participationRatio = '$noOfGroupMembers' WHERE groupId = '$ideaOwnerGroupId'";
+			$res = $wo->db->query($sql);
+			if($res === FALSE) { return false; }
+		}
+		
+		// create team action
+		$usActId = VO_Users::saveAction(
+			$wo, 'TEC', null, null,
+			null, null, $ideaOwnerGroupId
+		);
+		
+		//save the idea
+		$ideaInsert = new VO_TblIdeas();
+		$ideaInsert->ideaStatusDVCode = 'CRE';
+		$ideaInsert->submittedByTeamId = $groupIdToSave;
+		$ideaInsert->ownersGroupId = $ideaOwnerGroupId;
+		$createdIdeaId = self::saveIdea($wo, $ideaInsert);
+		if($createdIdeaId === FALSE) { return false; }
+		
+		//save content
+		$ideaContentId = VO_Content::createForIdea($wo, $in, $userId);
+		if($ideaContentId === FALSE) { return false; }
+		
+		//save the new idea version
+		$ideaVersionInsert = new VO_TblIdeaVersions();
+		$ideaVersionInsert->ideaId = $createdIdeaId;
+		$ideaVersionInsert->versionString = '0.0.0000';
+		$ideaVersionInsert->versionName = '';
+		$ideaVersionInsert->toDate = '';
+		$ideaVersionInsert->ideaTypeDVId = $in['ideaTypeDVId'];
+		$ideaVersionInsert->contentId = $ideaContentId;
+		$ideaVersionInsert->voiceUserId = $userId;
+		$createdVersionIdeaId = self::saveIdeaVersion($wo, $ideaVersionInsert);
+		if($createdVersionIdeaId === FALSE) { return false; }
+		
+		//SAVE THE NEW IDEA VERSION TO THE IDEA TABLE
+		//////////////////////////////////////////////////////////
+		$ideaRec = $wo->db->getRow('ideas', $createdIdeaId);
+		if($ideaRec === FALSE) { return false; }
+		if($ideaRec === NULL) {
+			$wo->logError(self::_ECP."4444 No idea found to update");
+			return false;
+		}
+			
+		$ideaRec['currentVersionId'] = $createdVersionIdeaId;
+		$tblIdeaUpdate = new VO_TblIdeas($ideaRec);
+		$ideaId = self::saveIdea($wo, $tblIdeaUpdate);
+		if($ideaId === FALSE) { return false; }
+		
+		//save the new idea status
+		$ideaStatusInsert = new VO_TblIdeaStatuses();
+		$ideaStatusInsert->ideaId = $createdIdeaId;
+		$ideaStatusInsert->ideaStatusDVCode = 'CRE';
+		$ideaStatusInsert->toDate = '';
+		$ideaStatusInsert->comments = '';
+		$createdStatusIdeaId = self::saveIdeaStatus($wo, $ideaStatusInsert);
+		if($createdStatusIdeaId === FALSE) { return false; }
+		
+		//create and assign a new post box for the idea
+		$tblPostBoxInsert = new VO_TblPostBoxes();
+		$tblPostBoxInsert->ownerId = $createdIdeaId;
+		$tblPostBoxInsert->ownerType = 'IDE';
+			
+		$tblPostBoxGeneric = new WOOOF_dataBaseTable($wo->db, 'post_boxes');
+		if($tblPostBoxGeneric === FALSE) { return false; }
+		
+		$newPostBoxId = $tblPostBoxGeneric->insertRowFromArraySimple( $tblPostBoxInsert->toArray() );
+		if ( $newPostBoxId === FALSE ) { return false; }
+		
+		// create idea action
+		/*$usActId = VO_Users::saveAction(
+			$wo, 'IDC', null, null,
+			null, null, null, null, $createdIdeaId
+		);*/
+
+		return $ideaId;
+		
+	}	// createIdea
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @param string $userId
+	 * @return false | id
+	 */
+	public static
+	function editIdeaMain( WOOOF $wo, $in, $userId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  SaveIdeaMain" );
+		
+		if(!$wo->hasContentArrayEntry($in, 'id')) {
+			$wo->logError(self::_ECP."3457 No value provided for content id to save it's main info" );
+			return false;
+		}
+		
+		if(!$wo->hasContent($userId)) {
+			$wo->logError(self::_ECP."3456 No value provided for [userId]" );
+			return false;
+		}
+		
+		$contentsRec = $wo->db->getRow('contents', $in['id']);
+		if ( $contentsRec === FALSE ) { return FALSE; }
+		if ( $contentsRec === NULL ) {
+			$wo->logError(self::_ECP."3460 Content {$in['id']} was not found in contents");
+			return false;
+		}
+		
+		$contentsRec = array_merge($contentsRec, $in);
+		
+		$newId = VO_Content::saveContentMain($wo, $contentsRec, $userId);
+		if($newId === FALSE) { return false; }
+		
+		/*$usActId = VO_Users::saveAction(
+		 $wo, 'IDE', null, null,
+		 null, null, null, null, $updatedIdeaId
+		 );*/
+		
+		return $newId;
+		
+	} // editIdeaMain
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @param string $userId
+	 * @return false | true | updatedIdeaVersionId
+	 */
+	public static
+	function saveIdeaType( WOOOF $wo, $in, $userId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  SaveIdeaType" );
+	
+		if(!$wo->hasContentArrayEntry($in, 'id')) {
+			$wo->logError(self::_ECP."3446 No value provided for idea id to save it's type" );
+			return false;
+		}
+		
+		if(!$wo->hasContent($userId)) {
+			$wo->logError(self::_ECP."3448 No value provided for [userId]" );
+			return false;
+		}
+	
+		//get idea type from table to see if it has changed
+		$ideaVersionRec = $wo->db->getRowByColumn('idea_versions', 'ideaId' , $in['id']);
+		if($ideaVersionRec === FALSE) { return false; }
+		if($ideaVersionRec === NULL) {
+			$wo->logError(self::_ECP."3448 No idea version found to update type");
+			return false;
+		}
+		
+		//if it has not changed
+		if($in['ideaTypeDVId'] === $ideaVersionRec['ideaTypeDVId']) {
+			return true;
+		}
+		
+		//idea type has changed
+		$tblIdeaVersionUpdate = new VO_TblIdeaVersions($ideaVersionRec);
+		$tblIdeaVersionUpdate->ideaTypeDVId = $in['ideaTypeDVId'];
+		$tblIdeaVersionUpdate->fromDate = $wo->currentGMTDateTime();
+		
+		$tblIdeaVersions = new WOOOF_dataBaseTable($wo->db, 'idea_versions');
+		if($tblIdeaVersions === FALSE) { return false; }
+		
+		$res = $tblIdeaVersions->updateRowFromArraySimple( $tblIdeaVersionUpdate->toArray() );
+		if ( $res === FALSE ) { return false; }
+		
+		/*$usActId = VO_Users::saveAction(
+		 $wo, 'IDE', null, null,
+		 null, null, null, null, $updatedIdeaId
+		 );*/
+		
+		return $res;
+		
+	} // saveIdeaType
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param string $ideaId
+	 * @param string $userId
+	 * @param string $versionName. Optional, may be empty
+	 * @param unknown $newStatus. Optional, may be empty.
+	 */
+	public static
+	function newVersion( WOOOF $wo, $ideaId, $userId, $versionName='', $newStatus='' )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place: [$ideaId] [$userId] [$versionName] [$newStatus]" );
+		
+		// Checks
+		// Check that $ideaId and $userId have values
+		if(!$wo->hasContent($userId)) {
+			$wo->logError(self::_ECP."3436 No value provided for [userId]" );
+			return false;
+		}
+		
+		if(!$wo->hasContent($ideaId)) {
+			$wo->logError(self::_ECP."3437 No value provided for [ideaId]" );
+			return false;
+		}
+		
+		// Get Idea --> $currentIdeaRec
+		$currentIdeaRec = $wo->db->getRow('ideas', $ideaId);
+		if($currentIdeaRec === FALSE) { return false; }
+		if($currentIdeaRec === NULL) {
+			$wo->logError(self::_ECP."3438 No idea found to update version");
+			return false;
+		}
+		
+		// Check that $userId is member of the idea's owners group: isIdeaOwner( $ideaId, $userId)
+		$isIdeaOwner = self::isIdeaOwner($wo, $ideaId, $userId);
+		if($isIdeaOwner === FALSE) { return false; }
+		if($isIdeaOwner === 0) {
+			$wo->logError(self::_ECP."3448 I am sorry you are not the idea owner");
+			return false;
+		}
+		
+		// create new 'idea_versions' rec - OK
+		$currentIdeaVersionRec = $wo->db->getRow('idea_versions', $currentIdeaRec['currentVersionId']);
+		if($currentIdeaVersionRec === FALSE) { return false; }
+		
+		$newIdeaVersionInsert = new VO_TblIdeaVersions();
+		$newIdeaVersionInsert->ideaId = $ideaId;
+		
+		//update version String
+		$newVersionString = self::makeNewVersionString($wo, $currentIdeaVersionRec['versionString'], $currentIdeaRec['ideaStatusDVCode'], $newStatus );
+		
+		$newIdeaVersionInsert->versionString = $newVersionString;
+		
+		$newIdeaVersionInsert->versionName = $versionName;
+		$newIdeaVersionInsert->toDate = '';
+		$newIdeaVersionInsert->ideaTypeDVId = $currentIdeaVersionRec['ideaTypeDVId'];
+		$newIdeaVersionInsert->contentId = '';
+		$newIdeaVersionInsert->voiceUserId = $userId;
+		$newIdeaVersionId = self::saveIdeaVersion($wo, $newIdeaVersionInsert);
+		
+		// copy all the contents of the idea - OK
+		$newContentId = self::copyIdeaContents($wo, $currentIdeaVersionRec, $userId, $newIdeaVersionId);
+		if($newContentId === FALSE) { return false; }
+		
+		////////CHECK AGAIN//////////////////////////////////
+		//update contentId to newIdeaVersion Inserted row
+		$newIdeaVersionRec = $wo->db->getRow('idea_versions', $newIdeaVersionId);
+		if($newIdeaVersionRec === FALSE) { return false; }
+		
+		$updateNewIdeaVersion = new VO_TblIdeaVersions($newIdeaVersionRec);
+		$updateNewIdeaVersion->contentId = $newContentId;
+		$updateIdeaVersionId = self::saveIdeaVersion($wo, $updateNewIdeaVersion);
+		if($updateIdeaVersionId === FALSE) { return false; }
+		///////////////////////////////////////////////////////
+
+		// update current 'idea_versions' rec
+		//		set the toDate to current GMT datetime
+		$updateCurrentIdeaVersion = new VO_TblIdeaVersions($currentIdeaVersionRec);
+		$updateCurrentIdeaVersion->toDate = $wo->currentGMTDateTime();
+		$updateCurrentIdeaVersionId = self::saveIdeaVersion($wo, $updateCurrentIdeaVersion);
+		if($updateCurrentIdeaVersionId === FALSE) { return false; }
+		
+		// update 'ideas'
+		//		currentVersionId <-- id from new 'idea_versions' above
+		$updateIdea = new VO_TblIdeas($currentIdeaRec);
+		$updateIdea->currentVersionId = $newIdeaVersionId;
+		
+		$updateIdeaId = self::saveIdea($wo, $updateIdea);
+		if($updateIdeaId === FALSE) { return false; }
+		
+		return $newIdeaVersionId;
+		
+	}	// newVersion
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $targetIds
+	 * @param string $userId
+	 * @return array
+	 */
+	public static
+	function getIdeas( WOOOF $wo, $targetIds, $userId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  Get Ideas" );
+	
+		$ideas = [];
+		$ideaElems = ['IDE_id', 'IDE_currentVersionId', 'IDE_ideaStatusDVCode', 'IDE_effectiveDate', 
+			'IDE_submittedByTeamId', 'IDE_ownersGroupId', 'IDV_id', 'IDV_versionString', 'IDV_versionName',
+			'IDV_fromDate', 'IDV_toDate', 'IDV_ideaTypeDVId', 'IDV_contentId', 'IDV_voiceUserId',
+			'CNT_id', 'CNT_createdByUserId', 'CNT_updatedByUserId', 'CNT_createdDateTime', 'CNT_updatedDateTime',
+			'CNT_isTemplate', 'CNT_fromTemplateId', 'CNT_languageId', 'CNT_title', 'CNT_subTitle',
+			'CNT_titleImg', 'CNT_snippet', 'CNT_isPartOfIdea', 'CNT_contentVisibilityDVCode',
+			'SUBTEAM_id', 'SUBTEAM_title', 'SUBTEAM_isActive', 'SUBTEAM_description', 'SUBTEAM_comments',
+			'SUBTEAM_isFreeToFollow', 'SUBTEAM_isOpenForPosts', 'SUBTEAM_groupType', 'SUBTEAM_avatarImg',
+			'OWNGR_id', 'DVIDEASTATUS_SDOMVAL_domainValueCode', 'DVIDEASTATUS_SDOMVAL_description', 'DVIDEASTATUS_SDOMVAL_picture',
+			'DVIDEASTATUS_SDOMVAL_iconFont', 'DVIDEATYPE_SDOMVAL_domainValueCode', 'DVIDEATYPE_SDOMVAL_description',
+			'DVIDEATYPE_SDOMVAL_picture', 'DVIDEATYPE_SDOMVAL_iconFont'
+		];
+	
+		$tblIdeas = new WOOOF_dataBaseTable($wo->db, 'v_ideas');
+		if(!$tblIdeas->constructedOk) { return false; }
+	
+		if(count($targetIds) === 0) {
+			return [];
+		}
+	
+		$ids='';
+		foreach ($targetIds as $tId)
+		{
+			if ($ids!='')
+			{
+				$ids .= ', ';
+			}
+			$ids .= '\''. $wo->db->escape($tId) .'\'';
+		}
+	
+		$result = $wo->db->query('SELECT * FROM v_ideas WHERE IDE_id IN ('. $ids .')');
+		if ( $result === FALSE ) { return false; }
+	
+		if (!$wo->db->getNumRows($result))
+		{
+			//no error no results
+			return [];
+		}
+		else
+		{
+			//no error results
+			while($row = $wo->db->fetchAssoc($result))
+			{
+				$tblIdeas->resultRows[] = $row;
+			}
+		}
+	
+		$ids = [];
+	
+		foreach($tblIdeas->resultRows as $v_idea) {
+			$idea = [];
+			$ideaId = $v_idea['IDE_id'];
+			WOOOF_Util::filterOnKeys($idea, $ideaElems, $v_idea);
+			//$idea['isType'] = $v_idea['DVIDEATYPE_SDOMVAL_description'];
+			$idea['isType'] = 'IDE';
+			
+			$ideas[$ideaId] = $idea;
+			
+			$connections = VO_Social::getConnectionInfo($wo, $wo->app->userId, [[$v_idea['IDE_id'], 'IDE']]);
+			if($connections === FALSE) { return false; }
+			
+			$ideas[$ideaId]['connections'] = array_values($connections);
+			
+			$isIdeaOwner = self::isIdeaOwner($wo, $v_idea['IDE_id'], $userId);
+			if($isIdeaOwner === FALSE) { return false; }
+			if($isIdeaOwner === 0) {
+				$ideas[$ideaId]['isSelfOwner'] = false;
+			} 
+			else {
+				$ideas[$ideaId]['isSelfOwner'] = true;
+			}
+		}
+		
+		//pass the keys from $groups to $ids
+		/*$ids = array_keys($ideas);
+	
+		//make the connections array
+		$membershipInfoArray = self::getMembershipInfo($wo, $userId, $ids);
+		if($membershipInfoArray === false) { return false; }
+	
+		//merge the groups array (with main info) with the connections array
+		foreach($ideas as $aKey => &$aIdea) {
+			$aIdea['memberships'] = $membershipInfoArray[$aKey];
+		}
+	
+		//convert the associative array to a simple array to come back to the frontend
+		$ideaMemberships = array_values($ideas);
+		*/
+			
+		return array_values($ideas);
+	}	// getIdeas
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $targetIds
+	 * @param string $userId
+	 * @param string $ideaVersionId
+	 * @return array
+	 */
+	public static
+	function getIdeaByVersion( WOOOF $wo, $ideaId, $userId, $ideaVersionId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  Get Ideas By Version" );
+	
+		$ideas = [];
+		$ideaElems = ['IDE_id', 'IDE_currentVersionId', 'IDE_ideaStatusDVCode', 'IDE_effectiveDate',
+			'IDE_submittedByTeamId', 'IDE_ownersGroupId', 'IDV_id', 'IDV_versionString', 'IDV_versionName',
+			'IDV_fromDate', 'IDV_toDate', 'IDV_ideaTypeDVId', 'IDV_contentId', 'IDV_voiceUserId',
+			'CNT_id', 'CNT_createdByUserId', 'CNT_updatedByUserId', 'CNT_createdDateTime', 'CNT_updatedDateTime',
+			'CNT_isTemplate', 'CNT_fromTemplateId', 'CNT_languageId', 'CNT_title', 'CNT_subTitle',
+			'CNT_titleImg', 'CNT_snippet', 'CNT_isPartOfIdea', 'CNT_contentVisibilityDVCode',
+			'SUBTEAM_id', 'SUBTEAM_title', 'SUBTEAM_isActive', 'SUBTEAM_description', 'SUBTEAM_comments',
+			'SUBTEAM_isFreeToFollow', 'SUBTEAM_isOpenForPosts', 'SUBTEAM_groupType', 'SUBTEAM_avatarImg',
+			'OWNGR_id', 
+			//'DVIDEASTATUS_SDOMVAL_domainValueCode',
+			//'DVIDEASTATUS_SDOMVAL_description', 'DVIDEASTATUS_SDOMVAL_picture',
+			//'DVIDEASTATUS_SDOMVAL_iconFont', 
+			'DVIDEATYPE_SDOMVAL_domainValueCode', 'DVIDEATYPE_SDOMVAL_description',
+			'DVIDEATYPE_SDOMVAL_picture', 'DVIDEATYPE_SDOMVAL_iconFont'
+		];
+	
+		$tblIdeaVersions = new WOOOF_dataBaseTable($wo->db, 'v_idea_versions');
+		if(!$tblIdeaVersions->constructedOk) { return false; }
+	
+		$ideaId = $wo->db->escape($ideaId);
+		$ideaVersionId = $wo->db->escape($ideaVersionId);
+	
+		$result = $wo->db->query("SELECT * FROM v_idea_versions WHERE IDV_id='$ideaVersionId' AND IDE_id='$ideaId'");
+		if ( $result === FALSE ) { return false; }
+	
+		if (!$wo->db->getNumRows($result))
+		{
+			//no error no results
+			return [];
+		}
+		else
+		{
+			//no error results
+			while($row = $wo->db->fetchAssoc($result))
+			{
+				$tblIdeaVersions->resultRows[] = $row;
+			}
+		}
+		
+		foreach($tblIdeaVersions->resultRows as $v_idea) {
+			$idea = [];
+			$ideaId = $v_idea['IDE_id'];
+			WOOOF_Util::filterOnKeys($idea, $ideaElems, $v_idea);
+			$idea['isType'] = 'IDE';
+				
+			$ideas[$ideaId] = $idea;
+				
+			$connections = VO_Social::getConnectionInfo($wo, $wo->app->userId, [[$v_idea['IDE_id'], 'IDE']]);
+			if($connections === FALSE) { return false; }
+				
+			$ideas[$ideaId]['connections'] = array_values($connections);
+			
+			$isIdeaOwner = self::isIdeaOwner($wo, $v_idea['IDE_id'], $userId);
+			if($isIdeaOwner === FALSE) { return false; }
+			if($isIdeaOwner === 0) {
+				$ideas[$ideaId]['isSelfOwner'] = false;
+			}
+			else {
+				$ideas[$ideaId]['isSelfOwner'] = true;
+			}
+		}
+	
+		//pass the keys from $groups to $ids
+		/*$ids = array_keys($ideas);
+	
+		//make the connections array
+		$membershipInfoArray = self::getMembershipInfo($wo, $userId, $ids);
+		if($membershipInfoArray === false) { return false; }
+	
+		//merge the groups array (with main info) with the connections array
+		foreach($ideas as $aKey => &$aIdea) {
+		$aIdea['memberships'] = $membershipInfoArray[$aKey];
+		}
+	
+		//convert the associative array to a simple array to come back to the frontend
+		$ideaMemberships = array_values($ideas);
+		*/
+			
+		return array_values($ideas);
+	}	// getIdeasByVersion
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $ideaId
+	 * @param string $userId
+	 */
+	public static
+	function isIdeaOwner( WOOOF $wo, $ideaId, $userId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		
+		// Get Idea --> $currentIdeaRec
+		$ideaRec = $wo->db->getRow('ideas', $ideaId);
+		if($ideaRec === FALSE) { return false; }
+		if($ideaRec === NULL) {
+			$wo->logError(self::_ECP."3439 No idea found");
+			return false;
+		}
+		
+		$ownersGroupId = $ideaRec['ownersGroupId'];
+		
+		$sql = "SELECT 1 FROM voice_user_groups WHERE groupId='$ownersGroupId' and isActive='1' and isDeleted='0' and voiceUserId='$userId'";
+		$res = $wo->db->query($sql);
+		if ( $res === FALSE ) { return FALSE; }
+		
+		return ($wo->db->getNumRows($res) === 0 ? 0 : 1);
+	} //isIdeaOwner
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $ideaId
+	 * @param string $userId
+	 * @param string $ideaNewVersionId
+	 * @return string $newContentId
+	 */
+	public static
+	function copyIdeaContents( WOOOF $wo, $currentIdeaVersionRec, $userId, $ideaNewVersionId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  Copy Idea Contents" );
+		
+		// Checks
+		if(!$wo->hasContent($userId)) {
+			$wo->logError(self::_ECP."3476 No value provided for [userId]" );
+			return false;
+		}
+		
+		$newMainContentId = VO_Content::copyContent($wo, $currentIdeaVersionRec['contentId'], $userId, '1');
+		if($newMainContentId === FALSE) { return false; }
+		
+		//copy idea_other_contents of currentIdeaVersionId
+		$tblIdeaOtherContents = new WOOOF_dataBaseTable($wo->db, 'idea_other_contents');
+		if(!$tblIdeaOtherContents->constructedOk) { return false; }
+		
+		//find other contents of idea
+		$res = $tblIdeaOtherContents->getResult(
+			[
+				'ideaVersionId' => $currentIdeaVersionRec['id'],
+				'isDeleted' => '0'
+			],
+			'', '', '', '', false, true
+		);
+		
+		if ( $res === FALSE ) { return false; }
+			
+		foreach( $tblIdeaOtherContents->resultRows as $aOtherContent ) {
+			$newOtherContentId = VO_Content::copyContent($wo, $aOtherContent['contentId'], $userId, '1');
+			if($newOtherContentId === FALSE) { return false; }
+			
+			$newContentRec = $wo->db->getRow('contents', $newOtherContentId);
+			
+			//insert to idea_other_contents
+			$insertIdeaOtherContent = new VO_TblIdeaOtherContents($aOtherContent);
+			$insertIdeaOtherContent->contentId = $newOtherContentId;
+			$insertIdeaOtherContent->ideaVersionId = $ideaNewVersionId;
+			$insertIdeaOtherContent->id = '';
+			
+			$insertContentId = self::saveIdeaOtherContent($wo, $insertIdeaOtherContent);
+			if($insertContentId === FALSE) { return false; }
+		}
+		
+		return $newMainContentId;
+		
+	} //copyIdeaContents
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $ideaId
+	 * @param string $userId
+	 * @param string $newStatus
+	 * @return string $newIdeaStatusId | false (transition is not valid)
+	 */
+	public static
+	function updateIdeaStatus( WOOOF $wo, $ideaId, $userId, $newStatus )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  Update Idea Status" );
+	
+		//UPDATE PREVIOUS STATUS OF IDEA
+		$tblIdeaStatuses = new WOOOF_dataBaseTable($wo->db, 'idea_statuses');
+		if(!$tblIdeaStatuses->constructedOk) { return false; }
+		
+		//find the last status of the idea and update toDate
+		$res = $tblIdeaStatuses->getResult(
+			[
+				'ideaId'    => $ideaId,
+				'toDate'    => '',
+				'isDeleted' => '0'
+			],
+			'', '', '', '', true, false
+		);
+		
+		if ( $res === FALSE ) { return false; }
+		
+		if(count($tblIdeaStatuses->resultRows) !== 1) {
+			$wo->logError(self::_ECP."3509 Multiple current statuses?");
+			return false;
+		}
+		
+		$currentStatus = $tblIdeaStatuses->resultRows[0];
+		
+		//CHECK IF THE NEW STATUS IS VALID
+		$isValid = self::isStatusTransitionValid($wo, $currentStatus['ideaStatusDVCode'], $newStatus);
+		if($isValid === 0) {
+			$wo->logError(self::_ECP."3499 Status Transition is not valid" );
+			return false;
+		}
+		
+		$updateIdeaStatus = new VO_TblIdeaStatuses($currentStatus);
+		$updateIdeaStatus->toDate = $wo->currentGMTDateTime();
+		$updateIdeaStatusId = self::saveIdeaStatus($wo, $updateIdeaStatus);
+		if($updateIdeaStatusId === FALSE) { return false; }
+		
+		//create new status for idea
+		$newIdeaStatus = new VO_TblIdeaStatuses();
+		$newIdeaStatus->ideaId = $ideaId;
+		$newIdeaStatus->ideaStatusDVCode = $newStatus;
+		$newIdeaStatusId = self::saveIdeaStatus($wo, $newIdeaStatus);
+		if($newIdeaStatusId === FALSE) { return false; }	
+		
+		//update ideas table to the have the new status
+		$ideaRec = $wo->db->getRow('ideas', $ideaId);
+		if($ideaRec === FALSE) { return false; }
+		if($ideaRec === NULL) {
+			$wo->logError(self::_ECP."3500 No idea found to update");
+			return false;
+		}
+			
+		$tblIdeaUpdate = new VO_TblIdeas($ideaRec);
+		$tblIdeaUpdate->ideaStatusDVCode = $newStatus;
+		$ideaId = self::saveIdea($wo, $tblIdeaUpdate);
+		if($ideaId === FALSE) { return false; }
+		
+		return $newIdeaStatusId;
+	
+	} //updateIdeaStatus
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $ideaId
+	 * @param string $userId
+	 * @param string $newStatus
+	 * @return string $newIdeaStatusId (or $updateIdeaStatusId) | false (transition is not valid)
+	 */
+	public static
+	function changeIdeaStatus( WOOOF $wo, $ideaId, $userId, $newStatus )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  Change Idea Status" );
+	
+		// Checks
+		if(!$wo->hasContent($userId)) {
+			$wo->logError(self::_ECP."3307 No value provided for [userId]" );
+			return false;
+		}
+	
+		if(!$wo->hasContent($ideaId)) {
+			$wo->logError(self::_ECP."3308 No value provided for [ideaId]" );
+			return false;
+		}
+	
+		if(!$wo->hasContent($newStatus)) {
+			$wo->logError(self::_ECP."3309 No value provided for [newStatus]" );
+			return false;
+		}
+	
+		// Check that $userId is member of the idea's owners group
+		$isIdeaOwner = self::isIdeaOwner($wo, $ideaId, $userId);
+		if($isIdeaOwner === FALSE) { return false; }
+		if($isIdeaOwner === 0) {
+			$wo->logError(self::_ECP."3310 I am sorry you are not the idea owner you cannot change its status");
+			return false;
+		}
+		
+		$tblIdeaStatuses = new WOOOF_dataBaseTable($wo->db, 'idea_statuses');
+		if(!$tblIdeaStatuses->constructedOk) { return false; }
+		
+		//find the last status of the idea
+		$res = $tblIdeaStatuses->getResult(
+			[
+				'ideaId'    => $ideaId,
+				'toDate'    => '',
+				'isDeleted' => '0'
+			],
+			'', '', '', '', true, false
+		);
+		
+		if ( $res === FALSE ) { return false; }
+		
+		if(count($tblIdeaStatuses->resultRows) !== 1) {
+			$wo->logError(self::_ECP."3311 Multiple current statuses?");
+			return false;
+		}
+		
+		$currentStatus = $tblIdeaStatuses->resultRows[0];
+		
+		//CHECK IF THE NEW STATUS TRANSITION IS VALID
+		$isValid = self::isStatusTransitionValid($wo, $currentStatus['ideaStatusDVCode'], $newStatus);
+		if($isValid === 0) {
+			$wo->logError(self::_ECP."3599 Status Transition is not valid" );
+			return false;
+		}
+		
+		$res = self::newVersion($wo, $ideaId, $userId, 'New Status: '.$newStatus, $newStatus);
+		if($res === FALSE) { return false; }
+		
+		$newIdeaStatusId = self::updateIdeaStatus($wo, $ideaId, $userId, $newStatus);
+		
+		return $newIdeaStatusId;
+	
+	} //changeIdeaStatus
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $code
+	 * @return string $code+1
+	 */
+	private static 
+	function getNextNumeric ( WOOOF $wo, $code ) {
+		$base_ten = base_convert($code,10,10);
+		$result = base_convert($base_ten+1,10,10);
+		$result = str_pad($result, 4, '0', STR_PAD_LEFT);
+		$result = strtoupper($result);
+		return $result;
+	}
+
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $currentVersionString
+	 * @param string $currentStatus
+	 * @param string $newStatus
+	 * @return string $newVersionString
+	 */
+	private static
+	function makeNewVersionString ( WOOOF $wo, $currentVersionString, $currentStatus, $newStatus ) {
+		$currentVersionStringArray = explode('.', $currentVersionString);
+		
+		if(!$wo->hasContent($newStatus)) {
+			$newVersionSubstring = self::getNextNumeric($wo, $currentVersionStringArray[2]);
+			$newVersionString = $currentVersionStringArray[0].'.'.$currentVersionStringArray[1].'.'.$newVersionSubstring;
+			return $newVersionString;
+		}
+		
+		//TODO - REST CASES
+		if($newStatus === 'WIT' || $newStatus === 'COM' || $newStatus === 'FFM') {
+			return $currentVersionString;
+		}
+		
+		if($currentStatus === 'CRE' && $newStatus === 'UEL') {
+			return '0.0.0001';
+		}
+		
+		if($currentStatus === 'UGR' && $newStatus === 'UEL') {
+			$currentVersionStringArray[1] = $currentVersionStringArray[1] + 1;
+			$newVersionString = $currentVersionStringArray[0].'.'.$currentVersionStringArray[1].'.'.$currentVersionStringArray[2];
+		}
+		
+		if($currentStatus === 'UEL' && $newStatus === 'UGR') {
+			$newVersionString = '1.'.$currentVersionStringArray[1].'.'.$currentVersionStringArray[2];
+		}
+		
+		if($currentStatus === 'UEL' && $newStatus === 'IMA') {
+			$newVersionString = '2.'.$currentVersionStringArray[1].'.'.$currentVersionStringArray[2];
+		}
+		
+		if($currentStatus === 'FFM' && $newStatus === 'IMA') {
+			$newVersionString = '3.'.$currentVersionStringArray[1].'.'.$currentVersionStringArray[2];
+		}
+		
+		return $newVersionString;
+	} //makeNewVersionString
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $currentIdeaStatus
+	 * @param string $newStatus
+	 * @return 0 | 1 | false
+	 */
+	private static
+	function isStatusTransitionValid ( WOOOF $wo, $currentIdeaStatus, $newStatus ) {
+		$sArr = VO_Constants::c_validStatusTransitions;
+		
+		if(!isset($sArr[$currentIdeaStatus])) {
+			$wo->logError(self::_ECP."3508 Uknown status [$currentIdeaStatus]");
+			return false;
+		}
+		
+		return in_array($newStatus, $sArr[$currentIdeaStatus]) ? 1 : 0;
+	}
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $voiceUserId
+	 * @return array
+	 */
+	public static
+	function getIdeasOfUser( WOOOF $wo, $voiceUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place: [$voiceUserId]" );
+	
+		$voiceUserIdSafe = $wo->db->escape($voiceUserId);
+	
+		$targetIds = [];
+		if(!$wo->hasContent($voiceUserId)) {
+			// Get all Ideas
+				
+			$result = $wo->db->query("SELECT id FROM ideas WHERE isDeleted='0' ");
+			if ( $result === FALSE ) { return false; }
+	
+			while($row = $wo->db->fetchAssoc($result))
+			{
+				$targetIds[] = $row['id'];
+			}
+		}
+		else {
+			// Get Ideas for a particular User
+			//
+				
+			$result = $wo->db->query("
+				select
+				i.id
+				from
+				voice_user_groups vug,
+				groups g,
+				ideas i
+				where
+				vug.voiceUserId = '$voiceUserId' and
+				vug.isActive = '1' and
+				vug.isDeleted = '0' and
+				g.id = vug.groupId and
+				g.groupType = 'OWN' and
+				i.ownersGroupId = vug.groupId
+			");
+			if ( $result === FALSE ) { return false; }
+	
+			while($row = $wo->db->fetchAssoc($result))
+			{
+				$targetIds[] = $row['id'];
+			}
+				
+			// TODO: Optimize the code!!
+				
+			/*
+			 //Find the ideas based on the voiceUserId
+			 $result = $wo->db->query("SELECT groupId FROM voice_user_groups WHERE voiceUserId='$voiceUserIdSafe' AND isActive='1'");
+			 if ( $result === FALSE ) { return false; }
+
+			 while($row = $wo->db->fetchAssoc($result))
+			 {
+			 $targetIds[] = $row['groupId'];
+			 }
+
+			 $ids='';
+			 foreach ($targetIds as $tId)
+			 {
+			 if ($ids!='')
+			 {
+				$ids .= ', ';
+				}
+				$ids .= '\''. $wo->db->escape($tId) .'\'';
+				}
+
+				$result = $wo->db->query('SELECT * FROM groups WHERE isActive = "1" AND groupType = "OWN" AND id IN ('. $ids .')');
+				if ( $result === FALSE ) { return false; }
+
+				if (!$wo->db->getNumRows($result))
+				{
+				//no error no results
+				return [];
+				}
+				else
+				{
+				//no error results
+				while($row = $wo->db->fetchAssoc($result))
+				{
+				$tblGroups->resultRows[] = $row;
+				}
+				}
+
+				$targetIds = [];
+
+				foreach($tblGroups->resultRows as $v_group) {
+				$targetIds[] = $v_group['id'];
+				}
+
+				$ids='';
+				foreach ($targetIds as $tId)
+				{
+				if ($ids!='')
+				{
+				$ids .= ', ';
+				}
+				$ids .= '\''. $wo->db->escape($tId) .'\'';
+				}
+
+				$result = $wo->db->query('SELECT * FROM ideas WHERE isDeleted = "0" AND ownersGroupId IN ('. $ids .')');
+				if ( $result === FALSE ) { return false; }
+
+				if (!$wo->db->getNumRows($result))
+				{
+				//no error no results
+				return [];
+				}
+				else
+				{
+				//no error results
+				while($row = $wo->db->fetchAssoc($result))
+				{
+				$tblIdeas->resultRows[] = $row;
+				}
+				}
+
+				$targetIds = [];
+
+				foreach($tblIdeas->resultRows as $v_idea) {
+				$targetIds[] = $v_idea['id'];
+				}
+				*/
+		}	// get all ideas or of a user only
+
+		return $targetIds;
+
+	}	// getIdeasOfUser
+	
+} //VO_Ideas

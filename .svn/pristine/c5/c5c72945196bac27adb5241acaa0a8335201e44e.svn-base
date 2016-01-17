@@ -1,0 +1,191 @@
+<?php 
+
+	// users/followers
+	$router->map(
+		'GET',
+		'/users/followers/[a:userId]',
+		function($userId) use($wo) {
+			VO_CtrlSocial::userFollowers($wo, $userId);
+		}
+		, 'userFollowers'
+	);
+
+	// users/followings
+	$router->map(
+		'GET',
+		'/users/followings/[a:userId]',
+		function($userId) use($wo) {
+			VO_CtrlSocial::userFollowings($wo, $userId);
+		}
+		, 'userFollowings'
+	);
+
+	// users/peers
+	$router->map(
+		'GET',
+		'/users/peers/[a:userId]',
+		function($userId) use($wo) {
+			VO_CtrlSocial::userPeers($wo, $userId);
+		}
+		, 'userPeers'
+	);
+
+	// users/friends
+	$router->map(
+		'GET',
+		'/users/friends/[a:userId]',
+		function($userId) use($wo) {
+			VO_CtrlSocial::userFriends($wo, $userId);
+		}
+		, 'userFriends'
+	);
+
+	// users/friends
+	$router->map(
+		'GET',
+		'/users/friendRequests/[a:userId]',
+		function($userId) use($wo) {
+			VO_CtrlSocial::userFriendRequests($wo, $userId);
+		}
+		, 'userFriendRequests'
+	);
+
+	/*
+	 ====================== API calls ====================================================
+	 */
+	
+	// Saves =========================================================================
+	
+	// /api/social/bookmarkUser -> [objectId]
+	$router->map('POST', '/api/social/bookmarkUser/[a:objectId]', function($objectId) use($wo) {
+		try {
+			$res = VO_CtrlSocial::bookmarkUser($wo, $objectId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/social/unBookmarkUser -> [objectId]
+	$router->map('POST', '/api/social/unBookmarkUser/[a:objectId]', function($objectId) use($wo) {
+		try {
+			$res = VO_CtrlSocial::unBookmarkUser($wo, $objectId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/social/followUser -> [userId]
+	$router->map('POST', '/api/social/followUser/[a:userId]', function($userId) use($wo) {
+		try {
+			$res = VO_CtrlSocial::followUser($wo, $userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/social/unFollowUser -> [userId]
+	$router->map('POST', '/api/social/unFollowUser/[a:userId]', function($userId) use($wo) {
+		try {
+			$res = VO_CtrlSocial::unFollowUser($wo, $userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/social/requestFriendship -> [userId]
+	$router->map('POST', '/api/social/requestFriendship/[a:userId]', function($userId) use($wo) {
+		try {
+			$res = VO_CtrlSocial::requestFriendship($wo, $userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/social/answerFriendship ->[requestId, status] -> $_POST (with requestId and status)
+	$router->map('POST', '/api/social/answerFriendship/[a:requestId]/[a:status]', function($requestId, $status) use($wo) {
+		try {
+			$data['requestId'] = $requestId;
+			$data['status'] = $status;
+			$res = VO_CtrlSocial::answerFriendship($wo, $data);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/social/deleteFriendship -> [thisUserId]
+	$router->map('POST', '/api/social/deleteFriendship/[a:userId]', function($userId) use($wo) {
+		try {
+			$res = VO_CtrlSocial::deleteFriendship($wo, $userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/social/resetFriendRequest -> [requestId]
+	$router->map('POST', '/api/social/resetFriendRequest/[a:requestId]', function($requestId) use($wo) {
+		try {
+			$res = VO_CtrlSocial::deleteUserFriendRequests($wo, $requestId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// Gets =========================================================================
+	
+	// /api/social/getBookmarks
+	$router->map('GET', '/api/social/getBookmarks', function() use($wo) {
+		try {
+			$res = VO_Social::getBookmarks($wo);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/social/getFollowers -> [userId]
+	$router->map('POST', '/api/social/getFollowers/[a:userId]', function($userId) use($wo) {
+		try {
+			$res = VO_Social::getFollowers($wo, $userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/social/getFollowings -> [userId]
+	$router->map('POST', '/api/social/getFollowings/[a:userId]', function($userId) use($wo) {
+		try {
+			$res = VO_Social::getFollowings($wo, $userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/social/getPeers -> [userId]
+	$router->map('POST', '/api/social/getPeers/[a:userId]', function($userId) use($wo) {
+		try {
+			$res = VO_Social::getPeers($wo, $userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/social/getFriends -> [userId]
+	$router->map('POST', '/api/social/getFriends/[a:userId]', function($userId) use($wo) {
+		try {
+			$res = VO_Social::getFriends($wo, $userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/social/getConnectionInfo -> requestorUserId, $targetIds[]
+	$router->map('POST', '/api/social/getConnectionInfo', function() use($wo) {
+		try {
+			$res = VO_CtrlSocial::connectionInfo($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	
+/* End of file social.php */
+

@@ -1,0 +1,18 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+
+export default React.createClass({ //UserList
+  getInitialState: function() {
+  	console.log(this.props.data);
+  },
+
+  render: function() {
+    return (
+		<div className="container">
+			<h1>Welcome to VOICE !</h1>
+			<a href="register"></a>
+		</div>
+    );
+  }
+  
+});

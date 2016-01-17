@@ -1,0 +1,172 @@
+<?php 
+	global $timers, $userData, $availableForUnregistered, $extraHeadScripts;
+	//var_dump($tpl);
+	//var_dump($tpl);
+	//foreach($tpl as $aKey=>$aVal) { ${'_tpl_'.$aKey}= $aVal; }
+	extract( $tpl, EXTR_PREFIX_ALL, '_tpl' );	//  an underscore is added at the end of prefix :-(
+	$isProductionEnv = $wo->isProductionEnv;
+	
+	wooofTimerStop('controller');
+?>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title><?php echo $_tpl_browserTitle; ?></title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="">
+        <meta name="author" content="">
+
+        <!-- Le styles -->
+        <!-- link href='https://fonts.googleapis.com/css?family=Roboto+Condensed' rel='stylesheet' type='text/css'-->
+        
+        <!-- include font awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
+        
+        <!-- Latest compiled and minified CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+        
+        <!-- Optional theme -->
+        <!-- link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css"-->
+        
+        
+        <!-- voice CSS -->
+        <link rel="stylesheet" href="<?php echo $wo->assetsURL;?>css/voice.css">
+
+        <link rel="stylesheet" href="<?php echo $wo->assetsURL;?>css/react-datepicker.css">
+        
+        
+        <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+        <!--[if lt IE 9]>
+        <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+
+        <?php if (!isset($availableForUnregistered) ) { $availableForUnregistered = '0'; } ?>
+        
+        <?php if (isset($extraHeadScripts)) echo $extraHeadScripts; ?>
+        
+        <!-- include app's bundle (including react.js, ... ) -->
+        <!-- For access from other machines/mobiles use a PROD config (preferably with minimal bundle.js)  -->
+        <script type="text/javascript" src="<?php echo !$isProductionEnv ? 'http://localhost:8080/' : $wo->assetsURL.'js/bundle/'; ?>bundle.js"></script>
+        <script>
+            VOICE.globals.systemImgURL  = '<?php echo $wo->assetsURL."img/" ?>';
+            VOICE.globals.imgURL        = '<?php echo $wo->imagesURL; ?>';
+            VOICE.globals.assetsURL     = '<?php echo $wo->assetsURL; ?>';
+            VOICE.globals.filesURL      = '<?php echo $wo->assetsURL."getFileById.php?fileId=" ?>';
+
+            function buildURL(url) {
+                window.open(VOICE.linkPrefix(url), "_self");
+            }
+        </script>
+        <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+		<script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+        <!-- Latest compiled and minified JavaScript -->
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js" integrity="sha512-K1qjQ+NcF2TYO/eI3M6v8EiNYZfA95pQumfvcVrTHtwQVDG+aHRqLi/ETn2uB+1JqwYqVG3LIvdm9lj6imS/pQ==" crossorigin="anonymous"></script>
+    </head>
+    <body>
+        <!-- <div id="voice-header"></div>  -->
+        <nav class="navbar navbar-default navbar-fixed-top">
+			<div class="container-fluid">
+				<div class="navbar-header">
+					<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" data-aria-expanded="false">
+						<span class="sr-only">Toggle navigation</span>
+	                    <span class="icon-bar"></span>
+	                    <span class="icon-bar"></span>
+	                    <span class="icon-bar"></span>
+					</button>
+					<a class="navbar-brand" href="javascript:buildURL('')"><i class="fa fa-viacoin"></i> VOICE</a>
+				</div>
+				<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+		            <ul class="nav navbar-right nav-pills">
+			            <li role="presentation"><a href="#">CONNECT</a></li>
+	                    <li role="presentation"><a href="#">CREATE</a></li>
+	                    <li role="presentation"><a href="#">MONETIZE</a></li>
+	                    <li role="presentation"><a href="#">TRAINING</a></li>
+	                    <li role="presentation"><a href="#">CONTACT</a></li>
+	                    <li role="presentation">
+                    	<?php 
+                    		if($wo->userData['id'] === "0123456789") echo '<a href="javascript:buildURL(\'login\')">LOGIN</a></li>'; 
+                    		else echo '<a href="javascript:buildURL(\'logout\')">LOGOUT</a></li>';
+                    	?>
+	                    <li role="presentation">
+                    	<?php 
+                    		if($wo->userData['id'] === "0123456789") echo '<a href="javascript:buildURL(\'register\')">REGISTER</a></li>'; 
+                    		else echo '';
+                    	?>
+		            </ul>
+		        </div>
+			</div>
+        </nav><br/><br/><br/>
+        <div class="wrap"> 
+            <div class="container">
+                <?php 
+                    if ( isset($_tpl_content) and $_tpl_content != '' ) 
+                    {
+                        echo $_tpl_content; 
+                    }
+                ?>
+            </div>  
+        </div>
+
+        <div id="timers">
+        <?php 
+        	echo "<pre><code>Timers<br>";
+        	wooofTimersShow();
+        	echo "</code></pre>";
+			/*
+			if ( !$wo->isProductionEnv ) {
+				echo '<pre><code>TIMERS<br>';
+				Timer::showTimers($timers);
+				var_dump($wo->app);
+				echo '</code></pre>';
+			}
+			*/
+		?>
+        </div>
+        
+        
+        <!-- <div id="voice-footer"></div> -->
+        <nav class="navbar navbar-default navbar-fixed-bottom">
+	        <div class="container">
+	        	<div class="navbar-footer">
+					<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-2" data-aria-expanded="false">
+						<span class="sr-only">Toggle navigation</span>
+	                    <span class="icon-bar"></span>
+	                    <span class="icon-bar"></span>
+	                    <span class="icon-bar"></span>
+					</button>
+				</div>
+				<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-2">
+		            <ul class="nav navbar-nav">
+		                <li><a href="javascript:buildURL('about')">About Voice</a></li>
+		                <li><a href="javascript:buildURL('privacy')">Privacy</a></li>
+		                <li><a href="javascript:buildURL('terms')">Terms of use</a></li>
+		            </ul>
+		            <ul class="nav navbar-nav navbar-right">
+		                <li><a>Voice is not responsible for user-posted content</a></li>
+		            </ul>
+	            </div>
+	        </div>
+        </nav>
+        
+        <!-- script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.js"></script-->
+        <!-- script type="text/babel" src="<?php echo $wo->assetsURL;?>js/app/Template.jsx"></script-->
+
+        <script>
+        	/*ReactDOM.render(
+            	React.createElement(
+            		SiteHeaderBox, 
+            		null
+            	), 
+            	document.getElementById('voice-header')
+            );
+
+			ReactDOM.render(
+				React.createElement(
+					SiteFooterBox, 
+					null
+				), 
+				document.getElementById('voice-footer')
+			);*/
+        </script>
+    </body>
+</html>

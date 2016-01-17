@@ -1,0 +1,88 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import $ from 'jquery';
+var RB = require('react-bootstrap');
+
+import MessagesBoxComp from './MessagesBoxComp';
+import LoadingComp from './LoadingComp';
+var Select = require('react-select');
+
+export default React.createClass({
+
+	getInitialState: function() {
+		this.emailArr = '';
+		return {
+			loading: false
+		}
+	},
+
+	handleSubmit: function(e) {
+		e.preventDefault();
+		console.log(this.emailArr.split(','));
+
+		if (!this.emailArr) {
+			alert('Write some emails to invite!');
+			return;
+		}
+
+		var url = VOICE.linkPrefix('api/profile/invitePeopleToVoice');
+		//data to send to server!
+		this.setState({
+			loading: true
+		});
+
+		var sentData = {
+			data: this.emailArr
+		}
+
+		VOICE.ajaxCall(url, 'POST', sentData, this, this.cbHandleSendInvitations);
+	},
+
+	cbHandleSendInvitations: function(result) {
+		if(result.inviteOk === true) {
+			// if successully sent
+			this.refs.msgBox.clearErrors();
+			this.refs.msgBox.addSuccess(result.inviteResult + ' invitation(s) will be sent shortly', false);
+			setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+		}
+		else {
+			this.refs.msgBox.addError(result.errors);
+		}
+		this.setState({
+			loading: false
+		});
+	},
+
+	handleOnChange: function(value) {
+		console.log('CHANGING: ', value);
+		this.emailArr = value;
+	},
+  
+	render: function() {
+		return (
+			<span>
+				{
+					this.state.loading === false ?
+						<span>
+							<div className="row">
+								<Select
+									cacheAsyncResults={false}
+									allowCreate={true}
+									multi={true}
+									valueRenderer={this.getAutoCompleteLabel}
+									placeholder={this.props.textPlaceholder}
+									onChange={this.handleOnChange} />
+							</div><br/>
+							<div className="row">
+								<div className="col-md-2 col-md-offset-4">
+									<button type="button" className="btn btn-success" onClick={this.handleSubmit}>Send Invitations</button>
+								</div>
+							</div>
+						</span> :
+						<LoadingComp loadingText="Sending Invitations..."></LoadingComp>
+				}<br/>
+				<MessagesBoxComp ref="msgBox"/>
+			</span>
+		);
+	}
+});	// InvitationComp

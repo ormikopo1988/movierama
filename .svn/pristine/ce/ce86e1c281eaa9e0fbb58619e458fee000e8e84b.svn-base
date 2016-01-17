@@ -1,0 +1,63 @@
+# Run as
+# http://localhost/apf/create_class_v4.0/site/create_view_columns.php?f=c:\xampp\htdocs\voice\util\voice_views.yml
+
+ProjectInfo:
+    project_description: 'VOICE'
+    db_name: voice
+    server_name: 185.70.76.95
+    user_name: root
+    user_password: 1qa@WS3ed$RF
+    directory: ''
+    # NO FILE IS CREATED! Copy-pase output from browser!
+
+Table_Aliases:
+    - { name: address_generic, alias: adrgen }
+    - { name: areas, alias: area }
+    - { name: person_profiles, alias: prof }
+    - { name: sys_domains, alias: sdom }
+    - { name: __domain_values, alias: domval }
+    - { name: __v_domain_values, alias: vdv }
+    - { name: voice_users, alias: vus }
+    - { name: organisations, alias: org }
+    - { name: groups, alias: gro }
+    - { name: ideas, alias: ide }
+    - { name: contents, alias: cnt }
+
+
+Groups:
+    v_person_profile_addresses:
+        - { name: person_profiles }
+        - { name: address_generic }
+        - { name: areas }
+
+    #__v_domain_values:
+    #    - { name: __domains }
+    #    - { name: __domain_values }
+
+    v_voice_persons:
+        - { name: voice_users }
+        - { name: organisations }
+        - { name: person_profiles }
+        
+    v_user_actions:
+        - { name: voice_users }
+        - { name: voice_user_actions, alias: vua }
+        - { name: __v_domain_values }
+
+    v_voice_user_groups:
+        - { name: voice_user_groups, alias: vug }
+        - { name: groups }
+        - { name: voice_users }
+
+    v_ideas:
+        - { name: ideas }
+        - { name: idea_versions, alias: idv }
+        - { name: content}
+        - { name: groups, alias: subteam }
+        - { name: groups, alias: owngr }
+        - { name: __v_domain_values, alias: dvIdeaStatus }
+        - { name: __v_domain_values, alias: dvIdeaType }
+
+
+#  g:
+#    - { name: , alias:  }

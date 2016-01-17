@@ -1,0 +1,129 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import AutoCompleteComp from './AutoCompleteComp';
+import SocialActionsComp from './SocialActionsComp';
+import BookmarkComp from './BookmarkComp';
+import GroupActionsComp from './GroupActionsComp';
+
+export default React.createClass({ //ActivityLogList
+  
+  /*
+	properties
+	autocompleteUrl: last part of api/autoComplete/
+	viewUrl: where to go e.g. profile/view | organisation/view etc.
+  */
+
+  getInitialState: function() {
+  	return {};
+  },
+
+  render: function() {
+  	console.log(this.props);
+  	
+  	if(this.props.data.length !== 0) {
+  		var results = this.props.data;
+  		var voiceUserId = this.props.data[0].VUA_userId || null;
+  	}
+  	
+  	return (
+      <div classNameName="container">
+		<center><a href={VOICE.linkPrefix('profile/view/'+voiceUserId)}><h1>{this.props.title}</h1></a></center>
+		{
+        	this.props.data.length !== 0 ? 
+	        	results.map(function(result) {
+	          		console.log('RESULT: ', result);
+	          		return (
+	          			result.isType === 'LIN' ?
+	          				<div className="row">
+		          				<Activity isType="LIN" key={result.VUA_id} result={result}></Activity>
+		          			</div> : 
+	          			result.isType === 'PRS' ?
+		          			<div className="row">
+		          				<Activity isType="PRS" key={result.VUA_id} result={result}></Activity>
+		          			</div> : 
+		          		result.isType === 'ORG' ?
+		          			<div className="row">
+		          				<Activity isType="ORG" key={result.VUA_id} result={result}></Activity>
+		          			</div> : 
+		          		result.isType === 'GRO' ?
+		          			<div className="row">
+		          				<Activity isType="GRO" key={result.VUA_id} result={result}></Activity>
+		          			</div> : null
+	          		); 
+	          	}) : null
+        }
+      </div>
+    );
+  } 
+});
+
+var Activity = React.createClass({
+
+	render: function() {
+		var result = this.props.result;
+		var isType = this.props.isType;
+
+		//CREATE TIME
+		var actionDateTime = moment.utc(result.VUA_whenDateTime, 'YYYYMMDDhhmmss').fromNow();
+
+		//////////////////////////////////////////////CREATE AVATARS/////////////////////////////////////
+		//CREATE USER'S ACTIVITY IMAGE
+		var userAvatarImg = result.VUS_avatarImg || '$profile_none.png';
+		var userAvatarDivStyle = {
+			backgroundImage: 'url(' + VOICE.imgPrefix(userAvatarImg, 'M') + ')'
+		};
+
+		//CREATE TARGET USER IMAGE
+		var targetUserAvatarImg = result.RELUS_avatarImg || '$profile_none.png';
+		var targetUserAvatarDivStyle = {
+			backgroundImage: 'url(' + VOICE.imgPrefix(targetUserAvatarImg, 'M') + ')'
+		}
+		
+		//CREATE TARGET ORGANISATION IMAGE
+		var targetOrgAvatarImg = result.RELOR_logoImage || '$no_image_available.jpg';
+		var targetOrgAvatarDivStyle = {
+			backgroundImage: 'url(' + VOICE.imgPrefix(targetOrgAvatarImg, 'M') + ')'
+		};
+
+		//CREATE TARGET GROUP IMAGE
+		var targetGroAvatarImg = result.RELGR_avatarImg || '$no_image_available.jpg';
+		var targetGroAvatarDivStyle = {
+			backgroundImage: 'url(' + VOICE.imgPrefix(targetGroAvatarImg, 'M') + ')'
+		};
+		////////////////////////////////END CREATE AVATARS///////////////////////////////////////////////
+
+		return (
+			<div className="col-md-12 col-sm-12">
+				<div className="panel panel-default well-agency">           
+					<i className="fa fa-clock-o smallFa"></i> - <strong><i>{actionDateTime}</i></strong><br/><br/>
+					{
+						isType === 'LIN' ?
+							<span>
+								<i className="fa fa-chevron-right smallFa"></i> <strong>{result.VDV_SDOMVAL_description}</strong>
+							</span> : 
+						isType === 'PRS' ?
+							<span>
+								<a href={VOICE.linkPrefix('profile/view/'+result.VUS_id)} target="_blank">
+									<div className="circle-header-2" style={userAvatarDivStyle}></div>
+								</a> <strong>{result.VDV_SDOMVAL_description}</strong> - <a href={VOICE.linkPrefix('profile/view/'+result.VUA_relevantUserId)}> {result.targetName} <div className="circle-header-2" style={targetUserAvatarDivStyle}></div></a>	
+							</span> : 
+						isType === 'ORG' ?
+							<span>
+								<a href={VOICE.linkPrefix('profile/view/'+result.VUS_id)} target="_blank">
+									<div className="circle-header-2" style={userAvatarDivStyle}></div>
+								</a> <strong>{result.VDV_SDOMVAL_description}</strong> - <a href={VOICE.linkPrefix('organisation/view/'+result.VUA_relevantOrganisationId)}> {result.targetName} <div className="circle-header-2" style={targetOrgAvatarDivStyle}></div></a>
+							</span> : 
+						isType === 'GRO' ?
+							<span>
+								<a href={VOICE.linkPrefix('profile/view/'+result.VUS_id)} target="_blank">
+									<div className="circle-header-2" style={userAvatarDivStyle}></div>
+								</a> <strong>{result.VDV_SDOMVAL_description}</strong> - <a href={VOICE.linkPrefix('group/view/'+result.RELGR_id)}> {result.targetName} <div className="circle-header-2" style={targetGroAvatarDivStyle}></div></a>
+							</span>: null
+					}
+				</div>
+			</div>
+		)
+	}
+});

@@ -1,0 +1,154 @@
+<?php 
+
+	/*
+	 ==========================================================================
+	 */
+
+	// CONTENT API
+
+	// synch Part
+	// Syncronize/Send VOICE Content of VCEN to VCON
+	
+	/*
+	 ==========================================================================
+	 */
+
+	// /capi/synch/metadata/domain/[a:domainCode]
+	$router->map('GET', '/capi/synch/metadata/domain/[**:domainCode]', function($domainCode) use($wo) {
+		try {
+			$res = VO_ContentAPI::getMetadata($wo, null, $domainCode, null);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+			
+	/*
+	 * ==============================================================================
+	 */
+
+	// /capi/synch/metadata/domains
+	$router->map('GET', '/capi/synch/metadata/domains', function() use($wo) {
+		$res = [];
+		$domainsToGet = [
+			'ADDRESS_TYPE',
+			'DEGREE_TYPE',
+			//'ORG_ASSOCIATION_TYPE',
+			'ORG_TYPE',
+			'PERSON_TITLE',
+			'PROFICIENCY_TYPE',
+			//'SOCIAL_ACCOUNT',
+			'VOICE_ROLE',
+			'WORK_RELATION_TYPE',
+		];
+		
+		try {
+			foreach( $domainsToGet as $domainCode ) {
+				$resA = VO_ContentAPI::getMetadata($wo, null, $domainCode, null);
+				if ( $resA === FALSE ) { break; }
+				$res[$domainCode] = $resA;
+			}
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	/*
+	 * ==============================================================================
+	 */
+
+	// /capi/synch/metadata/domain/[a:domainCode]
+	$router->map('GET', '/capi/synch/metadata/tag/[**:tagCategory]', function($tagCategory) use($wo) {
+		try {
+			$res = VO_ContentAPI::getMetadata($wo, null, null, $tagCategory);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+			
+
+	/*
+	 * ==============================================================================
+	 */
+
+	// /capi/synch/metadata/tags
+	$router->map('GET', '/capi/synch/metadata/tags', function() use($wo) {
+		$res = [];
+		$tagCategories = [
+			'ICT', 'IND', 'SKL', 'SRV', 
+			//'AREA', // pseudo-tag handled by getMetadata
+		];
+		
+		try {
+			foreach( $tagCategories as $aCategoryType ) {
+				$resA = VO_ContentAPI::getMetadata($wo, null, null, $aCategoryType);
+				if ( $resA === FALSE ) { break; }
+				$res[$aCategoryType] = $resA;
+			}
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	/*
+	 * ==============================================================================
+	 */
+
+	// /capi/synch/users/get/[new|modified:nORm]/[a:since]
+	$router->map('GET', '/capi/synch/users/get/[new|modified:nORm]/[a:since]', 
+		function($nORm, $since) use($wo) {
+		try {
+			$res = VO_ContentAPI::getNewModifiedUsers($wo, $since, $nORm);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	/*
+	 * ==============================================================================
+	 */
+
+	// /capi/synch/user/[a:userId]
+	$router->map('GET', '/capi/synch/user/[a:userId]',
+		function($userId) use($wo) {
+			try {
+				$res = VO_ContentAPI::getUserData($wo, $userId);
+			}
+			catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+			WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	/*
+	 * ==============================================================================
+	 */
+
+	// /capi/synch/organisations/get/[new|modified:nORm]/[a:since]
+	$router->map('GET', '/capi/synch/organisations/get/[new|modified:nORm]/[a:since]', 
+		function($nORm, $since) use($wo) {
+		try {
+			$res = VO_ContentAPI::getNewModifiedOrgs($wo, $since, $nORm);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	/*
+	 ==========================================================================
+	 */
+
+	// /capi/synch/user/[a:userId]
+	$router->map('GET', '/capi/synch/organisation/[a:orgId]',
+			function($orgId) use($wo) {
+				try {
+					$res = VO_ContentAPI::getOrganisationData($wo, $orgId);
+				}
+				catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+				WOOOF_Util::returnJSON2($wo, $res);
+			});
+	
+	/*
+	 * ==============================================================================
+	*/
+	
+	
+/* End of file capi.php */
+

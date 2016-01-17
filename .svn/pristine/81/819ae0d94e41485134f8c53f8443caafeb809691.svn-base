@@ -1,0 +1,110 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var RB = require('react-bootstrap');
+
+import ContentMainComp from './ContentMainComp';
+import ContentAuthorsComp from './ContentAuthorsComp';
+import ContentTagsComp from './ContentTagsComp';
+import ContentSectionsComp from './ContentSectionsComp';
+
+import MessagesBoxComp from './MessagesBoxComp';
+import LoadingComp from './LoadingComp';
+import FlagComp from './FlagComp';
+
+export default React.createClass({ //ContentComp
+
+	/*
+		Properties
+		1. contentId | 
+		2. data (result of VO_Content::getContent())
+		3. editable (boolean)
+	*/
+
+	getDefaultProps: function() {
+		return {
+			data: {},
+			contentId: '',
+			editable: false
+		};
+	},
+
+	getInitialState: function() {
+		return { 
+			data: this.props.data
+		}
+	},
+
+	componentDidMount: function() {
+		if(Object.keys(this.props.data).length === 0) {
+			var data = {
+				id: this.props.contentId
+			};
+			VOICE.ajaxCall(VOICE.linkPrefix('api/contents/getContent'), 'POST', data, this, this.handleGetContent);
+		}
+	},
+
+	handleGetContent: function(result) {
+		console.log('ContentComp.handleGetContent: ', result);
+		if(result.getContentOk)
+		this.setState({
+			data: result.getContent
+		});
+	},
+
+	render: function() {
+		
+		if(Object.keys(this.state.data).length === 0) {
+			return null;
+		}
+
+		var data = this.state.data;
+		//console.log('INIT DATA:', data);
+
+		var isPartOfIdea = ( data.main.contentTypeDVCode == 'IDEA' ? '1' : '0' );
+
+		var infoElem;
+		if ( data.main.isTemplate == '1' ) {
+			if ( data.main.contentTypeDVCode == 'IDEA' ) {
+				infoElem = 
+					<RB.Badge bsStyle="primary">**TEMPLATE** for Idea</RB.Badge>
+				;
+			}
+			else {
+				infoElem = 
+					<RB.Badge>**TEMPLATE** for {data.main.contentTypeDVCode}</RB.Badge>
+				;
+			}
+		}
+		else {
+				infoElem = 
+					<RB.Badge>{data.main.contentTypeDVCode}</RB.Badge>
+				;
+		}
+
+		var panelStyle = { padding: '15px' };
+
+		return (
+			<div className="panel panel-default" style={panelStyle} >
+				<FlagComp whatId={this.props.contentId} whatType="CNT"></FlagComp>
+				<hr/>
+				{infoElem}&nbsp;
+				{ data.main.contentTypeDVCode != 'IDEA' || data.main.isTemplate == '1'  ?
+					<RB.Badge>{data.main.contentVisibilityDVCode}</RB.Badge>
+					: null
+				}
+				<ContentMainComp editable={this.props.editable} contentId={data.main.id} lookUps={this.props.lookUps} data={data.main} isPartOfIdea={isPartOfIdea}></ContentMainComp>
+				<hr/>
+				<ContentTagsComp editable={this.props.editable} contentId={data.main.id} tags={data.tagsProcessed} isPartOfIdea={isPartOfIdea} lookUps={this.props.lookUps}></ContentTagsComp>
+				<hr/>
+				{
+					isPartOfIdea == '0' && data.main.isTemplate == '0' ?
+					<ContentAuthorsComp editable={this.props.editable} contentId={data.main.id} data={data.authors} isPartOfIdea={isPartOfIdea}></ContentAuthorsComp>
+					:
+					null
+				}
+				<hr/>
+				<ContentSectionsComp editable={this.props.editable} contentId={data.main.id} lookUps={this.props.lookUps} data={data.sections} isPartOfIdea={isPartOfIdea}></ContentSectionsComp>
+			</div>
+		)
+	}
+}); //ContentComp

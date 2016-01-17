@@ -1,0 +1,125 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import ProfileCompletenessComp from './ProfileCompletenessComp';
+var RB = require('react-bootstrap');
+
+export default React.createClass({
+	getInitialState: function() {
+		console.log('BADGES VIEW: ', this.props.data);
+		return {
+			badgeView: this.props.data
+		};
+	},
+
+	render: function() {
+		var badgeView = this.state.badgeView;
+		
+		if(badgeView) {
+			return (
+				<div className="container">
+					<div className="panel panel-default">
+						<div className="panel-heading">
+							<i className="fa fa-certificate"></i> Badges
+						</div>
+						<div className="panel-body">	
+							<div className="row">
+								{
+									badgeView.map(function(badge) {
+										var badgeStyle;
+										var percentageSilver;
+										var percentageGold;
+										var pointsRemaining;
+
+										if(badge.badgeStatisticType === 'registration') {
+											/*badgeStyle = {
+												backgroundColor: '#CD7F32',
+											}
+											return (
+												<div className="col-sm-12 col-md-12 col-lg-12">
+													<div className="col-sm-4 col-md-3 col-lg-3">
+														<div style={badgeStyle} className="badge_container">
+														    <strong>{badge.badgeName.toUpperCase()}</strong>
+														    <div><small>for {badge.badgeStatisticType}</small></div>
+														</div>
+													</div>
+												</div>
+											);*/
+											return;
+										}
+						          		
+						          		switch(badge.badgeLevel) {
+											case '3': // bronze
+												percentageSilver = badge.points / badge.badgeValueNeededForSilver;
+												pointsRemaining = badge.badgeValueNeededForSilver - badge.points;
+
+												badgeStyle = {
+													backgroundColor: '#C0C0C0',
+													opacity: percentageSilver
+												}
+												return (
+													<div className="col-sm-12 col-md-12 col-lg-12 panel">
+														<div className="col-sm-4 col-md-3 col-lg-3">
+															<div style={badgeStyle} className="badge_container">
+															    <strong>{badge.badgeName.toUpperCase()}</strong>
+															    <div><small>for {badge.badgeStatisticType}</small></div>
+															</div>
+														</div>
+														<div className="col-sm-8 col-md-9 col-lg-9 subInfo">
+															<RB.ProgressBar bsStyle="info" now={percentageSilver * 100} label="%(percent)s%" />
+															<b>You need another {pointsRemaining} {badge.badgeStatisticType} to gain silver {badge.badgeName.toUpperCase()} badge.</b>
+														</div>
+													</div>
+												);
+												break;
+											case '2': // silver
+												percentageGold = badge.points / badge.badgeValueNeededForGold;
+												pointsRemaining = badge.badgeValueNeededForGold - badge.points;
+
+												badgeStyle = {
+													backgroundColor: '#ffd700',
+													opacity: percentageGold
+												}
+
+												return (
+													<div className="col-sm-12 col-md-12 col-lg-12 panel">
+														<div className="col-sm-4 col-md-3 col-lg-3">
+															<div style={badgeStyle} className="badge_container">
+															    <strong>{badge.badgeName.toUpperCase()}</strong>
+															    <div><small>for {badge.badgeStatisticType}</small></div>
+															</div>
+														</div>
+														<div className="col-sm-8 col-md-9 col-lg-9 subInfo">
+															<RB.ProgressBar bsStyle="info" now={percentageGold * 100} label="%(percent)s%" />
+															<b>You need another {pointsRemaining} {badge.badgeStatisticType} to gain gold {badge.badgeName.toUpperCase()} badge.</b>
+														</div>
+													</div>
+												);
+												break;
+											case '1': // gold
+												badgeStyle = {
+													backgroundColor: '#ffd700'
+												}
+												return (
+													<div className="col-sm-12 col-md-12 col-lg-12 well">
+														<div className="col-sm-4 col-md-3 col-lg-3">
+															<div style={badgeStyle} className="badge_container">
+															    <strong>{badge.badgeName.toUpperCase()}</strong>
+															    <div><small>for {badge.badgeStatisticType}</small></div>
+															</div>
+														</div>
+													</div>
+												);
+												break;
+						          		}
+						          	})
+						        }
+		        			</div>
+						</div>
+					</div>
+				</div>
+			);
+		}
+
+		
+	}
+});

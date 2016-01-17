@@ -1,0 +1,16 @@
+<?php
+/* Class [VO_TblVoiceUserSentInvitations] for table [voice_user_sent_invitations] */
+
+class VO_TblVoiceUserSentInvitations extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'voice_user_sent_invitations';
+
+    public $id;
+    public $isDeleted;
+    public $voiceUserId;
+    public $effectiveDate;
+    public $email;
+    public $fromSocialAccount;
+    public $isAccepted;
+
+}  // VO_TblVoiceUserSentInvitations

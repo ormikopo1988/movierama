@@ -1,0 +1,236 @@
+<?php
+
+class VO_Organisations {
+	const _ECP = 'ORG';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param VO_TblUser $obj
+	 * @param bool $fetchBack
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static 
+	function save( WOOOF $wo, VO_TblOrganisation &$obj, $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	    
+		$t1 = new WOOOF_dataBaseTable($wo->db, 'organisations');
+		if ( !$t1->constructedOk ) { return false; }
+		
+		if ( !$wo->hasContent($obj->name)  ) {
+			$wo->logError(self::_ECP."0010 No value provided for [name]" );
+			return false;
+		}
+		if ( !$wo->hasContent($obj->orgDomain)  ) {
+			$wo->logError(self::_ECP."0020 No value provided for [orgDomain]" );
+			return false;
+		}
+		
+		if ( $wo->hasContent($obj->id) ) {
+			// update
+			// TODO:
+			$wo->logError("$place NIY!");
+			return false;
+		}
+		else {
+			// insert
+			$obj->isDeleted			= '0';
+			$obj->active			= '1';
+			$obj->createdDateTime 	= WOOOF::currentGMTDateTime();
+			$obj->updatedDateTime	= $obj->createdDateTime;
+			
+			$newId = $t1->insertRowFromArraySimple( $obj->toArray() );
+			if ( $newId === FALSE ) { return false; }
+			$obj->id = $newId;
+		}
+
+		if ( $fetchBack ) {
+			// Get back into $obj based on id
+			// TODO:
+		}
+	  
+		return $obj->id;
+	}	// save
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param string $domain
+	 * @return false | array[ 'isOrgInVOICE' => bool, 'orgInfo' => [ 'name', 'description', 'id', 'acceptEmailsforAdmin' ] ]
+	 */
+	public static 
+	function checkOrgByDomain( WOOOF $wo, $domain )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+		
+		$out = [
+			'isOrgInVOICE' => false,
+		];
+	  
+		$t1 = new WOOOF_dataBaseTable($wo->db, 'organisations');
+		if ( !$t1->constructedOk ) { return false; }
+	  
+		$res = $t1->getResult( [ 'orgDomain' => $domain ] );
+		if ( $res === FALSE ) { return false; }
+	  
+		if ( $res['rowsFetched'] > 0 ) {
+			// Assume 1st one is best...
+	  		$out['isOrgInVOICE'] = true;
+			$rec = $t1->resultRows[0];
+			
+			$out['isOrgInVOICE']= true;
+			$name 				= $rec['name'];
+			$description 		= $rec['description'];
+			$image				= 'image?';
+			$orgId				= $rec['id'];
+			$acceptEmailsforAdmin = $rec['acceptEmailsForAdmin'];
+	  	}
+	  	else {
+	  		// Not found in VOICE
+	  		$out['isOrgInVOICE'] = false;
+	  		$orgId = null;
+	  		$acceptEmailsforAdmin = '';
+	  		
+	  		$name = $description = $image = null;
+
+	  		// Method 1 (V2 in _tests.php)
+	  		$metadata = WOOOF_Util::getSiteMetadataAndProperties($wo, $domain);
+	  		
+	  		// Method 2 (V3 in _tests.php)
+			//$metadata = WOOOF_Util::getSiteMetadataV3($wo, $domain);
+	  		
+			$name = $domain;
+			
+	  		if ( $metadata !== FALSE ) {
+	  			foreach( [ 'title', 'og:title', 'author', 'og:site', 'author', 'generator' ] as $aMeta ) {
+	  				if ( $wo->hasContentArrayEntry($metadata, $aMeta) ) {
+	  					//$name = $metadata[$aMeta];
+	  					$description = $metadata[$aMeta];
+	  					break;
+	  				}
+	  			}
+	  			/*
+	  			foreach( [ 'description', 'og:description' ] as $aMeta ) {
+	  				if ( $wo->hasContentArrayEntry($metadata, $aMeta) ) {
+	  					if ( !$wo->hasContent($name) ) {
+	  						$name = $metadata[$aMeta];
+	  					}
+	  					else {
+	  						$description = $metadata[$aMeta];
+	  					}
+	  					break;
+	  				}
+	  			}
+	  			*/
+	  			
+	  			if ( $wo->hasContentArrayEntry($metadata, 'og:image') ) {
+	  				$image = $metadata['og:image'];
+	  			}
+	  			
+	  		}	// found metadata (site was accessible)
+	  		
+	  		if ( !$wo->hasContent($name) ) { $name = $domain; }
+	  		 
+	  	}	// in VOICE or not
+	  
+	  	$out['orgInfo'] = array(
+	  		'name' 			=> $name,
+	  		'description' 	=> $description,
+	  		'image'			=> $image,
+	  		'id'			=> $orgId,
+	  		'acceptEmailsforAdmin' => $acceptEmailsforAdmin
+	  	);
+	  
+	  return $out;
+	}	// checkOrgByDomain
+
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in	// [ *'name', *'orgDomain', 'shortName',  'orgURL', 'description' ]
+	 * @return false | new user id
+	 */
+	public static
+	function registerOrganisation( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	
+		// (Re)check everything here
+		//
+	
+		$errors = [];
+		
+		if( !$wo->hasContentArrayEntry($in, 'name' )  || !$wo->hasContentArrayEntry($in, 'orgDomain') ) {
+			$wo->logError(self::_ECP."0010 You must provide 'name' and 'orgDomain' values");
+			return false;
+		}
+		
+		$rOrg = $wo->db->getRowByColumn( 'organisations', 'name', $in['name'] );
+		if ( $rOrg === FALSE ) { return FALSE; }
+		
+		if ( $rOrg !== NULL ) {
+			$wo->logError(self::_ECP."0020 Organisation [{$in['name']}] is already registered.");
+			return false;
+		}
+		
+		$obj = new VO_TblOrganisation($in);
+		$orgId = self::save($wo, $obj);
+		
+		return $orgId;
+		
+	}	// registerOrganisation
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static
+	function search( WOOOF $wo, $input, $matchMode='STD', $data='FULL', $maxRows=100 )
+	{
+		// TODO: based on _load_organisations. Need to clear this up!!
+		
+		$maxRows = (int) $maxRows;
+		
+		$sql =  "select crunchbase_uuid, name, homepage_domain, location_city, location_region ";
+		$sql .=	"from _load_organisations ";
+		$sql .= "where name like '%$input%' ";
+		$sql .= "order by name ";
+		$sql .= "limit $maxRows";
+		
+		$res = $wo->db->getResultByQuery($sql, true, false);
+		if ( $res === FALSE ) { return FALSE; }
+		
+		$res = $wo->db->resultRows;
+
+		$out = [];
+		foreach( $res as $aRes ) { 
+			$out[] = [
+				'value' => $aRes['crunchbase_uuid'], 
+				'label' => $aRes['name'] . 
+					' (' . $aRes['location_city'] . ', ' . $aRes['location_region'] . ') ' .
+					$aRes['homepage_domain']
+			];
+		}
+		
+		return $out;
+	}	// search
+	
+}	// VO_Organisations

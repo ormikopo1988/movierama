@@ -1,0 +1,210 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var RB = require('react-bootstrap');
+import $ from 'jquery';
+
+import MessagesBoxComp from './MessagesBoxComp';
+
+export default React.createClass({ //GroupActionsComp
+
+  getInitialState: function() {
+    var member;
+    var friendStatus;
+    var isAdmin = 'false';
+    console.log(this.props.memberships);
+    if(this.props.memberships.memberStatus === 'Y' || this.props.memberships.memberStatus === 'A') {
+      member = 'true1'; //true1 means i am already member in the group
+      if(this.props.memberships.memberStatus === 'A') {
+        isAdmin = 'true';
+      }
+    }
+    
+    else if(this.props.memberships.memberStatus === 'N1'){
+      member = 'false1'; //false1 means I am not a member and I have not already made a join request 
+    }
+
+    else if(this.props.memberships.memberStatus === 'N2') {
+      member = 'true2';
+    }
+
+    return {
+      memberships: this.props.memberships,
+      member: member,
+      isAdmin: isAdmin
+  	};
+  },
+
+  requestJoinGroup: function(urlString) {
+    var url = VOICE.linkPrefix(urlString);
+    VOICE.ajaxCall(url, 'POST', {}, this, this.cbHandleRequestJoin);
+  },
+
+  cbHandleRequestJoin: function(result) {
+    console.log(result);
+    if(result.requestJoinOk) {
+      this.refs.msgBox.clearErrors();
+      this.refs.msgBox.addSuccess('Join request successful!', false);
+      setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+      this.setState({
+        member: 'true2' //true2 means i successfully made a join request, but i am still not a member till the admin approves me
+      });
+
+      var refreshData = {
+        requestorId: VOICE.globals.userId,
+        targetIds: [this.state.memberships.targetId]
+      };
+      console.log('Refresh Data: ', refreshData);
+      VOICE.ajaxCall(VOICE.linkPrefix('api/groups/getMembershipInfo'), 'POST', refreshData, this, this.refreshData);
+    }
+
+    else {
+      this.refs.msgBox.addError(result.errors);
+      setTimeout(this.refs.msgBox.clearErrors, 5000);
+    }
+  },
+
+  joinGroup: function(urlString) {
+    var url = VOICE.linkPrefix(urlString);
+    VOICE.ajaxCall(url, 'POST', {}, this, this.cbHandleJoin);
+  },
+
+  cbHandleJoin: function(result) {
+    console.log(result);
+    if(result.joinOk) {
+      this.refs.msgBox.clearErrors();
+      this.refs.msgBox.addSuccess('Follow successful!', false);
+      setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+      this.setState({
+        member: 'true1'
+      });
+
+      var refreshData = {
+        requestorId: VOICE.globals.userId,
+        targetIds: [this.state.memberships.targetId]
+      };
+      console.log('Refresh Data: ', refreshData);
+      VOICE.ajaxCall(VOICE.linkPrefix('api/groups/getMembershipInfo'), 'POST', refreshData, this, this.refreshData);
+    }
+
+    else {
+      this.refs.msgBox.addError(result.errors);
+      setTimeout(this.refs.msgBox.clearErrors, 5000);
+    }
+  },
+
+  deleteRequestJoinGroup: function(urlString) {
+    var url = VOICE.linkPrefix(urlString);
+    VOICE.ajaxCall(url, 'POST', {}, this, this.cbHandleDeleteRequest);
+  },
+
+  cbHandleDeleteRequest: function(result) {
+    console.log(result);
+    if(result.joinRequestDeleteOk) {
+      this.refs.msgBox.clearErrors();
+      this.refs.msgBox.addSuccess('Join request deleted successfully!', false);
+      setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+      this.setState({
+        member: 'false2'
+      });
+
+      var refreshData = {
+        requestorId: VOICE.globals.userId,
+        targetIds: [this.state.memberships.targetId]
+      };
+      
+      VOICE.ajaxCall(VOICE.linkPrefix('api/groups/getMembershipInfo'), 'POST', refreshData, this, this.refreshData);
+    }
+
+    else {
+      this.refs.msgBox.addError(result.errors);
+      setTimeout(this.refs.msgBox.clearErrors, 5000);
+    }
+  },
+
+  leaveGroup: function(urlString) {
+    var url = VOICE.linkPrefix(urlString);
+    VOICE.ajaxCall(url, 'POST', {}, this, this.cbHandleLeave);
+  },
+
+  cbHandleLeave: function(result) {
+    console.log(result);
+    if(result.leaveOk) {
+      this.refs.msgBox.clearErrors();
+      this.refs.msgBox.addSuccess('Leave request successful!', false);
+      setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+      this.setState({
+        member: 'false1'
+      });
+
+      var refreshData = {
+        requestorId: VOICE.globals.userId,
+        targetIds: [this.state.memberships.targetId]
+      };
+      
+      VOICE.ajaxCall(VOICE.linkPrefix('api/groups/getMembershipInfo'), 'POST', refreshData, this, this.refreshData);
+    }
+
+    else {
+      this.refs.msgBox.addError(result.errors);
+      setTimeout(this.refs.msgBox.clearErrors, 5000);
+    }
+  },
+
+  refreshData: function(result) {
+    console.log('REFRESHED DATA: ', result);
+    this.setState({
+      memberships: result.getMemberships[0]
+    });
+  },
+
+  render: function() {
+     var con = this.state.memberships;
+     console.log('CCCCCCCCCCOOOOOOOOOONNNNNNNNN: ', con);
+
+     var cbJoin = this.joinGroup.bind(null, con.membershipLink);
+     var cbRequestJoin = this.requestJoinGroup.bind(null, con.membershipLink);
+     var cbLeave = this.leaveGroup.bind(null, con.membershipLink);
+     var cbRequestDelete = this.deleteRequestJoinGroup.bind(null, con.membershipLink);
+     
+     return (
+        <span>
+          {
+            VOICE.globals.userId !== con.targetId ?
+              <div className="groupActionsDiv">
+                  {
+                    this.state.member === 'false1' ? 
+                      <button type="button" className="btn btn-default btn-lg btn-link" 
+                        onClick={cbJoin}>
+                          <span><i className="fa fa-sign-in fa-lg"></i> Follow Group</span>
+                      </button> :
+                    this.state.member === 'false2' ? 
+                      <button type="button" className="btn btn-default btn-lg btn-link" 
+                        onClick={cbRequestJoin}>
+                          <span><i className="fa fa-sign-in fa-lg"></i> Request Join Group</span>
+                      </button> :
+                    this.state.member === 'true2' ? 
+                      <button type="button" className="btn btn-default btn-lg btn-link" 
+                        onClick={cbRequestDelete}>
+                          <span><i className="fa fa-ban fa-lg"></i> Delete Join Request</span>
+                      </button> :
+                    this.state.isAdmin === 'false' ?
+                      <button type="button" className="btn btn-default btn-lg btn-link" 
+                        onClick={cbLeave}>
+                          <span><i className="fa fa-sign-out"></i> Leave Group</span>
+                      </button> :
+                      <span>
+                        <a href={VOICE.linkPrefix('group/edit/'+con.targetId)}>
+                          <i className="fa fa-pencil"></i> Edit Group
+                        </a> | <a href={VOICE.linkPrefix('group/joinRequests/'+con.targetId)}>
+                          <i className="fa fa-hand-paper-o"></i> Handle Join Requests
+                        </a> 
+                      </span>
+                  }
+                  <br/><br/>
+                  <MessagesBoxComp ref="msgBox"/>
+               </div> : null
+           }
+         </span>
+      );
+  }
+}); //GroupActionsComp

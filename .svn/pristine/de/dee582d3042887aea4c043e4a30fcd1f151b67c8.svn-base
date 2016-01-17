@@ -1,0 +1,165 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import BookmarkComp from './BookmarkComp';
+import GroupActionsComp from './GroupActionsComp';
+import MessagesBoxComp from './MessagesBoxComp';
+import LoadingComp from './LoadingComp';
+import ContentComp from './ContentComp';
+import IdeaStatusesComp from './IdeaStatusesComp';
+var RB = require('react-bootstrap');
+
+export default React.createClass({ //IdeaEdit
+
+  render: function() {
+  	var result = this.props.data;
+  	return (
+      <div classNameName="container">
+		<div className="row">
+        	<Idea key={result.IDE_id} result={result} lookUps={this.props.lookUps}></Idea>
+	    </div>
+      </div>
+    );
+  } 
+});
+
+var Idea = React.createClass({
+
+	getInitialState: function() {
+		return {
+			loading: false
+		}
+	},
+
+	handleSave: function() {
+	    var ideaTypeDVId = this.refs.ideaTypeDVId.getValue() || '';
+	    
+	    if(!ideaTypeDVId) {
+	      alert('You must fill all the required input fields!');
+	      return;
+	    }
+
+		var data = {
+	      id: this.props.result.IDE_id,
+	      ideaTypeDVId: ideaTypeDVId,
+	    }
+	  
+	    var url = VOICE.linkPrefix('api/ideas/saveIdeaType');
+	    //data to send to server!
+	    this.setState({
+	      loading: true
+	    });
+	    
+	    VOICE.ajaxCall(url, 'POST', data, this, this.cbHandleSave);
+	},
+
+	handleSaveVersion: function() {
+	    var versionName = this.refs.versionName.getValue() || '';
+	    
+		var data = {
+	      id: this.props.result.IDE_id,
+	      versionName: versionName,
+	    }
+	  
+	    var url = VOICE.linkPrefix('api/ideas/newVersion');
+	    //data to send to server!
+	    this.setState({
+	      loading: true
+	    });
+	    
+	    VOICE.ajaxCall(url, 'POST', data, this, this.cbHandleSaveVersion);
+	},
+
+	cbHandleSave: function(result) {
+		if(result.ideaTypeSavedOk === true) {
+	    	this.refs.msgBox.clearErrors();
+			this.refs.msgBox.addSuccess('Your idea type was edited successully!', false);
+			setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+		}
+		else {
+			this.refs.msgBox.addError(result.errors);
+		}
+		this.setState({
+			loading: false
+	    });
+	},
+
+	cbHandleSaveVersion: function(result) {
+		if(result.ideaNewVersionSavedOk === true) {
+	    	this.refs.msgBox.clearErrors();
+			this.refs.msgBox.addSuccess('Your new idea version created successully!', false);
+			setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+
+			//TODO - REFRESH DATA
+			window.location.href = VOICE.linkPrefix('idea/edit/'+this.props.result.IDE_id);	
+		}
+		else {
+			this.refs.msgBox.addError(result.errors);
+		}
+		this.setState({
+			loading: false
+	    });
+	},
+
+	render: function() {
+		var result = this.props.result;
+		console.log('IdeaEdit.render: RESULT:', result);
+		
+		return (
+			<RB.Well>
+	          <center><h3>Edit Idea</h3></center>
+	          <center>
+	          	<h3>
+	          		Current Version: v.{result.IDV_versionString} 
+	          		{ 
+	          			result.IDV_versionName ?
+	          			<span> - {result.IDV_versionName}</span> : null
+	          		}
+	          	</h3>
+	          </center>
+	          <hr/>
+	          <RB.Row>
+	            <center>
+	            	<RB.Col md={12}>
+	            		<IdeaStatusesComp data={this.props.result}></IdeaStatusesComp>
+            		</RB.Col>
+	            </center>
+	          </RB.Row><hr/>
+	          <RB.Row>
+	            <RB.Col md={12}>
+	              <RB.Input type="text" defaultValue={result.IDV_versionName} addonBefore="Version Name" ref="versionName" name="versionName" ></RB.Input>
+	            </RB.Col>
+	            <center>
+		            <RB.Col md={12}>
+		            	<RB.Button bsStyle="success" onClick={this.handleSaveVersion}>Make New Version</RB.Button>
+		            </RB.Col>
+	            </center>
+	          </RB.Row><hr/>
+	          <RB.Row>
+	            <RB.Col md={12}>
+	              <RB.Input defaultValue={result.IDV_ideaTypeDVId} type="select" addonBefore="Idea Type (*)" ref="ideaTypeDVId" name="ideaTypeDVId" >
+	                <option value=""> - Select Idea Type - </option>
+	                {VOICE.renderOptions(this.props.lookUps.IDEA_TYPE)}
+	              </RB.Input>
+	            </RB.Col>
+	          </RB.Row><br/>
+	          <RB.Row>
+	            <center>
+	            	{
+               			this.state.loading === false ?
+                  			<RB.Button bsStyle="success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save Type</RB.Button> :
+                  			<LoadingComp loadingText="Saving Idea..."></LoadingComp>
+             	    }
+	            </center>
+	          </RB.Row><br/>
+	          <ContentComp editable={true} lookUps={this.props.lookUps} contentId={result.CNT_id} isPartOfIdea={true}></ContentComp>
+	          <RB.Row>
+	            <RB.Col md={12}>
+	              <MessagesBoxComp ref="msgBox"/>
+	            </RB.Col>
+	          </RB.Row>
+	        </RB.Well>
+		)
+	}
+});

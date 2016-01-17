@@ -1,0 +1,15 @@
+<?php
+/* Class [VO_TblUserBookmarks] for table [voice_user_bookmarks] */
+
+class VO_TblUserBookmarks extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'voice_user_bookmarks';
+
+    public $id;
+    public $isDeleted;
+    public $createdDateTime;
+    public $bookmarksId;
+    public $thisId;
+    public $targetType;
+
+}  // VO_TblUserBookmarks

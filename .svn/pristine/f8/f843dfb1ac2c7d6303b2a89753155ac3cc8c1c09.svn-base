@@ -1,0 +1,156 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import BookmarkComp from './BookmarkComp';
+import GroupActionsComp from './GroupActionsComp';
+import MessagesBoxComp from './MessagesBoxComp';
+import LoadingComp from './LoadingComp';
+var RB = require('react-bootstrap');
+
+export default React.createClass({ //GroupEdit
+
+  render: function() {;
+  	var result = this.props.data;
+  	return (
+      <div classNameName="container">
+		<div className="row">
+        	<Idea key={result.IDE_id} result={result} lookUps={this.props.lookUps}></Idea> :
+	    </div>
+      </div>
+    );
+  } 
+});
+
+var Idea = React.createClass({
+
+	getInitialState: function() {
+		return {
+			loading: false
+		}
+	},
+
+	handleSave: function() {
+	    var title = this.refs.title.getValue().trim() || '';
+	    var versionName = this.refs.versionName.getValue().trim() || '';
+	    var shortDescription = this.refs.shortDescription.getValue().trim() || '';
+	    var longDescription = this.refs.longDescription.getValue().trim() || '';
+	    var ideaTypeDVId = this.refs.ideaTypeDVId.getValue() || '';
+	    
+	    if(!title || !ideaTypeDVId || !shortDescription) {
+	      alert('You must fill all the required input fields!');
+	      return;
+	    }
+
+		var data = {
+	      id: this.props.result.IDE_id,
+	      title: title,
+	      versionName: versionName,
+	      shortDescription: shortDescription,
+	      longDescription: longDescription,
+	      ideaTypeDVId: ideaTypeDVId,
+	    }
+
+	    var fd = new FormData(); //api ths javascript
+
+     	if(ReactDOM.findDOMNode(this.refs.ideaLogoImage).value !== '') {
+     		fd.append('ideaLogoImage', ReactDOM.findDOMNode(this.refs.ideaLogoImage).files[0]);
+	    }
+	  	
+	    fd.append('data', JSON.stringify(data));
+	  
+	    var url = VOICE.linkPrefix('api/ideas/saveIdea');
+	    //data to send to server!
+	    this.setState({
+	      loading: true
+	    });
+	    
+	    VOICE.ajaxCallWithFiles(url, 'POST', fd, this, this.cbHandleSave);
+	},
+
+	cbHandleSave: function(result) {
+		if(result.ideaCreatedOk === true) {
+	    	this.setState({
+	    		ideaLogoImage: result.IDV_ideaLogoImage
+	    	});
+  		
+			this.refs.msgBox.clearErrors();
+			this.refs.msgBox.addSuccess('Your idea settings were saved successully!', false);
+			setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+		}
+		else {
+			this.refs.msgBox.addError(result.errors);
+		}
+		this.setState({
+	      loading: false
+	    });
+	},
+
+	render: function() {
+		var result = this.props.result;
+		console.log('RESULT: ', result);
+		var ideaLogoImage = this.state.ideaLogoImage || result.IDV_ideaLogoImage || '$no_image_available.jpg';
+		var avatarURL = VOICE.imgPrefix(ideaLogoImage, '');
+		var avatarDivStyle = {
+			backgroundImage: 'url(' + VOICE.imgPrefix(ideaLogoImage, 'M') + ')'
+		};
+
+		var memberSince = moment.utc(result.IDE_effectiveDate, 'YYYYMMDDhhmmss').fromNow();
+
+		return (
+			<RB.Well>
+	          <center><h3>Edit Idea Settings</h3></center><hr/>
+	          <RB.Row>
+	            <RB.Col md={12}>
+	              <RB.Input defaultValue={result.IDV_ideaTypeDVId} type="select" addonBefore="Idea Type (*)" ref="ideaTypeDVId" name="ideaTypeDVId" >
+	                <option value=""> - Select Idea Type - </option>
+	                {VOICE.renderOptions(this.props.lookUps.IDEA_TYPE)}
+	              </RB.Input>
+	            </RB.Col>
+	          </RB.Row><br/>
+	          <RB.Row>
+				<RB.Col md={12}>
+					<center>
+						<a href={avatarURL} target="_blank">
+							<div className="circle" style={avatarDivStyle}></div>
+						</a>
+					</center><br/>
+					<center>
+						<label>
+							<i className="fa fa-camera"></i>
+						</label>
+			  			<input type="file" id="input-1" ref="ideaLogoImage" name="ideaLogoImage" />
+					</center>
+				</RB.Col>
+			  </RB.Row><br/>
+	          <RB.Row>
+	            <RB.Col md={12}>
+	              <RB.Input type="text" defaultValue={result.IDV_title} addonBefore="Title (*)" placeholder="Title..." ref="title" name="title" />
+	            </RB.Col>
+	          </RB.Row>
+	          <RB.Row>
+	            <RB.Col md={12}>
+	              <RB.Input rows={3} defaultValue={result.IDV_shortDescription} type="textarea" addonBefore="Short Description (*)" placeholder="Short Description..." ref="shortDescription" name="shortDescription" />
+	            </RB.Col>
+	            <RB.Col md={12}>
+	              <RB.Input rows={5} defaultValue={result.IDV_longDescription} type="textarea" addonBefore="Long Description" placeholder="Long Description..." ref="longDescription" name="longDescription" />
+	            </RB.Col>
+	          </RB.Row><br/>
+	          <RB.Row>
+	            <center>
+	            	{
+               			this.state.loading === false ?
+                  			<RB.Button bsStyle="success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save</RB.Button> :
+                  			<LoadingComp loadingText="Saving Idea..."></LoadingComp>
+             	    }
+	            </center>
+	          </RB.Row><br/>
+	          <RB.Row>
+	            <RB.Col md={12}>
+	              <MessagesBoxComp ref="msgBox"/>
+	            </RB.Col>
+	          </RB.Row>
+	        </RB.Well>
+		)
+	}
+});

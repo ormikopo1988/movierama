@@ -1,0 +1,578 @@
+<?php
+
+
+
+class VO_CtrlSite {
+	const _ECP = 'SIT';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 */
+	public static 
+	function home( WOOOF $wo ) {
+		
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='Welcome to VOICE!';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		$paramNames = array(
+		);
+		$in = $wo->getMultipleGetPost( $paramNames );
+		
+		$extra = '';
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$userData = [];
+		}
+		else {
+			$userData =  VO_ProfileData::getMainInfo($wo, $wo->app->userId);
+			if ( $userData === FALSE ) {
+				$wo->handleShowStopperError('500 Failed to get Profile Data');
+			}
+		}
+		$userData = json_encode( $userData );
+		
+		$content = <<<EOH
+		<div id="content-main"></div>
+		
+		<script>
+			ReactDOM.render(
+				React.createElement(
+					Home, 
+					{ userData: $userData }
+				), 
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+		;
+		
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+		
+	}	// home
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param string $kind	| about, terms, privacy, registrationThanks, registrationIsRequired
+	 */
+	public static function showText( WOOOF $wo, $kind ) {
+	
+		// TODO: create fragments and complete the presentation...
+		
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle= ucfirst($kind);
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+	
+		$kind = trim(strtolower($kind));
+		$kindCLEANED = $wo->cleanUserInput($kind);
+		
+		// 
+		if ( !in_array($kind, array( 
+			'about', 'terms', 'privacy',
+			'registrationthanks', 'registrationisrequired',)
+		) ) {
+			$wo->logError(self::_ECP."0010 Bad 'kind' value [$kindCLEANED]");
+			$wo->handleShowStopperError();
+		}
+		
+		$content = <<<EOH
+		<div id='content'>
+			<h1>$kind Text</h1>
+			<p>blah blah blah</p>
+		</div>
+EOH
+	;
+	
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+		
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//showText
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	public static function login( WOOOF $wo ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE Login Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+	
+		if ( $wo->userData['id'] != '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		$content = <<<EOH
+		<div id='content-main'></div>
+				
+		<script>
+			ReactDOM.render(
+				React.createElement(
+					LoginBox, 
+					{ nextRoute: "" }
+				), 
+				document.getElementById('content-main')
+			);
+			/*
+			ReactDOM.render(
+				<LoginBox nextRoute="profile/view" />,
+				document.getElementById('content-main')
+			);
+			*/
+		</script>
+EOH
+	;
+	
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+		
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//login
+
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 */
+	public static
+	function logout( WOOOF $wo )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		//$wo->debug( "$place: " );
+	
+		$usActId = VO_Users::saveAction($wo, 'LOU');
+		$wo->db->commit();
+		
+		$wo->invalidateSession();
+	
+		
+		header( "Location:  " . $wo->assetsURL );
+	}	// logout
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	public static 
+	function redirectToEditProfileIfNeeded( WOOOF $wo ) {
+		if ( !$wo->app->isUserProfileOk ) {
+			header( 'Location: ' . $wo->assetsURL . 'profile/edit' );
+			exit();
+		}
+	}
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function usersList( WOOOF $wo ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE User List Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+	
+		$result = $wo->db->query('SELECT VUS_id FROM v_voice_persons order by PROF_lastName, PROF_firstName');
+		if ( $result === FALSE ) { return false; }
+			
+		while($row = $wo->db->fetchAssoc($result))
+		{
+			$targetIds[] = $row['VUS_id'];
+		}
+		
+		$userList = VO_Users::getUsers($wo, $wo->app->userId, $targetIds);
+		
+		if($userList === FALSE) { 
+			$wo->handleShowStopperError('505 Failed to get User List'); 
+		}
+		
+		$list = json_encode( $userList );
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var list = $list;
+			ReactDOM.render(
+				React.createElement(
+					ObjectsList,
+					{ data: list, title: 'Users List', isType: 'PRS',
+					autocompleteUrl: 'users', viewUrl: 'profile/view'}
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+	;
+	
+	$tpl = array(
+			'browserTitle'	=> $browserTitle,
+			'content' 		=> $content,
+			'errorMessage'	=> '',
+			'message'		=> '',
+	);
+	
+	
+	$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//usersList
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function userActivityLog( WOOOF $wo, $voiceUserId ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE User Activity Log Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if($voiceUserId !== $wo->app->userId) {
+			$wo->logError(self::_ECP."2939 Not authorized to see this");
+			$wo->handleShowStopperError();
+		}
+	
+		$activities = VO_Users::getActivityLog($wo, $voiceUserId);
+		if($activities === FALSE) { return false; }
+		
+		$activities = json_encode( $activities );
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var activities = $activities;
+			ReactDOM.render(
+				React.createElement(
+					ActivityLogList,
+					{ data: activities, title: 'User Activity Log', isType: 'PRS' }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+	;
+	
+	$tpl = array(
+			'browserTitle'	=> $browserTitle,
+			'content' 		=> $content,
+			'errorMessage'	=> '',
+			'message'		=> '',
+	);
+	
+	
+	$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//userActivityLog
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function userNotifications( WOOOF $wo, $voiceUserId ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE User Notifications Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if($voiceUserId !== $wo->app->userId) {
+			$wo->logError(self::_ECP."3569 Not authorized to see this");
+			$wo->handleShowStopperError();
+		}
+	
+		$notifications = VO_Users::getNotifications($wo, $voiceUserId);
+		if($notifications === FALSE) { return false; }
+	
+		$notifications = json_encode( $notifications );
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var notifications = $notifications;
+			ReactDOM.render(
+				React.createElement(
+					NotificationsList,
+					{ data: notifications, title: 'User Notifications', isType: 'PRS' }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+	;
+	
+	$tpl = array(
+			'browserTitle'	=> $browserTitle,
+			'content' 		=> $content,
+			'errorMessage'	=> '',
+			'message'		=> '',
+	);
+	
+	
+	$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//userNotifications
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function orgsList( WOOOF $wo ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE Organisations List Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+	
+		$result = $wo->db->query("SELECT id FROM organisations WHERE isReallyInVOICE='1'");
+		if ( $result === FALSE ) { return false; }
+			
+		while($row = $wo->db->fetchAssoc($result))
+		{
+			$targetIds[] = $row['id'];
+		}
+	
+		$orgList = VO_Organisations::getOrgs($wo, $wo->app->userId, $targetIds);
+
+		if($orgList === FALSE) { 
+			$wo->handleShowStopperError('505 Failed to get Org List'); 
+		}
+	
+		$list = json_encode( $orgList );
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var list = $list;
+			ReactDOM.render(
+				React.createElement(
+					ObjectsList,
+					{ data: list, title: 'Organisations List', isType: 'ORG', 
+					autocompleteUrl: 'organisations', viewUrl: 'organisation/view'}
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+	;
+	
+	$tpl = array(
+			'browserTitle'	=> $browserTitle,
+			'content' 		=> $content,
+			'errorMessage'	=> '',
+			'message'		=> '',
+	);
+	
+	
+	$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//orgsList
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function autoCompleteUrl( WOOOF $wo, $searchWhat ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE autoCompleteUrl';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var url = '$wo->assetsURL' + 'api/autoComplete/$searchWhat';
+			ReactDOM.render(
+				React.createElement(
+					AutoCompleteComp,
+					{ url: url, minCharsForSearching: 3 }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+	;
+	
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+	
+	
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//autoCompleteUrl
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function autoComplete( WOOOF $wo, $type ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE AutoComplete';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		$paramNames = array(
+			'input'
+		);
+		
+		$in = $wo->getMultipleGetPost( $paramNames );
+		
+		if ( !$wo->hasContent($in['input']) ) {
+			return [];
+		}
+		
+		$input = $in['input'];
+		
+		switch ($type) {
+			case 'areas':
+				$out = VO_Addresses::searchAreas($wo, $input);
+				break;
+			case 'organisations': 
+				$out = VO_Organisations::search($wo, $input);
+				break;
+			case 'users':
+				$out = VO_Users::search($wo, $input);
+				break;
+			case 'disGroups':
+				$out = VO_Groups::search($wo, $input, 'DIS');
+				break;
+			case 'teamGroups':
+				$out = VO_Groups::search($wo, $input, 'TEA');
+				break;
+			case 'skills':
+				$out = VO_Tags::search($wo, $input, 'SKL');
+				break;
+			case 'services':
+				$out = VO_Tags::search($wo, $input, 'SRV');
+				break;
+			case 'industries':
+				$out = VO_Tags::search($wo, $input, 'IND');
+				break;
+			case 'themes':
+				$out = VO_Tags::search($wo, $input, 'THE');
+				break;
+			case 'tagsICT':
+				$out = VO_Tags::search($wo, $input, 'ICT');
+				break;
+			case 'tagsALL':
+				$out = VO_Tags::search($wo, $input, '');
+				break;
+			case 'tagsAndAreas':
+				$out = VO_Tags::searchTagsAndAreas($wo, $input);
+				break;
+			case 'ideas':
+				$out = VO_Ideas::search($wo, $input);
+				break;
+			case 'contents':
+				$out = VO_Content::search($wo, $input);
+				break;
+				
+			default: $wo->handleShowStopperError("505 Bad autoCompelete variation [$type]" );
+		}
+		
+	
+		return $out;
+	}	//autoComplete
+
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static 
+	function generalViewRouter(WOOOF $wo, $whatSuperId) {
+		// 3000
+		
+		if ( !$wo->hasContent($whatSuperId) or strlen($whatSuperId) < 13 ) {
+			$wo->logError(self::_ECP."3000 Empty or short 'whatSuperId'");
+			$wo->handleShowStopperError('404');
+		}
+		
+		$whatSuperId = trim($whatSuperId);
+		
+		$whatType 	= substr($whatSuperId, 0, 3);
+		$whatId		= substr($whatSuperId, 3);
+
+		if ( $whatType == 'DIS' or $whatType = 'TEA' ) {
+			$whatType = 'GRO';
+		}
+		
+		$uri = '';
+		switch ( $whatType ) {
+			case 'PRS':	$uri = 'profile/view/' 		. $whatId; break;
+			case 'ORG': $uri = 'organisation/view/' . $whatId; break;
+			case 'GRO': $uri = 'group/view/' 		. $whatId; break;
+			case 'CNT': $uri = 'content/view/' 		. $whatId; break;
+			case 'IDE': $uri = 'idea/view/' 		. $whatId; break;
+			case 'POS': $uri = 'post/'		 		. $whatId; break;
+
+			defaut:
+				$wo->logError(self::_ECP."3010 Unknown 'whatType' in [$whatSuperId]");
+				$wo->handleShowStopperError('404');
+		} 		
+		
+		// 302 Redirect
+		header('Location: ' .  $wo->fullURL($uri) );	
+		exit();
+		
+	}	// generalViewRouter
+	
+}	// VO_CtrlSite

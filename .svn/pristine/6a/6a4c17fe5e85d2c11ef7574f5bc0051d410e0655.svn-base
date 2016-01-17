@@ -1,0 +1,16 @@
+<?php
+/* Class [VO_TblVoiceUserBadges] for table [voice_user_badges] */
+
+class VO_TblVoiceUserBadges extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'voice_user_badges';
+
+    public $id;
+    public $isDeleted;
+    public $effectiveDate;
+    public $voiceUserId;
+    public $badgeId;
+    public $points;
+    public $badgeLevel;
+
+}  // VO_TblVoiceUserBadges

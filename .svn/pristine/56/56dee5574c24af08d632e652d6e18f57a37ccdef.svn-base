@@ -1,0 +1,13 @@
+<?php
+/* Class [VO_TblGroupTags] for table [group_tags] */
+
+class VO_TblGroupTags extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'group_tags';
+
+    public $id;
+    public $isDeleted;
+    public $groupId;
+    public $tagId;
+
+}  // VO_TblGroupTags

@@ -1,0 +1,120 @@
+<?php 
+
+// WOOOF Config File
+// Development options
+
+$wooofConfigOptions = array(
+
+	'siteName'                  =>   'VOICE v0.8',      // Short Site Name (also used for prefixing log/debug files)
+    'siteURLStart'              =>   '',        		// e.g. https://innovvoice.com/
+	'mainNameForCookies'      	=>   '',           // Specify only in case of multiple sub-domains. E.g. *.example.com
+
+    // Database config options
+    //
+    // These 10 variables are arrays; one entry for each distinct database we need to access.
+    // For each set a new database connection is established when WOOOF is initialized.
+    // Multiple db connections are a drag but could be used for better security (ie logs and metaData in a different database).
+    
+	'defaultDBIndex'            =>   0,                            // the default database's index in the arrays
+
+	'databaseHost'              =>   array( 'localhost' ),         // 
+	'databaseName'              =>   array( 'voice_test1' ),        // 
+	'databaseUser'              =>   array( 'root' ),              // 
+	'databasePass'              =>   array( '1qa@WS3ed$RF' ),           // 
+	'databaseAutoCommit'        =>   array( false ),	    	   // Set to true for backwards compatibility only.
+	'databaseLog'               =>   array( false ),               //  
+	'logTable'                  =>   array( '__dbLog' ),           // name of the Logging table 
+	'fileLog'                   =>   array( false ),               // 
+	'logFilePath'               =>   array( '/var/www/logs/' ), // absolute path for file logging (filename is preset)
+	'databaseSQLMode'	        =>	 array( '' ),				  // E.g. ANSI,TRADITIONAL  dev.mysql.com/doc/refman/5.0/en/sql-mode.html
+
+	// Main URLs and Paths
+	// (do not forget the / at the end!)
+	'siteBaseURL'               =>   '/voice_test/', 						// the site's base URL (also important for Cookie-based sessions)
+	'siteBasePath'              =>   '/var/www/html/voice_test/', 		// the site's absolute path
+
+	'absoluteFilesRepositoryPath'											// absolute path used for storing file uploads
+								=>   '/var/www/html/voice_test/uploads/',
+	'imagesRelativePath'        =>   'images/',            	   	            // relative to siteBaseURL/Path. Both a URL and a Path.
+	
+	// Debug
+    // To activate debug in files (per Session or for all sessions)
+    //  you need to also modify the 'debug' entry of $wooofConfigCustomOptions in config/commonApp.php. 
+	'debugLogPath'				=>	'/var/www/logs/',	// Absolute path for storing debug files.
+
+	// Security
+	//
+	'sessionExpirationPeriod'   =>   '6 months',    // well i think you understand that one :-)
+	'aggressiveSecurity'        =>   TRUE,          // if aggressive security is TRUE any conflicting action security for a location within different roles results in action denial
+	'storeUserPaths'            =>   TRUE,          // If TRUE all page visits are stored to the DB along with the session ID, the timestamp, the requested action and the request parameters.
+                                                    // Must be true for antiFloodProtection to be effective.
+	'antiFloodProtection'       =>   7,             // if > 0 the number entered here is the number of requests per second that triger IP Address banning and silent ignoring of subsequent requests
+	                                                // this obviously affects only pages that initialize WOOOF and doesn't count anything else.
+	
+	'minimumPasswordLength'     =>   8,				// Specify passwords' security level
+	'minimumCapitalsInPassword' =>   1,
+	'minimumNumbersInPassword'  =>   1,
+	'minimumSymbolsInPassword'  =>   0,
+	
+	// Cache
+	//
+	'isCacheEnabled'            => FALSE,
+	'isMemCacheEnabled'         => FALSE,
+	'memCacheServers'           => array(),			// Zero or more addresses of Memcached servers
+
+	
+	// More Debug options
+	//
+	'debugMessagesLogLevel'	  	=> 5, 				// WOOOF_loggingLevels::WOOOF_LOG_STATUSES,
+	'sendEmailOnError'		  	=> '',			    // If set, then an e-mail will be sent there for each error.
+
+	'displayDatabaseErrors'     => true,			// Show errors on screen...
+	'displayScriptErrors'		=> true,
+	'displaySQLStatementsLevel' => 0,   			// 0: None, 1: Exclude system tables, Anything else: all
+	'debugSQLStatementsLevel'	=> 1,   			// 0: None, 1: Exclude system tables, Anything else: all
+				
+	// CSS options/classes
+	//
+	
+	'cssFileNameForTinyMCE'     => '',
+		
+	// All of class' WOOOF_columnPresentationTypes constants must be present here!
+	'cssForFormItem'            => 
+	  array(
+	  	// Enter default CSS classes here.
+	    'textBox'      => '',
+	    'checkBox'     => '',
+	    'dropList'     => '',
+	    'textArea'     => '',
+	    'radioButton'  => '',
+	    'file'         => '',
+	    'picture'      => '',
+	    'date'         => '',
+	    'time'         => '',
+	  	'dateAndTime'  => '',
+	    'radioHoriz'   => '',
+	    'radioVert'    => '',
+	  	'htmlText'	   => '',
+	  	'autoComplete' => '',
+	  ),
+
+	// Various options with sensible default values.
+	// Uncomment only for very special cases.
+    
+	//'publicSite'             	  =>   'publicSite/',   			// RELATIVE TO siteBaseURL (used as URL and PATH part)
+	//'adminMainFileName'         =>   'administration.php',
+    //'adminURL'                  =>   'wooof_administration/',   	// RELATIVE TO siteBaseURL
+	//'adminIncludesDirectory'    =>   'adminIncludes/',          	// RELATIVE TO siteBaseURL
+	//'dbManagerBaseURL'		  =>   'wooof_dbManager/',		  	// RELATIVE TO siteBaseURL
+    //'classesPath'               =>   'classes/',          		// RELATIVE TO siteBaseURL
+    //'wooofClassesPath'          =>   'wooof_classes/',    		// RELATIVE TO siteBaseURL
+	//'applicationTemplatesRepository' => 'fragments/',				// RELATIVE TO siteBaseURL / publicSite
+	//'templatesRepository'		  =>   '../wooof_fragments/',		// RELATIVE TO siteBaseURL / publicSite
+	//'saltProductionMethod'	  =>   '',							// callable f(WOOOF, inputString) that returns a salt based on inputString
+	'initApplicationRoutine'	=>   'initAppVOICE',			// callable f(WOOOF) that makes custom inits/checks and returns boolean. Called at the end of WOOOF's construction.
+	'showStopperErrorRoutine'	=>   'showStopperErrorRoutineDev', 			// callable (a funcion in commonApp.php, or any callable in one of the App Classes) to invoke instead of die() in client code. 
+											       			// Leave as '' for a default handling in WOOOF::handleShowStopperError. f( OOOF $wo, $errorInput ). 
+		
+);
+
+// End of config file

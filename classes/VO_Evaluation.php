@@ -1,0 +1,888 @@
+<?php
+
+class VO_Evaluation {
+	const _ECP = 'EVA';	// Error Code Prefix
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param VO_TblEvaluations $obj
+	 * @return false | id
+	 * 
+	 */
+	public static 
+	function save( WOOOF $wo, VO_TblEvaluations &$obj)
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+		
+		$tblEvaluations = new WOOOF_dataBaseTable($wo->db, 'evaluations');
+		if(!$tblEvaluations->constructedOk) { return false; }
+		
+		if(!$wo->hasContent($obj->id)) {
+			//insert
+			$newId = $tblEvaluations->insertRowFromArraySimple( $obj->toArray() );
+			if ( $newId === FALSE ) { return false; }
+			$obj->id = $newId;
+		}
+		
+		else {
+			//update
+			$updatedId = $tblEvaluations->updateRowFromArraySimple( $obj->toArray() );
+			if ( $updatedId === FALSE ) { return false; }
+			$obj->id = $updatedId;
+		}
+		
+		return $obj->id;
+	}	// save
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param VO_TblEvaluationAnswers $obj
+	 * @return false | id
+	 *
+	 */
+	public static
+	function saveAnswers( WOOOF $wo, VO_TblEvaluationAnswers &$obj)
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+		
+		$tblEvaluationAnswers = new WOOOF_dataBaseTable($wo->db, 'evaluation_answers');
+		if(!$tblEvaluationAnswers->constructedOk) { return false; }
+	
+		if(!$wo->hasContent($obj->id)) {
+			//insert
+			$obj->whenDateTime = $wo->currentGMTDateTime();
+			$newId = $tblEvaluationAnswers->insertRowFromArraySimple( $obj->toArray() );
+			if ( $newId === FALSE ) { return false; }
+			$obj->id = $newId;
+		}
+	
+		else {
+			//update
+			$obj->whenDateTime = $wo->currentGMTDateTime();
+			$updatedId = $tblEvaluationAnswers->updateRowFromArraySimple( $obj->toArray() );
+			if ( $updatedId === FALSE ) { return false; }
+			$obj->id = $updatedId;
+		}
+	
+		return $obj->evaluationId;
+	}	// saveAnswers
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param VO_TblEvaluationResults $obj
+	 * @return false | id
+	 *
+	 */
+	public static
+	function saveResults( WOOOF $wo, VO_TblEvaluationResults &$obj)
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	
+		$tblEvaluationResults = new WOOOF_dataBaseTable($wo->db, 'evaluation_results');
+		if(!$tblEvaluationResults->constructedOk) { return false; }
+	
+		if(!$wo->hasContent($obj->id)) {
+			//insert
+			$newId = $tblEvaluationResults->insertRowFromArraySimple( $obj->toArray() );
+			if ( $newId === FALSE ) { return false; }
+		}
+	
+		else {
+			//update
+			$updatedId = $tblEvaluationResults->updateRowFromArraySimple( $obj->toArray() );
+			if ( $updatedId === FALSE ) { return false; }
+		}
+	
+		return $obj->evaluationId;
+	}	// saveResults
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $movieramaUserId
+	 * @param array $evaluationData
+	 * @return false | id
+	 */
+	public static
+	function create( WOOOF $wo, $evaluationData, $movieramaUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  'Create Evaluation'" );
+	
+		if(!$wo->hasContent($movieramaUserId)) {
+			$wo->logError(self::_ECP."2389 You must provide a [movieramaUserId]");
+			return false;
+		}
+		
+		//CHECK FOR PREVIOUS EVALUATIONS OF THE SAME OBJECT
+		$whatId = $evaluationData['whatId'];
+		$whatType = $evaluationData['whatType'];
+		$evalTemplateId = $evaluationData['evalTemplateId'];
+		$sql = "
+			SELECT *
+			FROM evaluations e
+			JOIN ( 
+			        SELECT MAX(ev.roundNumber) AS max_roundNumber
+			        FROM evaluations ev
+			     ) eval
+			    ON eval.max_roundNumber = e.roundNumber
+			WHERE whatId='$whatId' AND whatType='$whatType' AND userId='$movieramaUserId'
+				  AND evalTemplateId='$evalTemplateId' AND isDeleted='0'
+		";
+		
+		$res = $wo->db->getResultByQuery($sql, true, false);
+		if ( $res === FALSE ) { return FALSE; }
+		
+		$res = $wo->db->resultRows;
+		
+		$nextRoundNumber = 0;
+		foreach( $res as $maxRoundNumberRec ) {
+			$nextRoundNumber = $maxRoundNumberRec['roundNumber'];
+		}
+		
+		$tblEvaluationInsert = new VO_TblEvaluations();
+		$tblEvaluationInsert->whatId = $evaluationData['whatId'];
+		$tblEvaluationInsert->whatType = $evaluationData['whatType'];
+		$tblEvaluationInsert->evalTemplateId = $evaluationData['evalTemplateId'];
+		//$tblEvaluationInsert->isViewable = $evaluationData['isViewable'];
+		$tblEvaluationInsert->isViewable = '0';
+		$tblEvaluationInsert->roundNumber = $nextRoundNumber + 1;
+		$tblEvaluationInsert->isRunning = '0';
+		$tblEvaluationInsert->userId = $movieramaUserId;
+			
+		$insertedEvalId = self::save($wo, $tblEvaluationInsert);
+		if($insertedEvalId === FALSE) { return false; }
+	
+		//copy the template evaluation criteria in evaluation_criteria table
+		$tblTplEvalCriteria = new WOOOF_dataBaseTable($wo->db, 'eval_template_criteria');
+		if(!$tblTplEvalCriteria->constructedOk) { return false; }
+		
+		$res = $tblTplEvalCriteria->getResult(
+			[
+				'evalTemplateId' => $evaluationData['evalTemplateId'],
+				'isDeleted'   => '0'
+			],
+			'weight',
+			'', '', '',
+			true, false
+		);
+		if ( $res === FALSE ) { return false; }
+			
+		$tblEvaluationCriteria = new WOOOF_dataBaseTable($wo->db, 'evaluation_criteria');
+		if(!$tblEvaluationCriteria->constructedOk) { return false; }
+			
+		foreach ($tblTplEvalCriteria->resultRows as $aTplCriteria) {
+			$tblEvalCriteria = new VO_TblEvaluationCriteria();
+			$tblEvalCriteria->evaluationId = $insertedEvalId;
+			$tblEvalCriteria->evalTemplateId = $aTplCriteria['evalTemplateId'];
+			$tblEvalCriteria->label = $aTplCriteria['label'];
+			$tblEvalCriteria->description = $aTplCriteria['description'];
+			$tblEvalCriteria->evaluationTypeDVCode = $aTplCriteria['evaluationTypeDVCode'];
+			$tblEvalCriteria->isOptional = $aTplCriteria['isOptional'];
+			$tblEvalCriteria->weight = $aTplCriteria['weight'];
+		
+			//save criteria
+			$newCriteriaId = $tblEvaluationCriteria->insertRowFromArraySimple( $tblEvalCriteria->toArray() );
+			if ( $newCriteriaId === FALSE ) { return false; }
+		}
+
+		return $insertedEvalId;
+	} //create
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 * @param WOOOF $wo
+	 * @param array $in [ id => evaluationId to open, duration => duration of evaluation,
+	 * 					  whatId => what id is being evaluated, whatType => what type is being evaluated
+	 *					  evalTemplateId => evaluation template id ]
+	 * @param string $requestorUserId
+	 * @return false | id
+	 */
+	public static
+	function open( WOOOF $wo, $in, $requestorUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+		
+		$tblEvalutionResults = new WOOOF_dataBaseTable($wo->db, 'evaluation_results');
+		if(!$tblEvalutionResults->constructedOk) { return false; }
+		
+		//first delete all previous results for this evaluationId - if there are any
+		$res = $tblEvalutionResults->getResult(
+			[
+				'evaluationId' => $in['id'],
+				'isDeleted' => '0'
+			],
+			'', '', '', '', false, true
+		);
+		
+		if ( $res === FALSE ) { return false; }
+			
+		foreach( $tblEvalutionResults->resultRows as $aRow ) {
+			$res = $tblEvalutionResults->deleteRow($aRow['id']);
+			if($res === FALSE) { return false; }
+		}
+		
+		$tblEvaluations = new WOOOF_dataBaseTable($wo->db, 'evaluations');
+		if(!$tblEvaluations->constructedOk) { return false; }
+		
+		// Find the evaluations in the table
+		$res = $tblEvaluations->getResult(
+			[
+				'id'			 => $in['id'],
+				'evalTemplateId' => $in['evalTemplateId'],
+				'whatId'         => $in['whatId'],
+				'whatType'       => $in['whatType'],
+				'userId'		 => $requestorUserId,
+				'isRunning'      => '0',
+				'isDeleted'   	 => '0'
+			],
+			'startDateTime',
+			'', '', '',
+			true, false
+		);
+		if ( $res === FALSE ) { return false; }
+		
+		if(!$wo->hasContent($tblEvaluations->resultRows)) {
+			$wo->logError(self::_ECP."2290 No row(s) with id {$in['id']} found in evaluations table!");
+			return false;
+		}
+		
+		foreach ($tblEvaluations->resultRows as $aEvaluation) {
+			$durationDays = $in['duration'];
+			
+			$tblEvaluationUpdate = new VO_TblEvaluations($aEvaluation);
+			$tblEvaluationUpdate->isRunning = '1';
+			
+			//update set startDateTime and endDateTime
+			$tblEvaluationUpdate->startDateTime = $wo->currentGMTDateTime();
+			$tblEvaluationUpdate->endDateTime   = gmdate( "YmdHis",  strtotime("+".$durationDays." day") );
+			$tblEvaluationUpdate->finalScore = 0;
+			$tblEvaluationUpdate->finalCount = 0;
+			
+			$res = self::save($wo, $tblEvaluationUpdate);
+			if($res === FALSE) { return false; }
+		}
+		
+		return $res;
+	
+	}	// open
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 * @param WOOOF $wo
+	 * @param array $in [ id => evaluationId to close,
+	 * 					  whatId => what id is being evaluated, whatType => what type is being evaluated
+	 *					  evalTemplateId => evaluation template id ]
+	 * @param string $requestorUserId
+	 * @return false | id
+	 */
+	public static
+	function close( WOOOF $wo, $in, $requestorUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+		
+		$tblEvaluations = new WOOOF_dataBaseTable($wo->db, 'evaluations');
+		if(!$tblEvaluations->constructedOk) { return false; }
+		
+		// Find the running evaluation in the table - Could me more than one????
+		$res = $tblEvaluations->getResult(
+			[
+				'id'			 => $in['id'],
+				'evalTemplateId' => $in['evalTemplateId'],
+				'whatId'         => $in['whatId'],
+				'whatType'       => $in['whatType'],
+				'userId'		 => $requestorUserId,
+				'isRunning'      => '1',
+				'isDeleted'   	 => '0'
+			],
+			'startDateTime',
+			'', '', '',
+			true, false
+		);
+		if ( $res === FALSE ) { return false; }
+		
+		if(!$wo->hasContent($tblEvaluations->resultRows)) {
+			$wo->logError(self::_ECP."2291 No row(s) with id {$in['id']} found in evaluations table!");
+			return false;
+		}
+		
+		foreach ($tblEvaluations->resultRows as $aEvaluation) {
+			$tblEvaluationUpdate = new VO_TblEvaluations($aEvaluation);
+			$tblEvaluationUpdate->isRunning = '0';
+			$tblEvaluationUpdate->endDateTime   = $wo->currentGMTDateTime();
+			
+			$res = self::save($wo, $tblEvaluationUpdate);
+			if($res === FALSE) { return false; }
+		}
+		
+		$calcRes = self::calcResults($wo, $in['id'], $requestorUserId);
+		if($calcRes === FALSE) { return false; }
+		
+		return $res;
+	
+	}	// close
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static
+	function submitEval( WOOOF $wo, $arrEvalAnswers, $evaluatorUserId )
+	{
+		//TODO CHECKS / SECURITY ?????
+		
+		$tblEvaluationAnswers = new WOOOF_dataBaseTable($wo->db, 'evaluation_answers');
+		if(!$tblEvaluationAnswers->constructedOk) { return false; }
+		
+		//submit answers in evaluation_answers table
+		foreach($arrEvalAnswers as $aAnswer) {
+			
+			//CHECK IF THERE ALREADY IS AN ANSWER AND IF THERE IS THEN UPDATE
+			$existingEvals = $tblEvaluationAnswers->getResult(
+				[
+					'evaluationId'         => $aAnswer['evaluationId'],
+					'evaluationCriteriaId' => $aAnswer['evaluationCriteriaId'],
+					'userId'               => $evaluatorUserId,
+					'isDeleted'            => '0'
+				],
+				'', '', '', '', true, false
+			);
+			
+			if ( $res === FALSE ) { return false; }
+			
+			$hasAlreadyMadeEvaluation = ($existingEvals['totalRows'] != 0);
+			
+			//update
+			if($hasAlreadyMadeEvaluation) {
+				foreach( $tblEvaluationAnswers->resultRows as $existingAnswer ) {
+					$updateEvaluationAnswer = new VO_TblEvaluationAnswers($existingAnswer);
+					$updateEvaluationAnswer->theValue = $aAnswer['theValue'];
+					$updateEvaluationAnswer->comments = $aAnswer['comments'];
+					
+					$res = self::saveAnswers($wo, $updateEvaluationAnswer);
+					if($res === FALSE) { return false; }
+				}	
+			}
+			
+			//insert
+			else {
+				$insertEvaluationAnswer = new VO_TblEvaluationAnswers();
+				$insertEvaluationAnswer->evaluationId = $aAnswer['evaluationId'];
+				$insertEvaluationAnswer->evaluationCriteriaId = $aAnswer['evaluationCriteriaId'];
+				$insertEvaluationAnswer->userId = $evaluatorUserId;
+				$insertEvaluationAnswer->theValue = $aAnswer['theValue'];
+				$insertEvaluationAnswer->comments = $aAnswer['comments'];
+					
+				$res = self::saveAnswers($wo, $insertEvaluationAnswer);
+				if($res === false) { return false; }	
+			}
+		}
+	
+		return $res;
+	}	// submitEval
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $evaluationId
+	 * @param id $requestorUserId
+	 * @return bool
+	 */
+	public static
+	function calcResults( WOOOF $wo, $evaluationId, $requestorUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		
+		if ( !$wo->hasContent($evaluationId) ) {
+			$wo->logError(self::_ECP."5389 No value for evaluation id to calc results");
+			return false;
+		}
+		
+		$isSelfEvalOwner = self::isEvaluationOwner($wo, $evaluationId, $requestorUserId);
+		if($isSelfEvalOwner === FALSE) { return false; }
+		if($isSelfEvalOwner === 0) {
+			$wo->logError(self::_ECP."5399 I am sorry you cannot request to calc results of the evaluation you are not the owner");
+			return false;
+		}
+		
+		$tblEvalutionResults = new WOOOF_dataBaseTable($wo->db, 'evaluation_results');
+		if(!$tblEvalutionResults->constructedOk) { return false; }
+		
+		//first delete all previous results for this evaluationId
+		$res = $tblEvalutionResults->getResult(
+			[
+				'evaluationId' => $evaluationId,
+				'isDeleted' => '0'
+			],
+			'', '', '', '', false, true
+		);
+		
+		if ( $res === FALSE ) { return false; }
+			
+		foreach( $tblEvalutionResults->resultRows as $aRow ) {
+			$res = $tblEvalutionResults->deleteRow($aRow['id']);
+			if($res === FALSE) { return false; }
+		}
+		
+		//save new results
+		
+		$sql = "select evaluationCriteriaId, avg(theValue) as avg, count(*) as count
+			from evaluation_answers
+			where evaluationId = '$evaluationId'
+			group by evaluationCriteriaId";
+		
+		$succ = $wo->db->getResultByQuery( $sql, true, false );
+		if ( $succ === FALSE ) { return FALSE; }
+		
+		foreach ($wo->db->resultRows as $aEvalResult) {
+			$tblEvalResultInsert = new VO_TblEvaluationResults();
+			$tblEvalResultInsert->evaluationId = $evaluationId;
+			$tblEvalResultInsert->evaluationCriteriaId = $aEvalResult['evaluationCriteriaId'];
+			$tblEvalResultInsert->theValue = $aEvalResult['avg'];
+			$tblEvalResultInsert->theCount = $aEvalResult['count'];
+			
+			$res = self::saveResults($wo, $tblEvalResultInsert);
+			if($res === FALSE) { return false; }
+		}
+		
+		//update final score and final count on evaluations table
+		$tblEvaluations = new WOOOF_dataBaseTable($wo->db, 'evaluations');
+		if(!$tblEvaluations->constructedOk) { return false; }
+		
+		//first get the evaluation
+		$evalRow = $wo->db->getRow('evaluations', $evaluationId);
+		
+		$sql = "SELECT SUM(evr.theValue * evc.weight) as finalScore, MAX(evr.theCount) as finalCount
+				FROM evaluation_results evr
+				INNER JOIN evaluation_criteria evc
+				ON evr.evaluationCriteriaId=evc.id";
+		
+		$succ = $wo->db->getResultByQuery( $sql, true, false );
+		if ( $succ === FALSE ) { return FALSE; }
+		
+		foreach ($wo->db->resultRows as $aEval) {
+			$tblEvalUpdate = new VO_TblEvaluations($evalRow);
+			$tblEvalUpdate->finalScore = $aEval['finalScore'];
+			$tblEvalUpdate->finalCount = $aEval['finalCount'];
+				
+			$res = self::save($wo, $tblEvalUpdate);
+			if($res === FALSE) { return false; }
+		}
+		
+		return true;
+	
+	}	// calcResults
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $whatType
+	 * @param string $requestorUserId
+	 * @param array $otherData		// optional. TBD
+	 * @return false | array[ [ 'label', 'value' ], ... ]
+	 */
+	public static
+	function getTemplates( WOOOF $wo, $whatType, $requestorUserId )
+	{
+		// 4000
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place: [$whatType] [$requestorUserId]" );
+	
+		if ( $wo->hasContent($whatType) ) {
+			$where1 = "	whatType = '$whatType'";
+		}
+		
+		$sql = "
+		select id as `value`, concat('[', description, '] for ',  whatType) as `label`
+		from eval_templates
+		where
+		$where1 and
+		isSystemDefined = '1' and
+		isDeleted = '0'
+		order by 2";
+	
+		$res = $wo->db->getResultByQuery( $sql, true, false );
+		if ( $res === FALSE ) { return FALSE; }
+	
+		return $wo->db->resultRows;
+	}	// getTemplates
+
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $evaluationId
+	 * @param string $userId
+	 */
+	public static
+	function isEvaluationOwner( WOOOF $wo, $evaluationId, $userId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		// Get Evaluation
+		$evaluationRec = $wo->db->getRow('evaluations', $evaluationId);
+		if($evaluationRec === FALSE) { return false; }
+		if($evaluationRec === NULL) {
+			$wo->logError(self::_ECP."3449 No evaluation found");
+			return false;
+		}
+	
+		$sql = "SELECT 1 FROM evaluations WHERE id='$evaluationId' and userId='$userId' and isDeleted='0'";
+		$res = $wo->db->query($sql);
+		if ( $res === FALSE ) { return FALSE; }
+	
+		return ($wo->db->getNumRows($res) === 0 ? 0 : 1);
+	} //isEvaluationOwner
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $objectId
+	 * @param string $objectType
+	 * @param string $requestorUserId
+	 * return [] if none | [ eval1, eval2, ... ]
+	 */
+	public static
+	function getObjectEvaluations( WOOOF $wo, $objectId, $objectType, $requestorUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( !$wo->hasContent($objectId) ) {
+			$wo->logError(self::_ECP."5089 No value for id of object to find evaluations");
+			return false;
+		}
+		
+		if ( !$wo->hasContent($objectType) || !in_array($objectType, ['MOV']) ) {
+			$wo->logError(self::_ECP."5090 No value for type of object to find evaluations or unknown type");
+			return false;
+		}
+		
+		$evaluations = [];
+		$evaluationElems = [
+			'id', 'whatType', 'whatId', 'evalTemplateId', 'userId', 'startDateTime', 
+			'endDateTime', 'isRunning', 'finalScore', 'isViewable', 'roundNumber'
+		];
+	
+		$tblEvaluations = new WOOOF_dataBaseTable($wo->db, 'evaluations');
+		if(!$tblEvaluations->constructedOk) { return false; }
+	
+		$safeObjectId = $wo->db->escape($objectId);
+		$safeObjectType = $wo->db->escape($objectType);
+		
+		$result = $wo->db->query("SELECT * FROM evaluations WHERE whatId='$safeObjectId' AND whatType='$safeObjectType' AND isDeleted='0'");
+		if ( $result === FALSE ) { return false; }
+	
+		if (!$wo->db->getNumRows($result))
+		{
+			//no error no results
+			return [];
+		}
+		else
+		{
+			//no error results
+			while($row = $wo->db->fetchAssoc($result))
+			{
+				$tblEvaluations->resultRows[] = $row;
+			}
+		}
+		
+		foreach($tblEvaluations->resultRows as $aEvaluation) {
+			$evaluation = [];
+			$evaluationId = $aEvaluation['id'];
+			WOOOF_Util::filterOnKeys($evaluation, $evaluationElems, $aEvaluation);
+			
+			$evaluation['isType'] = $aEvaluation['whatType'];
+					
+			$isSelfEvalOwner = self::isEvaluationOwner($wo, $aEvaluation['id'], $requestorUserId);
+			if($isSelfEvalOwner === FALSE) { return false; }
+			if($isSelfEvalOwner === 0) {
+				$evaluation['isSelfOwner'] = false;
+			} 
+			else {
+				$evaluation['isSelfOwner'] = true;
+			}
+			
+			$evaluations[] = $evaluation;
+		}
+		
+		return $evaluations;
+	} //objectEvaluations
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $evaluationId
+	 * @param string $requestorUserId
+	 * return false | []
+	 */
+	public static
+	function getEvaluationResults( WOOOF $wo, $evaluationId, $requestorUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( !$wo->hasContent($evaluationId) ) {
+			$wo->logError(self::_ECP."6089 No value for evaluation id");
+			return false;
+		}
+	
+		$evalRow = $wo->db->getRow('evaluations', $evaluationId);
+		if($evalRow === FALSE) { return false; }
+		
+		$sql = "SELECT evc.label, evc.description, evc.weight, evr.theValue, evr.theCount
+				FROM evaluation_results evr
+				INNER JOIN evaluation_criteria evc
+				ON evr.evaluationCriteriaId=evc.id";
+		
+		$succ = $wo->db->getResultByQuery( $sql, true, false );
+		if ( $succ === FALSE ) { return FALSE; }
+		
+		$evalResElems = ['label', 'description', 'weight', 'theValue', 'theCount'];
+		$criteriaResults = [];
+		foreach ($wo->db->resultRows as $aCriteriaRes) {
+			$criteriaRes = [];
+			WOOOF_Util::filterOnKeys($criteriaRes, $evalResElems, $aCriteriaRes);
+			$criteriaResults[] = $criteriaRes;
+		}
+		
+		$tip = '';
+		if($evalRow['startDateTime'] === '' && $evalRow['endDateTime'] === '') {
+			$tip = 'Tip: You have not started the evaluation yet...';
+		} else if($evalRow['startDateTime'] !== '' && $evalRow['endDateTime'] !== ''
+				  && $evalRow['finalScore'] === '0' && $evalRow['finalCount'] === '0') {
+			$tip = 'Tip: No user evaluated during the evaluation period...';
+		}
+	
+		return [
+			'criteriaResults' => $criteriaResults,
+			'finalScore'      => $evalRow['finalScore'],
+			'finalCount'	  => $evalRow['finalCount'],
+			'isRunning'       => $evalRow['isRunning'],
+			'tip'     		  => $tip
+		];
+	} //getEvaluationResults
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $objectId
+	 * @param string $objectType
+	 * @param string $requestorUserId
+	 * return false | 'none' for no evaluations | 0 for no running evaluations or 1
+	 */
+	public static
+	function hasRunningEvaluations( WOOOF $wo, $objectId, $objectType, $requestorUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( !$wo->hasContent($objectId) ) {
+			$wo->logError(self::_ECP."5189 No value for id of object to find evaluations");
+			return false;
+		}
+	
+		if ( !$wo->hasContent($objectType) || !in_array($objectType, ['MOV']) ) {
+			$wo->logError(self::_ECP."5190 No value for type of object to find evaluations or unknown type");
+			return false;
+		}
+	
+		$tblEvaluations = new WOOOF_dataBaseTable($wo->db, 'evaluations');
+		if(!$tblEvaluations->constructedOk) { return false; }
+	
+		$safeObjectId = $wo->db->escape($objectId);
+		$safeObjectType = $wo->db->escape($objectType);
+	
+		$result = $wo->db->query("SELECT * FROM evaluations WHERE whatId='$safeObjectId' AND whatType='$safeObjectType' AND isDeleted='0'");
+		if ( $result === FALSE ) { return false; }
+	
+		if (!$wo->db->getNumRows($result))
+		{
+			//no error no results
+			return 'none';
+		}
+		else
+		{
+			//no error results
+			while($row = $wo->db->fetchAssoc($result))
+			{
+				$tblEvaluations->resultRows[] = $row;
+			}
+		}
+		
+		$runningEvals = 0;
+		foreach($tblEvaluations->resultRows as $aEvaluation) {
+			if($aEvaluation['isRunning'] === '1') {
+				$runningEvals++;
+			}
+		}
+		
+		return ($runningEvals === 0 ? 0 : 1);
+	} //hasRunningEvaluations
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $objectId
+	 * @param string $objectType
+	 * @param string $requestorUserId
+	 * return false | string
+	 */
+	public static
+	function getLastRunningEvaluation( WOOOF $wo, $objectId, $objectType, $requestorUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( !$wo->hasContent($objectId) ) {
+			$wo->logError(self::_ECP."5289 No value for id of object to find evaluations");
+			return false;
+		}
+	
+		if ( !$wo->hasContent($objectType) || !in_array($objectType, ['MOV']) ) {
+			$wo->logError(self::_ECP."5290 No value for type of object to find evaluations or unknown type");
+			return false;
+		}
+	
+		$tblEvaluations = new WOOOF_dataBaseTable($wo->db, 'evaluations');
+		if(!$tblEvaluations->constructedOk) { return false; }
+	
+		$safeObjectId = $wo->db->escape($objectId);
+		$safeObjectType = $wo->db->escape($objectType);
+	
+		$result = $wo->db->query("SELECT * FROM evaluations WHERE whatId='$safeObjectId' AND whatType='$safeObjectType' AND isRunning='1' AND isDeleted='0'");
+		if ( $result === FALSE ) { return false; }
+	
+		if (!$wo->db->getNumRows($result))
+		{
+			//no error no results
+			return '0';
+		}
+		else
+		{
+			//no error results
+			while($row = $wo->db->fetchAssoc($result))
+			{
+				$tblEvaluations->resultRows[] = $row;
+			}
+		}
+	
+		foreach($tblEvaluations->resultRows as $aEvaluation) {
+			$runningEvalId = $aEvaluation['id'];
+		}
+	
+		return $runningEvalId;
+	} //getLastRunningEvaluation
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $evaluationId
+	 * @param string $requestorUserId
+	 * return [] if none | [ criteria1, criteria2, ... ]
+	 */
+	public static
+	function getCriteria( WOOOF $wo, $evaluationId, $requestorUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( !$wo->hasContent($evaluationId) ) {
+			$wo->logError(self::_ECP."5099 No value for evaluation id to find criteria");
+			return false;
+		}
+	
+		$criterias = [];
+		$criteriaElems = [
+			'id', 'evaluationId', 'evalTemplateId', 'label',
+			'description', 'evaluationTypeDVCode', 'isOptional', 'weight'
+		];
+	
+		$tblEvaluationCriteria = new WOOOF_dataBaseTable($wo->db, 'evaluation_criteria');
+		if(!$tblEvaluationCriteria->constructedOk) { return false; }
+	
+		$safeEvaluationId = $wo->db->escape($evaluationId);
+	
+		$result = $wo->db->query("SELECT * FROM evaluation_criteria WHERE evaluationId='$safeEvaluationId' AND isDeleted='0'");
+		if ( $result === FALSE ) { return false; }
+	
+		if (!$wo->db->getNumRows($result))
+		{
+			//no error no results
+			return [];
+		}
+		else
+		{
+			//no error results
+			while($row = $wo->db->fetchAssoc($result))
+			{
+				$tblEvaluationCriteria->resultRows[] = $row;
+			}
+		}
+	
+		foreach($tblEvaluationCriteria->resultRows as $aCriteria) {
+			$criteria = [];
+			WOOOF_Util::filterOnKeys($criteria, $criteriaElems, $aCriteria);
+			$criterias[] = $criteria;
+		}
+	
+		return $criterias;
+	} //getCriteria
+	
+}	// VO_Evaluation

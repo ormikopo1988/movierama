@@ -1,0 +1,116 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import VOICE from './voice.js';
+import PersonDisplay from './SmallPersonPresentationComp.jsx';
+var RB = require('react-bootstrap');
+
+export default React.createClass(
+	{ //PersonalMessagesExchange
+		getInitialState: function()
+		{
+			return {title: '', message:'', posts: this.props.data.posts, newEntryVisible: false};
+		},
+
+		render: function()
+		{
+			var participatingUsers = [];
+			var posts = [];
+
+			console.log(this.props.data);
+
+			this.props.data.recipients.forEach(function (participant)
+			{
+				var avatarImg = participant.picture || '$profile_none.png';		
+				participatingUsers.push(<div key={participant.id}><img src={
+					VOICE.imgPrefix( avatarImg , '')
+				} className="circle-header-2" />
+				<br />
+				{
+					participant.username
+				}</div>);
+			});
+
+			this.state.posts.forEach(function (post)
+			{
+				posts.push(				<RB.Well key={post.id}>
+				   <RB.Row>
+					    <RB.Col sm={12} md={8}>
+					    	<RB.Panel header={post.title}>
+						      {post.content}
+						    </RB.Panel>
+						</RB.Col>
+						<RB.Col sm={12} md={4}>
+						<PersonDisplay data={{'VUS_slug': post.ownerData.username, 'VUS_avatarImg': post.ownerData.picture , 'POS_entryDate': post.entryDate }} key={post.ownerData.id +'_'+ post.entryDate}/>
+						</RB.Col>
+				    </RB.Row>
+
+				</RB.Well>);
+			});
+
+			return (<div>
+						<RB.Panel header="Participating Users">
+				    		{participatingUsers}
+			        	</RB.Panel>
+			        	<br/>
+			        	{ this.state.newEntryVisible ? <RB.Panel collapsible header="New Messge" expanded={this.state.newEntryVisible}>
+					<RB.Panel header="Subject">
+						<RB.Input type="text" placeholder="Enter your message subject..." name="title" ref="title" onChange={this.handleChange} value={this.state.title}/> 
+    				</RB.Panel>
+					<RB.Panel header="Message">
+						<RB.Input type="textarea" bsSize="medium" rows="6" placeholder="Enter your message text..." name="message" ref="message" onChange={this.handleChange} value={this.state.message}/>
+    				</RB.Panel>
+					<RB.Button bsStyle="primary" bsSize="small" onClick={this.submitClicked}>Submit Message</RB.Button>
+    			</RB.Panel> 
+    			: <RB.Button bsStyle="primary" bsSize="small" onClick={this.newClicked}>New Message</RB.Button> }
+    			<br/>
+			        	{posts}
+			        </div>
+);
+		},
+
+		showExchange: function()
+		{
+			document.location.href = VOICE.linkPrefix('messages/'+this.props.data.recipientId);
+		},
+
+		newClicked: function()
+		{
+			var tmp = this.state;
+
+	  		tmp.newEntryVisible = true;
+
+	  		this.setState(tmp);
+		},
+
+	  	handleSubmitionResults: function(data)
+	  	{
+	  		var tmp = this.state;
+
+	  		tmp.posts.unshift(data);
+	  		tmp.title = '';
+  			tmp.message = '';
+	  		
+	  		this.setState(tmp);
+	  	},
+
+	  	submitClicked: function() 
+		{
+			var url = VOICE.linkPrefix('api/postBox/insertPersonalMessage');
+			var data = {};
+
+			data.recipientId = this.props.data.recipientId;
+			data.title = this.state.title ;
+			data.content = this.state.message ;
+			
+			VOICE.ajaxCall(url, 'POST', data, this, this.handleSubmitionResults);
+		},
+
+		handleChange: function(event) 
+		{
+	  		var tmp = this.state;
+
+	  		tmp[event.target.name] = event.target.value;
+	  
+	  		this.setState(tmp);
+	  	},
+	});

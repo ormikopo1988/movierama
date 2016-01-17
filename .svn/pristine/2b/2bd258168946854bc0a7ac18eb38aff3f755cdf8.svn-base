@@ -1,0 +1,43 @@
+INSERT INTO `content_authors` (`id`, `isDeleted`, `contentId`, `ord`, `name`, `voiceUserId`, `description`, `email`, `webURL`, `logoURL`) VALUES
+('5787',	'0',	'1',	100,	'Antonis',	NULL,	'Wow',	'apapanto@gmail.com',	NULL,	NULL),
+('5789',	'0',	'1',	200,	'Maria',	NULL,	'Wife',	NULL,	NULL,	NULL);
+
+INSERT INTO `content_section_others` (`id`, `isDeleted`, `contentSectionId`, `value1`, `value2`, `value3`) VALUES
+('7000',	'0',	'300',	NULL,	'1576',	'USD');
+
+INSERT INTO `content_section_texts` (`id`, `isDeleted`, `contentSectionId`, `theText`) VALUES
+('500',	'0',	'100',	'The Text of 1st Section of Content 1.\r\n1C1'),
+('600',	'0',	'200',	'Text for 2nd Section of Content 1.\r\n2C1 Text');
+
+INSERT INTO `content_sections` (`id`, `isDeleted`, `contentId`, `sectionType`, `ord`, `belongsToSectionId`, `title`, `attachmentSetId`, `fromTemplateSectionId`, `mnemonicCode`) VALUES
+('100',	'0',	'1',	'TEXT',	1,	NULL,	'1 First section of Content 1',	NULL,	NULL,	'1C1'),
+('105',	'0',	'1',	'TEXT',	0,	'100',	'1.1 SubSection 1 of Section 1',	NULL,	NULL,	'1.1C1'),
+('1051',	'0',	'1',	'TEXT',	-87,	'105',	'1.1.1 SubSection 1 of SubSection 1.1',	NULL,	NULL,	NULL),
+('106',	'0',	'1',	'TEXT',	0,	'105',	'1.1.2 SubSection 2 of Subsection 1.1',	NULL,	NULL,	'1.1.2C1'),
+('110',	'0',	'1',	'TEXT',	3,	'100',	'1.2 SubSection 2 of Section 1',	NULL,	NULL,	NULL),
+('200',	'0',	'1',	'TEXT',	2,	NULL,	'2 2nd Section of Content 1',	NULL,	NULL,	'2C1'),
+('300',	'0',	'1',	'AMOUNT',	3,	'110',	'1.2.1 An amount Section',	NULL,	NULL,	'3C1'),
+('205',	'0',	'1',	'TEXT',	0,	'200',	'2.1 SubSection 1 of Section 2',	NULL,	NULL,	'2.1C1');
+
+INSERT INTO `content_tags` (`id`, `isDeleted`, `contentId`, `tagType`, `tagId`, `tagText`, `tagCategoryType`) VALUES
+('10',	'0',	'1',	'TAG',	'001b122e3e',	NULL,	'ICT'),
+('11',	'0',	'1',	'DOM',	'xI1JkTjQgE',	NULL,	'IDEA_TYPE'),
+('12',	'0',	'1',	'TXT',	NULL,	'Anything...',	NULL);
+
+INSERT INTO `content_titles` (`id`, `isDeleted`, `contentId`, `title`, `subTitle`, `titleImg`, `snippet`) VALUES
+('100',	'0',	'1',	'Some content',	'Some content subtitle',	NULL,	NULL);
+
+INSERT INTO `contents` (`id`, `isDeleted`, `createdByUserId`, `updatedByUserId`, `createdDateTime`, `updatedDateTime`, `isTemplate`, `fromTemplateId`, `languageId`) VALUES
+('1',	'0',	'lJgKsDk49N',	'lJgKsDk49N',	'20151212012400',	'20151212012400',	'0',	NULL,	NULL);
+
+-- 2015-12-12 15:30:38
+
+/*
+delete from content_section_others;
+delete from content_section_texts;
+delete from content_sections;
+delete from content_tags;
+delete from content_authors;
+delete from content_titles;
+delete from contents;
+*/

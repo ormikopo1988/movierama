@@ -1,0 +1,75 @@
+<?php 
+
+	// index.php
+	
+	$executionTimers['wooof_1'][0] = microtime(true);
+
+	require_once '../setup.inc.php';
+	
+	$wo = new WOOOF(true, null, null, false);
+  	if ( !$wo->constructedOk ) { $wo->handleShowStopperError( "1000 Failed to init WOOOF." ); }
+
+  	wooofTimerStop('wooof_1');
+  	
+	$router = new AltoRouter();
+	$router->setBasePath( substr( $wo->getConfigurationFor('siteBaseURL') . $wo->getConfigurationFor('publicSite'), 0, -1 ) );
+	
+	/*
+	// CAUTION
+	// For tests only
+	$router->map(
+		'GET',
+		'/[a:p1]/[a:p2]?/[i:p3]?',
+		function($p1,$p2,$p3) use($wo) { 
+			echo '<h1>Nice route!</h1>'; var_dump($p1,$p2,$p3); var_dump($_GET); 
+		},
+		'testRoute'
+	);
+	echo $router->generate('testRoute', ['p1'=>'1stParam']); die();
+	$router->run($wo);
+	die('Finished');
+	*/
+	
+	/*******************************************************************/
+	
+	// the start/home
+	//
+	$router->map(
+		'GET',
+		'/',
+		function() use($wo) {
+			//header('Location: home.php');
+			//require_once 'home.php';
+			VO_CtrlSite::home($wo);
+		}
+		, 'home'
+	);
+	
+	//TODO - For testing purposes
+	$router->map(
+		'GET',
+		'/autoComplete/[a:searchWhat]',
+		function($searchWhat) use($wo) {
+			VO_CtrlSite::autoCompleteUrl($wo, $searchWhat);
+		}
+		, 'autoComplete'
+	);
+	
+	require_once 'routes/capi.php';
+	require_once 'routes/groups.php';
+	require_once 'routes/posts.php';
+	require_once 'routes/profile.php';
+	require_once 'routes/registration.php';
+	require_once 'routes/social.php';
+	
+	/*
+	 ==========================================================================
+	 */
+
+	// Find and follow route based on URL
+	// Handling of no matches, etc. inside the 'run' function.
+	 
+	$router->run($wo);
+
+/* End of file index.php */
+

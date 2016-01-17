@@ -1,0 +1,257 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var RB = require('react-bootstrap');
+import $ from 'jquery';
+
+import MessagesBoxComp from './MessagesBoxComp';
+
+export default React.createClass({ //SocialActionsComp
+
+  getInitialState: function() {
+    var following;
+    var friendStatus;
+
+    console.log('SOCIAL PROPS: ', this.props);
+
+    if(this.props.connections.followStatus === 'N' || this.props.connections.followStatus === 'F2') {
+      following = 'false';
+    }
+    
+    else {
+      following = 'true';
+    }
+
+    if(this.props.connections.friendStatus === 'N') {
+      friendStatus = 'requestFriendship';
+    }
+    else if(this.props.connections.friendStatus === 'R1') {
+      friendStatus = 'false';
+    }
+    else if(this.props.connections.friendStatus === 'R2') {
+      friendStatus = 'answerFriendship'
+    }
+    else if(this.props.connections.friendStatus === 'Y') {
+      friendStatus = 'true';
+    }
+    
+    return {
+      connections: this.props.connections,
+      following: following,
+      friendStatus: friendStatus,
+      followOnly: this.props.followOnly || false
+  	};
+  },
+
+  makeFriendRequest: function(urlString) {
+    var url = VOICE.linkPrefix(urlString);
+    VOICE.ajaxCall(url, 'POST', {}, this, this.cbHandleReq);
+  },
+
+  cbHandleReq: function(result) {
+    console.log(result);
+    if(result.requestOk || result.friendshipDeletedOk || result.resetFriendRequestOk || result.requestAnsweredOk) {
+      this.refs.msgBox.clearErrors();
+      if(result.requestOk) {
+        this.refs.msgBox.addSuccess('Friend request successfully sent!', false);  
+      }
+      else if(result.friendshipDeletedOk) {
+        this.refs.msgBox.addSuccess('Friendship successfully deleted!', false);
+      }
+      else if(result.resetFriendRequestOk) {
+        this.refs.msgBox.addSuccess('Friend request successfully reseted!', false);
+      }
+      else if(result.requestAnsweredOk) {
+        if(result.requestAnsweredId === 'A') {
+          this.refs.msgBox.addSuccess('Now Friends!', false);  
+        }
+        else {
+          this.refs.msgBox.addSuccess('Rejected friend request!', false);
+        }
+        
+      }
+    
+      setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+
+      var newFriendStatus;
+
+      if(this.state.friendStatus === 'requestFriendship') {
+        newFriendStatus = 'false';
+      }
+
+      else if(this.state.friendStatus === 'false') {
+        newFriendStatus = 'requestFriendship';
+      }
+
+      else if(this.state.friendStatus === 'answerFriendship') {
+        if(result.requestAnsweredId === 'Α') {
+          newFriendStatus = 'true';
+        }
+        else if(result.requestAnsweredId === 'R') {
+          newFriendStatus = 'requestFriendship';
+        }
+      }
+
+      else if(this.state.friendStatus === 'true') {
+        newFriendStatus = 'requestFriendship';
+      }
+      
+      this.setState({
+        friendStatus: newFriendStatus
+      });
+
+      var refreshData = {
+        requestorId: VOICE.globals.userId,
+        targetIds: [[this.state.connections.targetId, this.props.targetType]]
+      };
+      
+      VOICE.ajaxCall(VOICE.linkPrefix('api/social/getConnectionInfo'), 'POST', refreshData, this, this.refreshData);
+    }
+
+    else {
+      this.refs.msgBox.addError(result.errors);
+      setTimeout(this.refs.msgBox.clearErrors, 5000);
+    }
+  },
+
+  followUser: function(urlString) {
+    var url = VOICE.linkPrefix(urlString);
+    VOICE.ajaxCall(url, 'POST', {}, this, this.cbHandleFol);
+  },
+
+  cbHandleFol: function(result) {
+    console.log(result);
+    if(result.followOk) {
+      this.refs.msgBox.clearErrors();
+      this.refs.msgBox.addSuccess('Follow request successful!', false);
+      setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+      this.setState({
+        following: 'true'
+      });
+
+      console.log('CHECK:', this.state.connections.targetId, this.props.targetType)
+
+      var refreshData = {
+        requestorId: VOICE.globals.userId,
+        targetIds: [[this.state.connections.targetId, this.props.targetType]]
+      };
+      
+      VOICE.ajaxCall(VOICE.linkPrefix('api/social/getConnectionInfo'), 'POST', refreshData, this, this.refreshData);
+    }
+
+    else {
+      this.refs.msgBox.addError(result.errors);
+      setTimeout(this.refs.msgBox.clearErrors, 5000);
+    }
+  },
+
+  unFollowUser: function(urlString) {
+    var url = VOICE.linkPrefix(urlString);
+    VOICE.ajaxCall(url, 'POST', {}, this, this.cbHandleUnFol);
+  },
+
+  cbHandleUnFol: function(result) {
+    console.log(result);
+    if(result.unFollowOk) {
+      this.refs.msgBox.clearErrors();
+      this.refs.msgBox.addSuccess('Unfollow request successful!', false);
+      setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+      this.setState({
+        following: 'false'
+      });
+
+      var refreshData = {
+        requestorId: VOICE.globals.userId,
+        targetIds: [[this.state.connections.targetId, this.props.targetType]]
+      };
+      
+      VOICE.ajaxCall(VOICE.linkPrefix('api/social/getConnectionInfo'), 'POST', refreshData, this, this.refreshData);
+    }
+
+    else {
+      this.refs.msgBox.addError(result.errors);
+      setTimeout(this.refs.msgBox.clearErrors, 5000);
+    }
+  },
+
+  refreshData: function(result) {
+    console.log('REFRESHED DATA: ', result);
+    this.setState({
+      connections: result.getConnections[0]
+    });
+  },
+
+  render: function() {
+     var con = this.state.connections;
+     console.log(con, con.followLink);
+
+     var cbFollow = this.followUser.bind(null, con.followLink);
+     var cbUnfollow = this.unFollowUser.bind(null, con.followLink);
+     var cbRequest = this.makeFriendRequest.bind(null, con.friendLink);
+
+     var cbRequestAcc = this.makeFriendRequest.bind(null, con.friendLinkAccept);
+     var cbRequestRej = this.makeFriendRequest.bind(null, con.friendLinkReject);
+     
+     return (
+        <span>
+          {
+            VOICE.globals.userId !== con.targetId ?
+            <div className="socialActionsDiv">
+                {
+                  this.state.following === 'false' ? 
+                  <button type="button" className="btn btn-default btn-sm btn-link" 
+                    onClick={cbFollow}>
+                      <span><i className="fa fa-share fa-lg"></i> Follow</span>
+                  </button> :
+                  <button type="button" className="btn btn-default btn-sm btn-link" 
+                    onClick={cbUnfollow}>
+                      <span><i className="fa fa-undo"></i> Unfollow</span>
+                  </button>
+                }
+                {
+                  this.state.followOnly === false ?  
+                  <span>
+                  {
+                    this.state.friendStatus === 'requestFriendship' ?
+                    <button type="button" className="btn btn-default btn-sm btn-link" 
+                      	onClick={cbRequest}>
+                      	<span className="agency-facebook">
+                      		<i className="fa fa-user-plus fa-lg"></i> Send Friend Request
+                      	</span>
+              	    </button> :
+                    this.state.friendStatus === 'false' ?
+                    <button type="button" className="btn btn-default btn-sm btn-link"
+                        onClick={cbRequest}>
+                        <span className="agency-facebook">
+                          <i className="fa fa-check-square fa-lg"></i> Friend Request Sent
+                        </span>
+                    </button> :
+                    this.state.friendStatus === 'answerFriendship' ?
+                    <span>
+                      <button type="button" className="btn btn-default btn-sm btn-link" 
+                          onClick={cbRequestAcc}>
+                          <span className="agency-facebook">
+                            <i className="fa fa-check fa-lg"></i> Accept Friend Request
+                          </span>
+                      </button>
+                      <button type="button" className="btn btn-default btn-sm btn-link" 
+                          onClick={cbRequestRej}>
+                          <span className="agency-facebook">
+                            <i className="fa fa-close fa-lg"></i> Decline Friend Request
+                          </span>
+                      </button>
+                    </span> :
+                    <button type="button" className="btn btn-default btn-sm btn-link" 
+                        onClick={cbRequest}>
+                        <span className="agency-facebook">
+                          <i className="fa fa-user-times fa-lg"></i> Delete Friend
+                        </span>
+                    </button>
+                  }
+                  </span> : null }
+                <MessagesBoxComp ref="msgBox"/>
+             </div> : null
+           }
+         </span>
+      );
+  }
+}); //SocialActionsComp

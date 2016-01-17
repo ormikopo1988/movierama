@@ -1,0 +1,35 @@
+//require('../../css/voice.css');
+
+import React from 'react';
+import ReactDOM from 'react-dom';
+import Home from './Home';
+import RegisterBox from './RegisterBox';
+import RegisterVerifyBox from './RegisterVerifyBox';
+import LoginBox from './LoginBox';
+import ProfileEdit from './ProfileEdit';
+import ProfileView from './ProfileView';
+import OrganizationEdit from './OrganizationEdit';
+import SiteHeaderBox from './SiteHeaderBox';
+import SiteFooterBox from './SiteFooterBox';
+
+import VOICE from './voice';
+
+function main() {
+	//const app = document.createElement('div');
+	//document.body.appendChild(app);
+	window.VOICE = VOICE;
+	window.ReactDOM = ReactDOM;
+	window.React = React;
+
+	window.Home = Home;
+	window.LoginBox = LoginBox; 
+	window.RegisterBox = RegisterBox;
+	window.RegisterVerifyBox = RegisterVerifyBox;
+	window.ProfileEdit = ProfileEdit;
+	window.ProfileView = ProfileView;
+	window.OrganizationEdit = OrganizationEdit;
+	window.SiteHeaderBox = SiteHeaderBox;
+	window.SiteFooterBox = SiteFooterBox;
+}
+
+main();

@@ -1,0 +1,76 @@
+//require('../../css/voice.css');
+
+import React from 'react';
+import ReactDOM from 'react-dom';
+import Home from './Home';
+import RegisterBox from './RegisterBox';
+import LoginBox from './LoginBox';
+import ProfileEdit from './ProfileEdit';
+import ProfileView from './ProfileView';
+import OrganizationView from './OrganizationView';
+import OrganizationEdit from './OrganizationEdit';
+import SiteHeaderBox from './SiteHeaderBox';
+import SiteFooterBox from './SiteFooterBox';
+import ObjectsList from './ObjectsList';
+import ActivityLogList from './ActivityLogList';
+import NotificationsList from './NotificationsList';
+import GroupView from './GroupView';
+import GroupEdit from './GroupEdit';
+import IdeaView from './IdeaView';
+import IdeaEdit from './IdeaEdit';
+import MessagesBoxComp from './MessagesBoxComp';
+import CreateGroupForm from './CreateGroupForm';
+import CreateIdeaForm from './CreateIdeaForm';
+import PostBox from './PostBoxComp';
+import BadgesGallery from './BadgesGallery';
+import Post from './PostComp';
+import PersonalMessageExchanges from './PersonalMessageExchanges';
+import SidebarComp from './SidebarComp';
+import AutoCompleteComp from './AutoCompleteComp';	// for testing only
+
+import ContentView from './ContentView';
+import ContentEdit from './ContentEdit';
+import ContentCreateForm from './ContentCreateForm';
+
+import VOICE from './voice';
+
+function main() {
+	//const app = document.createElement('div');
+	//document.body.appendChild(app);
+	window.VOICE = VOICE;
+	window.ReactDOM = ReactDOM;
+	window.React = React;
+
+	window.Home = Home;
+	window.LoginBox = LoginBox; 
+	window.RegisterBox = RegisterBox;
+	window.ProfileEdit = ProfileEdit;
+	window.ProfileView = ProfileView;
+	window.OrganizationView = OrganizationView;
+	window.OrganizationEdit = OrganizationEdit;
+	window.SiteHeaderBox = SiteHeaderBox;
+	window.SiteFooterBox = SiteFooterBox;
+	window.ObjectsList = ObjectsList;
+	window.ActivityLogList = ActivityLogList;
+	window.NotificationsList = NotificationsList;
+	window.GroupView = GroupView;
+	window.GroupEdit = GroupEdit;
+	window.IdeaView = IdeaView;
+	window.IdeaEdit = IdeaEdit;
+	window.MessagesBoxComp = MessagesBoxComp;
+	window.AutoCompleteComp = AutoCompleteComp;	// 	// for testing only
+	window.SidebarComp = SidebarComp;
+	window.CreateGroupForm = CreateGroupForm;
+	window.CreateIdeaForm = CreateIdeaForm;
+	window.PostBox = PostBox;
+	window.BadgesGallery = BadgesGallery;
+	window.Post = Post;
+	window.PersonalMessageExchanges = PersonalMessageExchanges;
+
+	window.ContentView = ContentView;
+	window.ContentEdit = ContentEdit;
+	window.ContentCreateForm = ContentCreateForm;
+
+}
+
+main();

@@ -1,0 +1,29 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import $ from 'jquery';
+var Select = require('react-select');
+
+export default React.createClass({
+	render: function() {
+		var self = this;
+		var getOptions = function(input, callback) {
+			var options = self.props.selectData;
+		    setTimeout(function() {
+		        callback(null, {
+		        	//VOICE.ajaxCall(url, 'GET', {}, self, self.cbHandleSelect)
+		            options: options,
+		            // CAREFUL! Only set this to true when there are no more options,
+		            // or more specific queries will not be sent to the server.
+		            complete: true
+		        });
+		    }, 500);
+		};
+
+		return (
+			<Select
+			    name="form-field-name"
+			    placeholderText="Select box"
+			    asyncOptions={getOptions} />
+		);
+	}
+});

@@ -1,0 +1,162 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import AutoCompleteComp from './AutoCompleteComp';
+import BookmarkComp from './BookmarkComp';
+import GroupActionsComp from './GroupActionsComp';
+import PostBoxComp from './PostBoxComp';
+
+export default React.createClass({ //GroupView
+  
+  render: function() {
+  	var result = this.props.data[0];
+  	console.log(result);
+  	return (
+      <div classNameName="container">
+		<center><h1>{this.props.title}</h1></center>
+		<div className="row">
+	        {
+	        	result.groupType === 'DIS' ?
+	        		<DiscussionGroup key={result.id} result={result} lookUps={this.props.lookUps}></DiscussionGroup> :
+	        	result.groupType === 'TEA' ?
+	        		<TeamGroup key={result.id} result={result}></TeamGroup> :
+	        	result.groupType === 'OWN' ?
+	        		<OwnerGroup key={result.id} result={result}></OwnerGroup> :
+	        		null
+	        }
+	    </div>
+      </div>
+    );
+  } 
+});
+
+var DiscussionGroup = React.createClass({
+
+	render: function() {
+
+		var result = this.props.result;
+		var avatarImg = result.avatarImg || '$no_image_available.jpg';
+		var avatarURL = VOICE.imgPrefix(avatarImg, 'M');
+
+		var memberSince = moment.utc(result.fromDate, 'YYYYMMDDhhmmss').fromNow();
+
+		var tags = [];
+		if(result.tags.length !== 0) {
+			for(var i=0; i<result.tagDesc.length; i++) {
+				tags.push(
+					<span className="endorse-item-name">
+						<span className="endorse-item-name-text"><i className="fa fa-tag"></i> {result.tagDesc[i]}</span>
+					</span>
+				);
+			}
+		}
+
+		var postBoxData = {
+			postBoxId: result.postBox.id
+		};
+
+		return (
+			<div className="col-md-12 col-sm-12">
+				<div className="well well-sm well-agency">           
+					<a href={VOICE.linkPrefix('group/view/'+result.id)}><img src={avatarURL}/></a>
+					<a className="lead agency-name" href={VOICE.linkPrefix('group/view/'+result.id)}>
+						{result.title}
+					</a><br/>
+					<div className="sub-info">
+						<p>
+							{ result.description }
+						</p>
+						<p><i className="fa fa-clock-o smallFa"> Created: {memberSince}</i></p>
+						{
+							tags.length !== 0 ?
+								<p>
+									{tags}
+								</p> : null
+						}
+						<hr/>
+						<a href={VOICE.linkPrefix('group/members/'+result.id)}><i className="fa fa-users"></i> View Members</a><br/><br/>
+			  			<BookmarkComp connections={result.memberships} targetType={result.isType} userId={result.requestorUserId}></BookmarkComp>
+						<GroupActionsComp memberships={result.memberships} targetType={result.isType} userId={result.requestorUserId}></GroupActionsComp>
+					</div>
+				</div>
+				<div className="well well-sm well-agency">           
+					<PostBoxComp data={postBoxData} lookUps={this.props.lookUps}></PostBoxComp>
+				</div>
+			</div>
+		)
+	}
+});
+
+var TeamGroup = React.createClass({
+
+	render: function() {
+		var result = this.props.result;
+		console.log('TEAM GROUP RESULTS: ', result);
+		var avatarImg = result.avatarImg || '$no_image_available.jpg';
+		var avatarURL = VOICE.imgPrefix(avatarImg, 'M');
+
+		var memberSince = moment.utc(result.fromDate, 'YYYYMMDDhhmmss').fromNow();
+
+		return (
+			<div className="col-md-12 col-sm-12">
+				<div className="well well-sm well-agency">           
+					<a href={VOICE.linkPrefix('group/view/'+result.id)}><img src={avatarURL}/></a>
+					<a className="lead agency-name" href={VOICE.linkPrefix('group/view/'+result.id)}>
+						{result.title}
+					</a><br/>
+					<div className="sub-info">
+						<p>
+							{ result.description }
+						</p>
+						<p><i className="fa fa-clock-o smallFa"> Created: {memberSince}</i></p>
+						<hr/>
+						<a href={VOICE.linkPrefix('group/members/'+result.id)}><i className="fa fa-users"></i> View Members</a><br/><br/>
+						{
+							result.memberships.memberStatus === 'A' || result.memberships.memberStatus === 'Y' ?
+								<span>
+									<a href={VOICE.linkPrefix('timeline/'+result.postBox.id)}>
+										<i className="fa fa-comment"></i> See Timeline 
+									</a><br/><br/>
+								</span> : null
+						}
+						<BookmarkComp connections={result.memberships} targetType={result.isType} userId={result.requestorUserId}></BookmarkComp>
+						<GroupActionsComp memberships={result.memberships} targetType={result.isType} userId={result.requestorUserId}></GroupActionsComp>
+					</div>
+				</div>
+			</div>
+		)
+	}
+});
+
+var OwnerGroup = React.createClass({
+
+	render: function() {
+		var result = this.props.result;
+		console.log('OWNER GROUP RESULTS: ', result);
+		var avatarImg = result.avatarImg || '$no_image_available.jpg';
+		var avatarURL = VOICE.imgPrefix(avatarImg, 'M');
+
+		var memberSince = moment.utc(result.fromDate, 'YYYYMMDDhhmmss').fromNow();
+
+		return (
+			<div className="col-md-12 col-sm-12">
+				<div className="well well-sm well-agency">           
+					<a href={VOICE.linkPrefix('group/view/'+result.id)}><img src={avatarURL}/></a>
+					<a className="lead agency-name" href={VOICE.linkPrefix('group/view/'+result.id)}>
+						{result.title}
+					</a><br/>
+					<div className="sub-info">
+						<p>
+							{ result.description }
+						</p>
+						<p><i className="fa fa-clock-o smallFa"> Created: {memberSince}</i></p>
+						<hr/>
+						<a href={VOICE.linkPrefix('group/members/'+result.id)}><i className="fa fa-users"></i> View Members</a><br/><br/>
+						<GroupActionsComp memberships={result.memberships} targetType={result.isType} userId={result.requestorUserId}></GroupActionsComp>
+					</div>
+				</div>
+			</div>
+		)
+	}
+});

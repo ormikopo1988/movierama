@@ -1,0 +1,54 @@
+<?php
+
+class VO_PersonProfiles {
+	const _ECP = 'PPR';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param VO_TblPersonProfile $obj
+	 * @return false | id
+	 */
+	public static 
+	function save( WOOOF $wo, VO_TblPersonProfile &$obj, $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	    
+		$t1 = new WOOOF_dataBaseTable($wo->db, 'person_profiles');
+		if ( !$t1->constructedOk ) { return false; }
+		
+		if ( $wo->hasContent($obj->id) ) {
+			// update
+			$obj->updatedDateTime	= WOOOF::currentGMTDateTime();
+
+			$res = $t1->updateRowFromArraySimple($obj->toArray());
+			if($res === FALSE) { return false; }
+		}
+		else {
+			// insert
+			$obj->isDeleted 	= '0';
+			$obj->createdDateTime 	= WOOOF::currentGMTDateTime();
+			$obj->updatedDateTime	= $obj->createdDateTime;
+			
+			$newId = $t1->insertRowFromArraySimple($obj->toArray());
+			if ( $newId === FALSE ) { return false; }
+			$obj->id = $newId;
+		}
+
+		$usActId = VO_Users::saveAction( $wo, 'PR1', null, null, 'person_profile' );
+		
+		if ( $fetchBack ) {
+			// Get back into $us based on id
+			// TODO:
+		}
+	  
+		return $obj->id;
+	}	// save
+	
+}	// VO_PersonProfiles

@@ -1,0 +1,23 @@
+<?php
+/* Class [VO_TblUserNotification] for table [voice_user_notifications] */
+
+class VO_TblUserNotification extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'voice_user_notifications';
+
+    public $id;
+    public $isDeleted;
+    public $userId;
+    public $whenDateTime;
+    public $relevantUserId;
+    public $relevantOrganisationId;
+    public $infoText;
+    public $whatDVCode;
+    public $relevantContentId;
+    public $relevantIdeaId;
+    public $relevantPostId;
+    public $relevantGroupId;
+    public $isSeen;
+    public $usedInDigest;
+
+}  // VO_TblUserNotification

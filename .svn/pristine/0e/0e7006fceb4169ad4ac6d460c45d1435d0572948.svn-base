@@ -1,0 +1,41 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import ReactBootstrap from 'react-bootstrap';
+
+export default React.createClass({
+  
+  render: function() { 
+  	var userId = this.props.userData.userId;
+    return (
+        <nav className="navbar navbar-default navbar-fixed-top">
+			<div className="container-fluid">
+				<div className="navbar-header">
+					<button type="button" className="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" data-aria-expanded="false">
+						<span className="sr-only">Toggle navigation</span>
+	                    <span className="icon-bar"></span>
+	                    <span className="icon-bar"></span>
+	                    <span className="icon-bar"></span>
+					</button>
+					<a className="navbar-brand" href={VOICE.linkPrefix('')}><i className="fa fa-viacoin"></i> VOICE</a>
+				</div>
+				<div className="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+		            <ul className="nav navbar-right nav-pills">
+			            <li role="presentation"><a href="#">CONNECT</a></li>
+	                    <li role="presentation"><a href="#">CREATE</a></li>
+	                    <li role="presentation"><a href="#">MONETIZE</a></li>
+	                    <li role="presentation"><a href="#">TRAINING</a></li>
+	                    <li role="presentation"><a href="#">CONTACT</a></li>
+	                    <li role="presentation">
+	                    	{(userId === null) ? <a href={VOICE.linkPrefix('login')}>LOGIN</a> : <a href={VOICE.linkPrefix('logout')}>LOGOUT</a>}
+	                    </li>
+	                    <li role="presentation"> 
+                    		{(userId === null) ? <a href={VOICE.linkPrefix('register')}>REGISTER</a> : null}
+                    	</li>
+		            </ul>
+		        </div>
+			</div>
+        </nav>
+    );
+  }
+  
+});

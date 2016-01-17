@@ -1,0 +1,67 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import AutoCompleteComp from './AutoCompleteComp';
+import SocialActionsComp from './SocialActionsComp';
+
+export default React.createClass({ //UserList
+  
+  render: function() {
+  	var li_s = [];
+
+  	for(var i=0; i<this.props.data.length; i++) {
+  		var result = this.props.data[i];
+
+	  	var avatarImg = result.VUS_avatarImg || 'profile_none.png';
+		var avatarURL = '';
+		
+		if(avatarImg !== 'profile_none.png') {
+			avatarURL = VOICE.imgPrefix(avatarImg);
+		}
+		else {
+			avatarURL = VOICE.systemImgPrefix(avatarImg);
+		}
+
+		var memberSince = moment(result.VUS_createdDateTime, 'YYYYMMDDhhmmss').fromNow();
+
+		li_s.push(
+			<div className="col-md-12 col-sm-12">
+				<div className="well well-sm well-agency">           
+					<img src={avatarURL}/>
+					<a className="lead agency-name" href={VOICE.linkPrefix('profile/view/'+result.VUS_id)}>
+						{ result.PROF_gender === 'M' ? <i className="fa fa-mars"></i> : 
+						  result.PROF_gender === 'F' ? <i className="fa fa-venus"></i> : null} {result.PROF_firstName} {result.PROF_lastName}
+					</a><br/>
+					<div className="sub-info">
+						<p>
+							<i className="fa fa-registered smallFa"></i> { 
+								result.ORG_shortName !== 'Individual' ?
+									<a href={VOICE.linkPrefix('organisation/view/'+result.VUS_id)}>{result.ORG_shortName}</a> :
+									<span>{result.ORG_shortName}</span>
+							}
+						</p>
+						<p>
+							{ result.PROF_birthYear !== '0' ? <i className="fa fa-birthday-cake smallFa"> {result.PROF_birthYear}</i> : null}
+						</p>
+						<p><i className="fa fa-clock-o smallFa"> Member Since: {memberSince}</i></p>
+						<hr/>
+						<SocialActionsComp connections={result.connections} userId={result.VUS_id}></SocialActionsComp>
+					</div>
+				</div>
+			</div>
+		);
+  	}
+  	console.log(this.props.data);
+    return (
+		<div classNameName="container">
+			<center><h1>Users List</h1></center>
+			<AutoCompleteComp placeholder="Search User..." url="api/getUser/"  />
+			<div className="row">
+				{li_s}
+			</div>
+		</div>
+    );
+  }
+  
+});

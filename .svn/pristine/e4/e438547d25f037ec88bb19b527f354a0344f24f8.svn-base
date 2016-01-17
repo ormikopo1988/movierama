@@ -1,0 +1,506 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import MessagesBoxComp from './MessagesBoxComp';
+import LoadingComp from './LoadingComp';
+var RB = require('react-bootstrap');
+
+/***************************************************************************/
+//
+/***************************************************************************/
+	
+//ContentSectionsComp
+
+export default React.createClass({ 
+
+	/*
+		Properties
+		1. contentId (mandatory)
+		2. data (mandatory) (sections in v_content_sections form plus _level, _numbering, _seq)
+	*/
+
+	getDefaultProps: function() {
+		return {
+			data: {},
+			contentId: '',
+			editable: false
+		};
+	},
+
+	getInitialState: function() {
+		return { 
+			data: this.props.data,
+			loading: false,
+			showAddButton: true,
+			showSectionForm: false
+		}
+	},
+
+	onPlusClick: function() {
+		this.setState({ 
+			showSectionForm: true,
+			showAddButton: false
+		});  
+	},
+/*
+	componentDidMount: function() {
+		if(Object.keys(this.props.data).length === 0) {
+			var data = {
+				id: this.props.contentId
+			};
+			VOICE.ajaxCall(VOICE.linkPrefix('api/contents/getContent'), 'POST', data, this, this.handleGetContent);
+		}
+	},
+
+	handleGetContent: function(result) {
+		if(result.getContentOk)
+		this.setState({
+			data: result.handleGetContent 	// { authors, main, sections, tags }
+		});
+	},
+*/
+	handleCancelClick: function() {
+		this.setState({
+			showSectionForm: false,
+			showAddButton: true
+		});
+	},
+
+	showNewData: function(data, flags) {
+		this.setState({
+			data: data,
+			showAddButton: flags.showAddButton,
+			showSectionForm: flags.showSectionForm
+		});
+	},
+
+	handleAddFromTemplate: function() {
+		var url = VOICE.linkPrefix('api/content/' + this.props.contentId + '/sections/add' );
+		var data = { fromContentId: this.refs.template.getValue() };
+		VOICE.ajaxCall(url, 'POST', data, this, this.cbhandleAddFromTemplate);
+	},
+
+	cbhandleAddFromTemplate: function(result) {
+		if(result.actionOk) {
+	  		this.refs.msgBox.clearErrors();
+			this.refs.msgBox.addSuccess('Sections added successully!', false);
+		  	//setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+		  
+	 		//var url = VOICE.linkPrefix('api/content/sections/get/'+this.props.contentId);
+
+		    //VOICE.ajaxCall(url, 'GET', {}, this, this.cbHandleDeleteSection);
+	  	}
+	  	else {
+			this.refs.msgBox.addError(result.errors);
+	  	}
+	  },
+
+    render: function() {
+	  	var data = this.state.data;
+	  	console.log('ContentSectionsComp.render: data:', data);
+	  	var self = this;
+
+		var addFormData = {
+			contentId: this.props.contentId,
+			sectionType: 'TEXT',
+			typeOfText: 'PLAIN',
+			ord: '999999999'
+		};
+
+		//var memberSince = moment.utc(result.IDE_effectiveDate, 'YYYYMMDDhhmmss').fromNow();
+	  	return (
+			<div clasName="panel panel-default">
+				<RB.Row>
+					<span>
+						{ 
+							this.state.showAddButton && this.props.editable ? 
+								<center>
+									<a href="javascript:void(0)" onClick={this.onPlusClick}>
+										<i className="fa fa-plus-circle"></i> Add Section
+									</a><br/><br/>
+					                
+					                <RB.Input type="select" addonBefore="Add Sections from Template" ref="template" name="template" onChange={this.handleAddFromTemplate}>
+					                  <option value=""> - Select Template to add to your Content - </option>
+					                  {VOICE.renderOptions(this.props.lookUps._TEMPLATES)}
+					                </RB.Input>
+
+								</center> 
+								: 
+								null 
+						}
+					</span>
+				</RB.Row>
+				<RB.Row>
+					{
+						data.map(function(datum) {
+							return (
+								<Section lookUps={self.props.lookUps} editable={self.props.editable} actionEdit={false} ref="section" onActionReturn={self.showNewData} contentId={self.props.contentId} key={datum.id} data={datum}></Section>
+							)
+						})
+					}
+				</RB.Row>
+				<RB.Row>
+					<RB.Col md={12}>
+						{ this.state.showSectionForm ? 
+							<SectionForm lookUps={this.props.lookUps} data={addFormData} onActionReturn={self.showNewData} sectionAction="add" contentId={this.props.contentId} onCancelClick={this.handleCancelClick} /> 
+							: null }
+					</RB.Col>
+				</RB.Row>
+
+	            <RB.Row>
+	              <RB.Col md={12}>
+	                <MessagesBoxComp ref="msgBox"/>
+	              </RB.Col>
+	            </RB.Row>
+
+
+			</div>
+	    );
+    }
+}); //ContentSectionsComp
+
+
+/***************************************************************************/
+//
+/***************************************************************************/
+	
+var Section = React.createClass({
+	
+	getInitialState: function() {
+	    console.log('ContentSectionsComp.Section.getInitialState: props:', this.props);
+		return {};
+	},
+
+	componentWillReceiveProps: function(nextProps) {
+		this.setState({
+			edit: nextProps.actionEdit
+		});
+	},
+
+	onBanClick: function(sectionData, event) {
+		VOICE.ajaxCall(VOICE.linkPrefix('api/content/section/delete'), 'POST', sectionData, this, this.cbHandleDelete);
+		//TODO - update view
+	},
+
+	cbHandleDelete: function(result) {
+		if(result.actionOk) {
+	  		this.refs.msgBox.clearErrors();
+			this.refs.msgBox.addSuccess('Section deleted successully!', false);
+		  	//setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+		  
+	 		var url = VOICE.linkPrefix('api/content/sections/get/'+this.props.contentId);
+
+		    VOICE.ajaxCall(url, 'GET', {}, this, this.cbHandleDeleteSection);
+	  	}
+	  	else {
+			this.refs.msgBox.addError(result.errors);
+	  	}
+	},
+
+	cbHandleDeleteSection: function(result) {
+		if(result.actionOk) {
+			this.props.onActionReturn(result.data, {
+				showSectionForm: false,
+				showAddButton: true
+			});
+		}
+		else {
+			this.refs.msgBox.addError(result.errors);
+		}
+	},
+
+	onEditClick: function(sectionData, event) {
+		this.setState({
+			edit: true
+		});
+	},
+
+	handleCancelClick: function(data) {
+		this.setState({
+			edit: false
+		});
+	},
+
+	render: function() {
+		var data = this.props.data;
+
+		var showElem;
+
+		switch ( data.sectionType ) {
+			case 'TEXT': 
+				switch( data.typeOfText ) {
+					case 'PLAIN': showElem =
+						<div style={{whiteSpace: 'pre-wrap'}}>{data.theText}</div>
+						break;
+					default:
+						<span> {data.theText} </span>
+				}
+				break;
+			default: showElem =
+				<span> {data.value1} {data.value2} {data.value3} </span> 
+		}
+
+
+		return (
+			<div>
+				{
+					!this.state.edit ? 
+						<span>
+							{
+								this.props.editable ? 
+									<a href="javascript:void(0)">
+										<i className="fa fa-pencil smallFa" data-section-id={data.id} onClick={this.onEditClick.bind(null, data)}></i>
+									</a> : null
+							}
+							<div>
+								<b><span> {data.title} </span></b><br/>
+
+								{showElem}
+
+							</div>
+							{
+							
+								this.props.editable ?
+									<a href="javascript:void(0)">
+										<i className="fa fa-ban smallFa" data-section-id={data.id} onClick={this.onBanClick.bind(null, data)}></i>
+									</a> : null
+							}
+							<br/><br/>
+						</span> : 
+
+						<RB.Row>
+							<RB.Col md={12}>
+								<SectionForm 
+									data={data} lookUps={this.props.lookUps} 
+									key={data.id+'FRM'} contentId={this.props.contentId} 
+									sectionAction="edit" 
+									onCancelClick={this.handleCancelClick}  onActionReturn={this.props.onActionReturn}
+								/>
+							</RB.Col><br/>
+						</RB.Row>
+				}
+				<br/>
+				<RB.Row>
+					<RB.Col md={12}>
+						<MessagesBoxComp ref="msgBox"/>
+					</RB.Col>
+				</RB.Row>
+			</div>
+		);
+	}
+});
+
+
+/***************************************************************************/
+//
+/***************************************************************************/
+
+var SectionForm = React.createClass({
+
+  getInitialState: function() {
+  	 console.log('ContentSectionsComp.SectionForm.getInitialState: props:', this.props);
+  	 return {
+  	 	loading: false,
+  	 	sectionType: this.props.data.sectionType
+  	 }
+  },
+
+  
+ handleSubmit: function(e) {
+	e.preventDefault();
+	
+
+	// Keep everything from original data
+	var data = this.props.data;
+
+	// Get (possibly) changed values
+	var title 			= this.refs.title.getValue() || '';
+    var sectionType 	= this.refs.sectionType.getValue() || '';
+    var mnemonicCode 	= this.refs.mnemonicCode.getValue() || '';
+
+    var theText 		= ( typeof this.refs.theText !== 'undefined' ? this.refs.theText.getValue() : '' );
+    var typeOfText 		= ( typeof this.refs.typeOfText !== 'undefined' ? this.refs.typeOfText.getValue() : '' );
+
+    var value1			= ( typeof this.refs.value1 !== 'undefined' ? this.refs.value1.getValue() : '' );
+    var value2			= ( typeof this.refs.value2 !== 'undefined' ? this.refs.value2.getValue() : '' );
+    var value3			= ( typeof this.refs.value3 !== 'undefined' ? this.refs.value3.getValue() : '' );
+
+    if ((!title && !theText && !value1 &&!value2) || !sectionType) {
+    	alert('Please fill all the required input fields!');
+        return;
+    }
+
+    // Adjust data to send
+    data.title 			= title;
+	data.theText		= theText;
+	data.sectionType 	= sectionType;
+	data.typeOfText		= typeOfText;
+	data.mnemonicCode	= mnemonicCode;
+    data.value1			= value1;
+    data.value2			= value2;
+    data.value3			= value3;
+
+    //ajax call to save/author
+    VOICE.ajaxCall(VOICE.linkPrefix('api/content/section/save'), 'POST', data, this, this.cbHandleSave);
+
+    this.setState({
+		loading: true
+    });
+  },
+
+  cbHandleSave: function(result) {
+  	console.log('ContentSectionsComp.SectionForm.cbHandleSave: result: ', result);
+  	if(result.actionOk) {
+  		this.refs.msgBox.clearErrors();
+		this.refs.msgBox.addSuccess('Section saved successully!', false);
+	  	//setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+	  
+ 		var url = VOICE.linkPrefix('api/content/sections/get/'+this.props.contentId);
+
+	    VOICE.ajaxCall(url, 'GET', {}, this, this.cbHandleSaveSection);
+  	}
+  	else {
+		this.refs.msgBox.addError(result.errors);
+  	}
+  	this.setState({
+		loading: false
+	});
+  },
+
+  cbHandleSaveSection: function(result) {
+  	if(result.actionOk) {
+  		this.props.onActionReturn(result.data, {
+  			showSectionForm: false,
+			showAddButton: true
+  		});
+  	}
+	else {
+		this.refs.msgBox.addError(result.errors);
+	}
+  },
+  
+  handleCancel: function() {
+	this.props.onCancelClick({
+		showSectionForm: false,
+		showAddButton: true
+	});
+	
+	return;
+  },
+  
+  sectionTypeOnChange: function(e) {
+  	this.setState(
+  		{
+  			sectionType: this.refs.sectionType.getValue()
+  		}
+  	);
+  },
+
+  render: function() {
+  	console.log('ContentSectionsComp.SectionForm.render: sectionType: [' + this.state.sectionType + '] props: ', this.props);
+
+//  	if(this.props.sectionAction === 'add') {
+//  		var data = {
+//  			typeOfText: 'PLAIN'	// default for TEXT sectionType
+//  		};
+//  	}
+//  	else {
+  		var data = this.props.data;
+//  	}
+
+	data.sectionType = this.state.sectionType;
+
+  	var detailsElem;
+
+  	switch ( data.sectionType ) {
+  		case 'TEXT': detailsElem =
+  			<div>
+			<RB.Row>
+				<RB.Col md={12}>
+					<RB.Input type="textarea" cols="40" rows="10" addonBefore="Text" placeholder="Text..." defaultValue={data.theText} ref="theText" name="theText" />
+				</RB.Col>
+				<RB.Col md={12}>
+					<RB.Input defaultValue={data.typeOfText} type="select" addonBefore="Text Type" ref="typeOfText" name="typeOfText" >
+						<option value=""> - Select Text Type - </option>
+						{VOICE.renderOptions(this.props.lookUps.CNT_TEXT_TYPE, 'code')}
+					</RB.Input>
+				</RB.Col>
+			</RB.Row>
+			</div>
+			;
+			break;
+
+		case 'AMOUNT': detailsElem =
+  			<div>
+			<RB.Row>
+				<RB.Col md={6}>
+					<RB.Input type="text" defaultValue={data.value2} ref="value2" name="value2" addonBefore="Amount" placeholder="Amount..." />
+				</RB.Col>
+				<RB.Col md={6}>
+					<RB.Input type="text" defaultValue={data.value3} ref="value3" name="value3" addonBefore="Currency" placeholder="Currency..." />
+				</RB.Col>
+			</RB.Row>
+			</div>
+			;
+			break;
+
+		default: detailsElem =
+  			<div>
+			<RB.Row>
+				<RB.Col md={12}>
+					<RB.Input type="text" defaultValue={data.value1} ref="value1" name="value1" addonBefore="Value" placeholder="..." />
+				</RB.Col>
+			</RB.Row>
+			</div>
+			;
+			break;
+  	} 
+
+    return (
+	  <form className="sectionForm">
+	    <input type="hidden" ref="ord" value={data.ord} />
+		<RB.Row>
+			<RB.Col md={12}>
+				<RB.Input type="text" defaultValue={data.title} ref="title" name="title" addonBefore="Section Title" placeholder="Title..." />
+			</RB.Col>
+			<RB.Col md={12}>
+				<RB.Input defaultValue={this.state.sectionType} type="select" addonBefore="Section Type (*)" ref="sectionType" onChange={this.sectionTypeOnChange} name="sectionType" >
+					<option value=""> - Select Section Type - </option>
+					{VOICE.renderOptions(this.props.lookUps.CNT_SECTION_TYPE, 'code')}
+				</RB.Input>
+			</RB.Col>
+		</RB.Row><br/>
+
+		{detailsElem}
+		
+		<br/>
+
+		<RB.Row>
+			<RB.Col md={12}>
+				<RB.Input type="text" defaultValue={data.mnemonicCode} ref="mnemonicCode" name="mnemonicCode" addonBefore="Mnemonic Code" placeholder="Mnemonic Code..." />
+			</RB.Col>
+		</RB.Row>
+		<div className="row">
+			<center>
+	            	{
+               			this.state.loading === false ?
+                  			<div className="col-md-1 col-md-offset-5">
+								<button type="button" className="btn btn-success" onClick={this.handleSubmit}><i className="glyphicon glyphicon-ok-sign"></i> Save</button>
+							</div> :
+                  			<LoadingComp loadingText="Saving Section..."></LoadingComp>
+             	    }
+            </center>
+			<div className="col-md-1">
+				<button type="button" onClick={this.handleCancel} className="btn btn-danger">Cancel</button>
+			</div>
+		</div><br/>
+		<RB.Row>
+			<RB.Col md={12}>
+				<MessagesBoxComp ref="msgBox"/>
+			</RB.Col>
+		</RB.Row>
+      </form>
+    );
+  } 
+});	// SectionForm

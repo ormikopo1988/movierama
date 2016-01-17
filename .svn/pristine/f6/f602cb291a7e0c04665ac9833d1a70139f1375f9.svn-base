@@ -1,0 +1,24 @@
+<?php
+/* Class [VO_TblUser] for table [voice_users] */
+
+class VO_TblUser extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'voice_users';
+
+    public $id;
+    public $isDeleted;
+    public $username;
+    public $avatarImg;
+    public $systemComments;
+    public $isActive;
+    public $isVerified;
+    public $verificationToken;
+    public $organisationId;
+    public $isOrganisationAdmin;
+    public $createdDateTime;
+    public $updatedDateTime;
+    public $voiceRolesIds;
+    public $userId;
+    public $personProfileId;
+
+}  // VO_TblUser

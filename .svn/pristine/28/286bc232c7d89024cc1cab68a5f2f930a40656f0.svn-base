@@ -1,0 +1,76 @@
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var React = require('react');
+var ReactDOM = require('react-dom');
+var Formsy = require('formsy-react');
+var FRC = require('formsy-react-components');
+
+var Checkbox = FRC.Checkbox;
+var CheckboxGroup = FRC.CheckboxGroup;
+var Input = FRC.Input;
+var RadioGroup = FRC.RadioGroup;
+var Row = FRC.Row;
+var Select = FRC.Select;
+var File = FRC.File;
+var Textarea = FRC.Textarea;
+
+// RegisterVerifyBox
+
+export default React.createClass({ 
+    displayName: 'Registration Verification',
+
+    getInitialState: function getInitialState() {
+        return {
+            layout: 'horizontal',
+            validatePristine: false,
+            disabled: false,
+			data: {
+				name: 'Athens Information Technology',
+				shortName: 'AIT',
+				logoImage: 'ait.jpg',
+				description: 'Athens Information Technology (AIT) is an internationally-renowned nonprofit education and research center in the fields of information technology, telecommunications, and innovation management',
+				orgTypeDVId: 'a'
+			}
+        };
+    },
+
+    submitForm: function submitForm(data) {
+        console.log(data);
+    },
+
+    
+    render: function render() {
+
+        var radioOptions = [{ value: 'a', label: 'Type A' }, { value: 'b', label: 'Type B' }];
+		
+        var selectOptions = radioOptions.slice(0);
+        selectOptions.unshift({ value: '', label: 'Organization Type' });
+
+		console.log(this.state.data);
+
+        return (
+            <div className = "row well">
+                <div className = "page-header">
+                    <h1>Registration Verification</h1>
+            <Formsy.Form  className = "formClassName"  onSubmit={this.submitForm} ref="form" >
+                <fieldset>
+                    <Input {...this.props}
+                        name= "name"
+                        id= "name"
+                        value= "antonis"
+                        label= "Organization Name"
+                        type= "text"
+                        placeholder= "Organization Name..."
+                        help= "This is the Organization Name."
+                        required={true}
+                    />
+                </fieldset>
+                <Row layout="horizontal">
+                    <button className="btn btn-success" formNoValidate={true} type="submit" />
+                </Row>
+            </Formsy.Form>
+            </div>
+            </div>
+        );
+    }
+});

@@ -1,0 +1,21 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+
+export default React.createClass({ //Home
+  
+  render: function() {
+  	var userData = this.props.initialData.main || null;
+    return (
+		<div className="container">
+			<h1>Welcome to VOICE !</h1>
+			{
+				userData === null ?
+					<span>
+						<a href="register">Click here to register</a> or <a href="login">here to login.</a>
+				    </span> : null
+			}
+		</div>
+    );
+  }
+  
+});

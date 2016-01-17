@@ -1,0 +1,39 @@
+	  <RB.Well>
+	    <center><h3>Personal Details</h3></center><br/>
+      	<RB.Row>
+      		<RB.Col md={4}>
+				<RB.Input type="text" addonBefore="My First Name" placeholder="Your First Name..." value={mainInfo.firstName} ref="firstName" name="firstName" onChange={this.handleChange} />
+			</RB.Col>
+			<RB.Col md={4}>
+				<RB.Input type="text" addonBefore="My Middle Name" placeholder="Your Middle Name..." value={mainInfo.middleName} ref="middleName" name="middleName" onChange={this.handleChange} />
+			</RB.Col>
+			<RB.Col md={4}>
+				<RB.Input type="text" addonBefore="My Last Name" placeholder="Your Last Name..." value={mainInfo.lastName} ref="lastName" name="lastName" onChange={this.handleChange} />
+			</RB.Col>
+		</RB.Row><br/>
+		<RB.Row>
+			<RB.Col md={2}>
+				<RB.Input type="radio" label="Male" name="gender" ref="gender" checked={male ? "checked" : null} value="M" onChange={this.handleChange} />
+				<RB.Input type="radio" label="Female" name="gender" ref="gender" checked={!male ? "checked" : null} value="F" onChange={this.handleChange} />
+			</RB.Col>
+			<RB.Col md={2}>
+				<RB.Input type="select" label="Birth Year" value={mainInfo.birthYear} placeholder="Select Year of Birth" ref="birthYear" name="birthYear" onChange={this.handleChange}>
+					<option value="1988">1988</option>
+			    </RB.Input>
+			</RB.Col>
+  			<RB.Col md={4}>
+				<RB.Input type="file" label={<i className="fa fa-file"></i>} help="CV File" id="input-2" ref="CVFile" name="CVFile" defaultValue={mainInfo.CVFile} onChange={this.handleChange}/>
+			</RB.Col>
+			<RB.Col md={4}>
+	  			<RB.Input type="file" label={<i className="fa fa-camera"></i>} help="Avatar File" id="input-1" ref="avatar" name="avatar" defaultValue={mainInfo.avatar} onChange={this.handleChange}/>
+			</RB.Col>
+		</RB.Row><br/>
+		<RB.Row>
+			<RB.Col md={1} mdOffset={5}>
+				<RB.Button bsStyle="success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save</RB.Button>
+			</RB.Col>
+			<RB.Col md={1}>
+				<RB.Button onClick={this.handleReset}><i className="glyphicon glyphicon-repeat"></i> Reset</RB.Button>
+			</RB.Col>
+		</RB.Row>
+      </RB.Well>

@@ -1,0 +1,423 @@
+<?php
+
+
+
+class VO_CtrlOrgProfile {
+	const _ECP = 'COP';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	public static function organisationView( WOOOF $wo, $orgId ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE View Organization Profile Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+	
+		$data = [];
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if( !$wo->hasContent($orgId) ) {
+			$wo->logError(self::_ECP."2022 You must provide an organisation ID to show!");
+			return false;
+		}
+		
+		if($orgId === 'individual') {
+			return false;	
+		}
+		
+		$data = VO_Organisations::getFull($wo, $orgId);
+		if ( $data === FALSE ) { $wo->handleShowStopperError(); }
+		$data = json_encode( $data );
+		
+		$usActId = VO_Users::saveAction( $wo, 'VIO', null, $orgId, null, $wo->app->userId );
+		$wo->db->commit();
+			
+		$content = <<<EOH
+		<div id='content-main'></div>
+		
+		<script>
+			ReactDOM.render(
+				React.createElement(
+					OrganizationView,
+					{ data: $data }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+	;
+	
+	$tpl = array(
+			'browserTitle'	=> $browserTitle,
+			'content' 		=> $content,
+			'errorMessage'	=> '',
+			'message'		=> '',
+	);
+	
+	
+	$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//organisationView
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function organisationEdit( WOOOF $wo, $orgId ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE Edit Organization Profile Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		$data = [];
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if( !$wo->hasContent($orgId) ) {
+			$wo->logError(self::_ECP."2344 You must provide an organisation ID to edit!");
+			return false;
+		}
+		
+		if($orgId === 'individual') {
+			return false;
+		}
+		
+		//check if you really have the admin privileges to edit the organisation
+		$tblUser = new WOOOF_dataBaseTable($wo->db, 'voice_users');
+		if(!$tblUser->constructedOk) { return false; }
+		
+		$adminRec = $tblUser->getResult(
+			[
+				'id' => $wo->app->userId,
+				'organisationId'	  => $orgId,
+				'isOrganisationAdmin'	  => '1'
+			],
+			'username',
+			'', '', '',
+			true, false
+		);
+		if ( $adminRec === FALSE ) { return false; }
+		
+		$isReallyAdmin = ($adminRec['totalRows'] != 0);
+		
+		if(!$isReallyAdmin) {
+			$wo->logError(self::_ECP."5080 You have no admin privileges to edit this group");
+			return false;
+		}
+		
+		$lookUps = WOOOF_Domains::getMultipleDomains($wo,
+			array(
+				array('ADDRESS_TYPE','ORG'),
+				'ORG_TYPE',
+				'PROFICIENCY_TYPE',
+				'SOCIAL_ACCOUNT'
+			));
+		if ( $lookUps === FALSE ) { $wo->handleShowStopperError(); }
+		
+		$areas = VO_Various::getAreasLookUp($wo);
+		if($areas === FALSE) { $wo->handleShowStopperError(); }
+		
+		$lookUps['AREA'] = $areas;
+		
+		
+		$lookUps['SERVICES'] = VO_Tags::getServicesLookup($wo);
+		if($lookUps['SERVICES'] === FALSE) { return false; }
+		
+		$ranges = [
+			'birthYear' 	=> VO_Registration::getYearRangeFor($wo, 'BIRTH' ),
+			'lastCentury'	=> VO_Registration::getYearRangeFor($wo, 'LAST_CENTURY' ),
+		];
+		$ranges = json_encode($ranges);
+		
+		$lookUps = json_encode($lookUps);
+		
+		$data = VO_Organisations::getFull($wo, $orgId);
+		if ( $data === FALSE ) { $wo->handleShowStopperError(); }
+		$data = json_encode( $data );
+	
+		$dateShowFormat = 'DD/MM/YYYY';
+		
+		$content = <<<EOH
+		<div id='content-main'></div>
+				
+		<script>
+			var data = $data;
+        	var lookUps = $lookUps;
+        	var ranges = $ranges;
+        	var dateShowFormat = '$dateShowFormat';
+			ReactDOM.render(
+				React.createElement(
+					OrganizationEdit,
+					{ data: data, lookUps: lookUps, ranges: ranges }
+				), 
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+	;
+	
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+		
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//organisationEdit
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return [ 'saveOk' => bool, 'orgId' => id, 'errors' => array ]
+	 */
+	public static 
+	function mainInfoSave( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		$res =  VO_Organisations::saveMainInfo($wo, $in);
+		
+		$orgImgRec = $wo->db->getRow('organisations', $res);
+		if($orgImgRec === FALSE) { return false; }
+
+		if ( $res === FALSE ) {
+			$out = [
+				'saveOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+		
+		else {
+			$out = [
+				'saveOk'	=> true,
+				'orgId'	=> $res,
+				'logoImage' => $orgImgRec['logoImage']
+			];
+			$wo->db->commit();
+		}
+		
+		return $out;
+	}	// mainInfoSave
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return [ 'saveOk' => bool, 'addressId' => id, 'errors' => array ]
+	 */
+	public static
+	function saveAddresses( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+
+		$res =  VO_Addresses::saveAddresses($wo, $in['list'], $in['genericType'], $in['genericId']);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'saveOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'saveOk'	=> true,
+				'addressId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// saveAddresses
+	
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return [ 'saveOk' => bool, 'educationId' => id, 'errors' => array ]
+	 */
+	public static
+	function saveEducations( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$res = VO_Educations::saveEducations($wo, $in, $wo->app->personProfileId);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'saveOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'saveOk'	=> true,
+				'educationId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// saveEducations
+	
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return [ 'saveOk' => bool, 'accountId' => id, 'errors' => array ]
+	 */
+	public static
+	function saveAccounts( WOOOF $wo, $orgId, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$res = VO_Accounts::saveOrgAccounts($wo, $in, $orgId);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'saveOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'saveOk'	=> true,
+				'accountId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// saveAccounts
+	
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @param string $orgId
+	 * @return [ 'saveOk' => bool, 'tagId' => id, 'errors' => array ]
+	 */
+	public static
+	function saveTags( WOOOF $wo, $in, $orgId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		// TODO: Security: only group admins could save tags 
+		
+		$res = VO_Tags::saveTags($wo, $in, $orgId);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'saveOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'saveOk'	=> true,
+				'tagId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// saveTags
+	
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return [ 'saveOk' => bool, 'experienceId' => id, 'errors' => array ]
+	 */
+	public static
+	function saveExperiences( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$res = VO_Experiences::saveExperiences($wo, $in, $wo->app->personProfileId);
+	
+		if ( $res === FALSE ) {
+			$out = [
+					'saveOk' => false,
+					'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+					'saveOk'	=> true,
+					'experienceId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// saveExperiences
+	
+}	// VO_CtrlProfile

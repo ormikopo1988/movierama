@@ -1,0 +1,33 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import AutoCompleteComp from './AutoCompleteComp';
+import BookmarkComp from './BookmarkComp';
+import ContentComp from './ContentComp';
+
+export default React.createClass({ //ContentEdit
+  getDefaultProps: function() {
+  	return {
+	    showEditLink: false,
+	 };
+  },
+
+  render: function() {
+  	console.log( 'ContentEdit.render: props:' + this.props );
+
+  	return (
+      <div classNameName="container">
+		<div className="row">
+			<span>
+				<i className="fa fa-eye"></i> 
+				<a href={VOICE.linkPrefix('content/view/'+this.props.contentId)}>View Content</a>
+				<br/><br/>
+			</span>
+	        <ContentComp {...this.props} editable={true}></ContentComp>
+	    </div>
+      </div>
+    );
+  } 
+}); //ContentEdit
+

@@ -1,0 +1,202 @@
+<?php
+
+class VO_Addresses {
+	const _ECP = 'ADR';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param VO_TblAddressGeneric $obj
+	 * @param bool $fetchBack
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static 
+	function save( WOOOF $wo, VO_TblAddressGeneric &$obj, $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	    
+		if ( !$wo->hasContent($obj->areaId) ) {
+			$wo->logError(self::_ECP."0450 No value provided for [areaId]" );
+			return false;
+		}
+		
+		$tblAddressGeneric = new WOOOF_dataBaseTable($wo->db, 'address_generic');
+		if($tblAddressGeneric === FALSE) { return false; }
+		
+		if ( $wo->hasContent($obj->id) ) {
+			// update
+			
+			$res = $tblAddressGeneric->updateRowFromArraySimple( $obj->toArray() );
+			if ( $res === FALSE ) { return FALSE; }
+		}
+		else {
+			// insert
+
+			$obj->createdDateTime = WOOOF::getCurrentDateTime();
+			
+			$newId = $tblAddressGeneric->insertRowFromArraySimple( $obj->toArray() );
+			if ( $newId === FALSE ) { return false; }
+			$obj->id = $newId;
+		}
+
+		if ( $fetchBack ) {
+			// Get back into $obj based on id
+			// TODO:
+		}
+	  
+		return $obj->id;
+	}	// save
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $id
+	 * @return bool
+	 */
+	public static
+	function delete( WOOOF $wo, $id )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+		 
+		if ( !$wo->hasContent($id) ) {
+			$wo->logError(self::_ECP."0559 No value provided for [id]" );
+			return false;
+		}
+	
+		$tblAddressGeneric = new WOOOF_dataBaseTable($wo->db, 'address_generic');
+		if($tblAddressGeneric === FALSE) { return false; }
+	
+		$res = $tblAddressGeneric->deleteRow($id);
+		if($res === FALSE) { return false; }
+		 
+		return true;
+	}	// delete
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | id
+	 * Returns actually saved $obj
+	 */
+	public static
+	function saveAddresses( WOOOF $wo, $in, $genericType, $genericId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	
+		if(!$wo->hasContent($in)) {
+			$wo->logError(self::_ECP."0031 No value provided for addresses");
+			return false;
+		}
+	
+		foreach ($in as $address) {
+			$status = $address['_status'];
+				
+			//find specific row for cases 'U' and 'D'
+			if($status === 'U') {
+				$oldAddress = $wo->db->getRow('address_generic', $address['id']);
+				if($oldAddress === FALSE) { return false; }
+				if($oldAddress === NULL) {
+					$wo->logError(self::_ECP."0555 No row with id [$addressId] found!");
+					return false;
+				}
+			}
+				
+			//if status === 'R'
+			if($status === 'R') {
+				continue;
+			}
+				
+			//if status !== 'R'
+			//case 'I'
+			if($status === 'I') {
+				$tblAddressInsert = new VO_TblAddressGeneric($address);
+				$tblAddressInsert->id = '';
+				$tblAddressInsert->genericType = $genericType;
+				$tblAddressInsert->genericId = $genericId;
+	
+				$res = VO_Addresses::save($wo, $tblAddressInsert);
+				if($res === FALSE) { return false; }
+			}
+				
+			//case 'U'
+			elseif($status === 'U') {
+				$tblAddressUpdate = new VO_TblAddressGeneric($oldAddress);
+	
+				$tblAddressUpdate->addressTypeDVId = $address['addressTypeDVId'];
+				$tblAddressUpdate->addressText = $address['addressText'];
+				$tblAddressUpdate->fromYear = $address['fromYear'];
+				$tblAddressUpdate->toYear = $address['toYear'];
+				$tblAddressUpdate->areaId = $address['areaId'];
+	
+				$res = VO_Addresses::save($wo, $tblAddressUpdate);
+				if($res === FALSE) { return false; }
+			}
+				
+			//case 'D'
+			elseif($status === 'D') {
+				$res = self::delete($wo, $address['id']);
+				if($res === FALSE) { return false; }
+			}
+				
+			else {
+				$wo->logError(self::_ECP."0560 Wrong status [$status]");
+				return false;
+			}
+				
+		}
+	
+		return $res;
+	}	// saveAddresses
+
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static
+	function searchAreas( WOOOF $wo, $input, $matchMode='STD', $data='FULL', $maxRows=100 )
+	{
+		$maxRows = (int) $maxRows;
+	
+		$sql =  "select id, name, areaType, isoCode2, isoCode3 ";
+		$sql .=	"from areas ";
+		$sql .= "where name like '%$input%' ";
+		$sql .= "order by name ";
+		$sql .= "limit $maxRows";
+	
+		$res = $wo->db->getResultByQuery($sql, true, false);
+		if ( $res === FALSE ) { return FALSE; }
+	
+		$res = $wo->db->resultRows;
+	
+		$out = [];
+		foreach( $res as $aRes ) {
+			$out[] = [
+					'value' => $aRes['id'],
+					'label' => $aRes['name'] .
+					' (' . $aRes['areaType'] . ') ' .
+					$aRes['isoCode2']
+			];
+		}
+	
+		return $out;
+	}	// search
+	
+}	// VO_Addresses

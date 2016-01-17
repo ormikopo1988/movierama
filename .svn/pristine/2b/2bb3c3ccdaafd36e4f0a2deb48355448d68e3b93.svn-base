@@ -1,0 +1,54 @@
+/* USER_ACTION_TYPE */
+
+insert into __domains set code='USER_ACTION_TYPE', description='Actions in voice_user_actions', comments='', id='6zGnUcAn6t';
+
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='LIN', description='Login', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k01';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='LOU', description='Logout', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k02';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='REG', description='Registration', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k03';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='FO1', description='Follow Org', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k04';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='FO2', description='Unfollow Org', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k05';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='FU1', description='Follow User', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k06';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='FU2', description='Unfollow User', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k07';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='FR1', description='Request friendship', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k08';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='FR2', description='Accept friendship', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k09';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='FR3', description='Reject friendship', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k10';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='FR4', description='Delete friendship', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k11';
+
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='PR1', description='Edit Profile', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k12';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='PR2', description='Change Org', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k13';
+
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='DGJ', description='Join Discussion Group', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k14';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='DGC', description='Create Discussion Group', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k15';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='DGL', description='Leave Discussion Group', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k16';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='DGD', description='Delete Discussion Group', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k17';
+
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='TEJ', description='Join Team', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k18';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='TEC', description='Create Team', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50kRw';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='TEL', description='Leave Team', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k19';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='TED', description='Delete Team', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k20';
+
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='VIU', description='View User', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k21';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='VIO', description='View Organisation', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k22';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='VII', description='View Idea', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k23';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='VIC', description='View Content', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k24';
+
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='EVU', description='Evaluate User', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k25';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='EVI', description='Evaluate Idea', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k26';
+insert into __domain_values set active='1', domainId='6zGnUcAn6t', domainValueCode='EVC', description='Evaluate Content', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='VhHeG50k27';
+
+
+
+/* NOTIFICATION_TYPE */
+
+insert into __domains set code='NOTIFICATION_TYPE', description='', comments='', id='No4fDkIqYc';
+
+insert into __domain_values set active='1', domainId='No4fDkIqYc', domainValueCode='FU1', description='Followed by User', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='XhHeG50k06';
+insert into __domain_values set active='1', domainId='No4fDkIqYc', domainValueCode='FU2', description='Unfollowed by User', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='XhHeG50k07';
+insert into __domain_values set active='1', domainId='No4fDkIqYc', domainValueCode='FR1', description='Requested friendship', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='XhHeG50k08';
+insert into __domain_values set active='1', domainId='No4fDkIqYc', domainValueCode='FR2', description='Accepted friendship', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='XhHeG50k09';
+insert into __domain_values set active='1', domainId='No4fDkIqYc', domainValueCode='FR3', description='Rejected friendship', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='XhHeG50k10';
+insert into __domain_values set active='1', domainId='No4fDkIqYc', domainValueCode='FR4', description='Deleted friendship', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='XhHeG50k11';
+insert into __domain_values set active='1', domainId='No4fDkIqYc', domainValueCode='VIU', description='Viewed by', comments='', subDomain='', picture=picture, iconFont='', extraInfo1='', id='XhHeG50k21';
+
+
+

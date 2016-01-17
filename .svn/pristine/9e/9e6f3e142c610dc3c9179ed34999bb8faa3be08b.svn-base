@@ -1,0 +1,16 @@
+<?php
+/* Class [VO_TblContentSectionOther] for table [content_section_others] */
+
+class VO_TblContentSectionOther extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'content_section_others';
+
+    public $id;
+    public $isDeleted;
+    public $contentSectionId;
+    public $value1;
+    public $value2;
+    public $value3;
+    public $aPicture;
+
+}  // VO_TblContentSectionOther

@@ -1,0 +1,126 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import AutoCompleteComp from './AutoCompleteComp';
+import BookmarkComp from './BookmarkComp';
+import GroupActionsComp from './GroupActionsComp';
+
+export default React.createClass({ //GroupView
+  
+  render: function() {
+  	var result = this.props.data[0];
+  	console.log(result);
+  	return (
+      <div classNameName="container">
+		<center><h1>{this.props.title}</h1></center>
+		<div className="row">
+	        {
+	        	result.groupType === 'DIS' ?
+	        		<DiscussionGroup key={result.id} result={result}></DiscussionGroup> :
+	        	result.groupType === 'TEA' ?
+	        		<TeamGroup key={result.id} result={result}></TeamGroup> :
+	        		null
+	        }
+	    </div>
+      </div>
+    );
+  } 
+});
+
+var DiscussionGroup = React.createClass({
+
+	render: function() {
+		var result = this.props.result;
+		var avatarImg = result.avatarImg || 'no_image_available.jpg';
+		var avatarURL = '';
+		
+		if(avatarImg !== 'no_image_available.jpg') {
+			avatarURL = VOICE.imgPrefix(avatarImg);
+		}
+		else {
+			avatarURL = VOICE.systemImgPrefix(avatarImg);
+		}
+
+		var memberSince = moment.utc(result.fromDate, 'YYYYMMDDhhmmss').fromNow();
+
+		var tags = [];
+		if(result.tags.length !== 0) {
+			for(var i=0; i<result.tagDesc.length; i++) {
+				tags.push(
+					<span className="endorse-item-name">
+						<span className="endorse-item-name-text"><i className="fa fa-tag"></i> {result.tagDesc[i]}</span>
+					</span>
+				);
+			}
+		}
+
+		return (
+			<div className="col-md-12 col-sm-12">
+				<div className="well well-sm well-agency">           
+					<a href={VOICE.linkPrefix('group/view/'+result.id)}><img src={avatarURL}/></a>
+					<a className="lead agency-name" href={VOICE.linkPrefix('group/view/'+result.id)}>
+						{result.title}
+					</a><br/>
+					<div className="sub-info">
+						<p>
+							{ result.description }
+						</p>
+						<p><i className="fa fa-clock-o smallFa"> Created: {memberSince}</i></p>
+						{
+							tags.length !== 0 ?
+								<p>
+									{tags}
+								</p> : null
+						}
+						<hr/>
+						<a href={VOICE.linkPrefix('group/members/'+result.id)}><i className="fa fa-users"></i> View Members</a><br/><br/>
+			  			{/*<i className="fa fa-comment"></i> <a href={VOICE.linkPrefix('timeline/'+mainView.postBoxId)}>See Timeline</a>*/}
+						<BookmarkComp connections={result.memberships} userId={result.requestorUserId}></BookmarkComp>
+						<GroupActionsComp memberships={result.memberships} userId={result.requestorUserId}></GroupActionsComp>
+					</div>
+				</div>
+			</div>
+		)
+	}
+});
+
+var TeamGroup = React.createClass({
+
+	render: function() {
+		var result = this.props.result;
+		console.log('TEAM GROUP RESULTS: ', result);
+		var avatarImg = result.avatarImg || 'no_image_available.jpg';
+		var avatarURL = '';
+		
+		if(avatarImg !== 'no_image_available.jpg') {
+			avatarURL = VOICE.imgPrefix(avatarImg);
+		}
+		else {
+			avatarURL = VOICE.systemImgPrefix(avatarImg);
+		}
+
+		var memberSince = moment.utc(result.fromDate, 'YYYYMMDDhhmmss').fromNow();
+
+		return (
+			<div className="col-md-12 col-sm-12">
+				<div className="well well-sm well-agency">           
+					<a href={VOICE.linkPrefix('group/view/'+result.id)}><img src={avatarURL}/></a>
+					<a className="lead agency-name" href={VOICE.linkPrefix('group/view/'+result.id)}>
+						{result.title}
+					</a><br/>
+					<div className="sub-info">
+						<p>
+							{ result.description }
+						</p>
+						<p><i className="fa fa-clock-o smallFa"> Created: {memberSince}</i></p>
+						<hr/>
+						<a href={VOICE.linkPrefix('group/members/'+result.id)}><i className="fa fa-users"></i> View Members</a><br/><br/>
+						<BookmarkComp connections={result.memberships} userId={result.requestorUserId}></BookmarkComp>
+						<GroupActionsComp memberships={result.memberships} userId={result.requestorUserId}></GroupActionsComp>
+					</div>
+				</div>
+			</div>
+		)
+	}
+});

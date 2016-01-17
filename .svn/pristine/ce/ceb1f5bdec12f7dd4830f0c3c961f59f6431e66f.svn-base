@@ -1,0 +1,78 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import PostInput from './PostInputComp.jsx';
+import Post from './PostComp.jsx';
+import VOICE from './voice.js';
+import UserSelector from './AutoCompleteCompMulti.jsx';
+var RB = require('react-bootstrap');
+
+export default React.createClass(
+	{ //PersonalMessages
+		getInitialState: function()
+		{
+			return {title: '', message:'', recipientsList: [], exchanges: this.props.data, newEntryVisible: false};
+		},
+
+		render: function()
+		{
+			return (
+			<div>{ this.state.newEntryVisible ? <RB.Panel collapsible header="New Messge" expanded={this.state.newEntryVisible}>
+					<RB.Panel header="Recipients">
+						<UserSelector header="Recipients" ref="userSelector" customCallBackOnChange={this.changeInUsersOccured}/>
+    				</RB.Panel>
+					<RB.Panel header="Subject">
+						<RB.Input type="text" placeholder="Enter your message subject..." name="title" ref="title" onChange={this.handleChange} /> 
+    				</RB.Panel>
+					<RB.Panel header="Message">
+						<RB.Input type="textarea" bsSize="medium" rows="6" placeholder="Enter your message text..." name="message" ref="message" onChange={this.handleChange} />
+    				</RB.Panel>
+					<RB.Button bsStyle="primary" bsSize="small" onClick={this.submitClicked}>Submit Message</RB.Button>
+    			</RB.Panel> 
+    			: <RB.Button bsStyle="primary" bsSize="small" onClick={this.newClicked}>New Message</RB.Button> }
+
+    		</div>
+				);
+		},
+
+		submitClicked: function() 
+		{
+			var url = VOICE.linkPrefix('api/postBox/insertPersonalMessage');
+			var data = {};
+
+			data.recipientsList = this.state.recipientsList ;
+			data.title = this.state.title ;
+			data.content = this.state.message ;
+			
+			VOICE.ajaxCall(url, 'POST', data, this, this.handleSubmitionResults);
+		},
+
+		handleChange: function(event) 
+		{
+	  		var tmp = this.state;
+
+	  		tmp[event.target.name] = event.target.value;
+	  
+	  		this.setState(tmp);
+	  	},
+
+	  	handleSubmitionResults: function()
+	  	{
+
+	  	},
+
+		changeInUsersOccured: function(value)
+		{
+			var tmp = this.state;
+			tmp.recipientsList = value
+			this.setState(tmp);
+		},
+
+		newClicked: function()
+		{
+			var tmp = this.state;
+
+	  		tmp.newEntryVisible = true;
+
+	  		this.setState(tmp);
+		},
+	});

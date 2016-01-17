@@ -1,0 +1,79 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import VOICE from './voice.js';
+var RB = require('react-bootstrap');
+
+export default React.createClass({
+	getInitialState: function()
+	{
+		return {
+					title: '',
+					message: '',
+					privacySelection: '',
+					postBoxId: this.props.data.postBoxId,
+					parentPostId: this.props.data.parentPostId
+				}
+	},
+
+	render: function()
+	{
+		return (
+		<RB.Panel>
+		{
+			this.props.data.parentPostId===null ? <RB.Input type="text" label="Title" placeholder="Enter your post title..." name="title" ref="title" onChange={this.handleChange} value={this.state.title}/> 
+			: null
+		}
+		
+		<RB.Input type="textarea" label={this.props.data.parentPostId===null ? 'Message' : 'Comment'}bsSize="medium" rows={this.props.data.parentPostId===null ? 6 : 3} placeholder={this.props.data.parentPostId===null ? 'Enter your message text...' : 'Enter your comment...'} name="message" ref="message" onChange={this.handleChange}  value={this.state.message}/>
+
+		<RB.Row>
+	      <RB.Col xs={6} md={4}><RB.Button bsStyle="primary" bsSize="small" onClick={this.submitClicked}>Submit {this.props.data.parentPostId===null ? 'Post' : 'Comment'}</RB.Button> </RB.Col>
+	      <RB.Col xs={6} md={4}></RB.Col>
+	      <RB.Col xs={6} md={4}>
+	      {
+	      	this.props.data.showPrivacy ? 
+			<RB.Input type="select" bsSize="small" pullRight="true" addonBefore="Privacy" name="privacySelection" ref="privacySelection" onChange={this.handleChange}>
+			{VOICE.renderOptions(this.props.lookUps.POST_PRIVACY_CHOICES)}
+		 	</RB.Input> 
+		 	: null
+			}
+			</RB.Col>
+    	</RB.Row>
+		</RB.Panel>);
+	},
+
+	submitClicked: function()
+	{
+		var url = '';
+		if (this.props.data.parentPostId===null)
+		{
+			url = VOICE.linkPrefix('api/postBox/saveNewPost');
+		}else
+		{
+			url = VOICE.linkPrefix('api/postBox/saveNewComment');
+		}
+
+		VOICE.ajaxCall(url, 'POST', this.state, this, this.handleSubmitionResults);
+	},
+
+	handleChange: function(event) {
+	  var tmp = this.state;
+
+	  tmp[event.target.name] = event.target.value;
+	  
+	  this.setState(tmp);
+  	},
+
+  	handleSubmitionResults: function(responseData)
+  	{
+  		var tmp = this.state;
+  		tmp.title = '';
+  		tmp.message = '';
+		tmp.privacySelection = '';
+		this.setState(tmp);
+
+
+
+  		this.props.newInsertCallBack(responseData.newPost);
+  	}
+});

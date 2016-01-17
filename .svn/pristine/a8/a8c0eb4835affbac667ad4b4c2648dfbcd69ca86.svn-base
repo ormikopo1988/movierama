@@ -1,0 +1,376 @@
+<?php
+class VO_PostBox
+{
+	const _ECP = 'PoB';
+
+	public static function handlePostInsert(WOOOF $wo, array $inArray, $isAComment = FALSE)
+	{
+		$posts = new WOOOF_dataBaseTable($wo->db, 'posts');
+		
+		//TODO: add attachments here... populate attachmentSetId
+
+		if (!$wo->hasContent($inArray['message']))
+		{
+			$wo->logError(self::_ECP.'1001 Post has no content. Empty posts not accepted!');
+			return FALSE;
+		}
+
+		if ($isAComment)
+		{
+			if (!isset($inArray['parentPostId']))
+			{
+				$wo->logError(self::_ECP.'1002 Parent Post Id was not provided.');
+				return FALSE;
+			}elseif ($inArray['parentPostId']=='')
+			{
+				$wo->logError(self::_ECP.'1003 Provided parent post Id is empty.');
+				return FALSE;
+			}else
+			{
+				$parentPost = $wo->db->getRow('posts', $inArray['parentPostId']);
+				if ($parentPost===FALSE)
+				{
+					return FALSE;
+				}elseif (!isset($parentPost['id']))
+				{
+					$wo->logError(self::_ECP.'1004 Rrovided parent post Id is invalid.');
+					return FALSE;
+				}
+			}
+		}else
+		{
+			if (!isset($inArray['parentPostId']))
+			{
+				$inArray['parentPostId'] = '';
+			}
+
+			if (!isset($inArray['postBoxId']))
+			{
+				$wo->logError(self::_ECP.'1005 Post box id was not provided.');
+				return FALSE;
+			}elseif ($inArray['postBoxId']=='')
+			{
+				$wo->logError(self::_ECP.'1006 Requested post box id is empty.');
+				return FALSE;
+			}else
+			{
+				$postBox = $wo->db->getRow('post_boxes',$inArray['postBoxId']);
+				if ($postBox === FALSE)
+				{
+					return FALSE;
+				}
+
+				if (!isset($postBox['id']))
+				{
+					$wo->logError(self::_ECP.'1007 Requested post box id not found.');
+					return FALSE;
+				}
+			}
+		}
+
+		$insertArray['entryDate']=$wo->currentGMTDateTime();
+		$insertArray['parentPostId']=$inArray['parentPostId'];
+		$insertArray['title']=$inArray['title'];
+		$insertArray['content']=$inArray['message'];
+		$insertArray['thumbsUp']=0;
+		$insertArray['thumbsDown']=0;
+		$insertArray['visibilityType']=$inArray['privacySelection'];
+		$insertArray['isOpenToEvaluations']=0; //TODO: v.x this should be a drop list of evaluation methods: none, thumbsup/down, ...
+		$insertArray['noOfChildren']=0;
+		$insertArray['userId'] = $wo->app->userId;
+
+		$result = $posts->insertFromArray($insertArray);
+		if ($result === FALSE)
+		{
+			return FALSE;
+		}
+		$insertArray['id'] = $result;
+		$insertArray['comments'] = [];
+
+		if (!$isAComment)
+		{
+			$result = $wo->db->query('update post_boxes set lastPostDateTime=\''. $wo->getCurrentDateTime() .'\', noOfPosts = (noOfPosts+1) where id=\''. $wo->db->escape($inArray['postBoxId']) .'\'');
+			
+			if ($result === FALSE)
+			{
+				return FALSE;
+			}
+
+			$pPBoxes = new WOOOF_dataBaseTable($wo->db, 'post_post_boxes');
+
+			$pPBInsert['boxId'] = $postBox['id'];
+			$pPBInsert['postId'] = $insertArray['id'];
+			$pPBInsert['associationReason'] = 'PBA_DIRECT';
+
+			if ($pPBoxes->insertFromArray($pPBInsert)===FALSE)
+			{
+				return FALSE;
+			}
+		}else
+		{
+			$result = $wo->db->query('update posts set noOfChildren=(noOfChildren+1) where id=\''. $wo->db->escape($inArray['parentPostId']) .'\'');
+			if ($result === FALSE)
+			{
+				return FALSE;
+			}
+		}
+		$wo->db->commit();
+		return (array('newPostId' => $result, 'newPost' => $insertArray));
+	}
+
+	public static function getBoxPosts(WOOOF $wo, $postBoxId, $orderBy = 'entryDate desc', $limitFrom = 0, $limitHowMany = 2)
+	{
+		$browserTitle = 'Activity Feed';
+		$data = [];
+		$lookUps = [];
+		
+		$postBox = $wo->db->getRow('post_boxes', $postBoxId);
+		if ($postBox === FALSE)
+		{
+			return FALSE;
+		}
+
+		if (!$wo->hasContent($postBox['id']) || $postBoxId != $postBox['id'])
+		{
+			$wo->logError( self::_ECP.'2001 Invalid post box ID requested.' );
+			return FALSE;
+		}
+
+		if (!self::canUserReadFromBox($wo, $postBoxId))
+		{
+			$wo->logError( self::_ECP.'2002 Current user cannot access this post box.' );
+			return FALSE;
+		}
+
+		$result = $wo->db->query('SELECT posts.* FROM post_post_boxes, posts WHERE posts.id = post_post_boxes.postId AND post_post_boxes.boxId=\''. 
+			$wo->db->escape($postBox['id']) .'\' order by '. $wo->db->escape($orderBy) .' limit '. $wo->db->escape($limitFrom) .','. 
+			$wo->db->escape($limitHowMany) );
+		
+		if ($postBox['ownerType']=='GRP')
+		{
+			$data['showPrivacy'] = FALSE;
+		}else
+		{
+			$data['showPrivacy'] = TRUE;
+		}
+
+		$data['postBoxId'] = $postBox['id'];
+		
+		$data['posts'] = [];
+
+		$data['userData'] = [];
+
+		$data['dateShowFormat'] = 'DD/MM/YYYY';
+		
+		$postsTable = new WOOOF_dataBaseTable($wo->db, 'posts');
+		if ($wo->db->getNumRows($result))
+		{
+			$counter = 0;
+			while($post = $wo->db->fetchAssoc($result))
+			{
+				$data['posts'][$counter] = $post;
+				$user = self::fetchUserData($wo, $post, $data['userData']);
+				if ($user === FALSE)
+				{
+					$wo->logError( self::_ECP.'2003 Failed to fetch poster data for post: '. $post['id'] );
+					return FALSE;
+				}
+				$whereClauses['parentPostId'] = $post['id'];
+				$selectStats = $postsTable->getResult($whereClauses, 'entryDate', '', '', '', TRUE, FALSE);
+				
+				if ($selectStats['rowsFetched']==0)
+				{
+					$data['posts'][$counter]['comments'] = [];
+				}else
+				{
+					$data['posts'][$counter]['comments'] = $postsTable->resultRows;
+				}
+
+				foreach ($postsTable->resultRows as $value)
+				{
+					$user = self::fetchUserData($wo, $value, $data['userData']);
+					if ($user === FALSE)
+					{
+						$wo->logError( self::_ECP.'2003 Failed to fetch poster data for post: '. $value['id'] );
+						return FALSE;
+					}
+				}
+
+				$counter++;
+			}
+		}
+
+		if ($postBox['ownerType']=='PRS')
+		{
+			$data['showPrivacy'] = true;
+		}else
+		{
+			$data['showPrivacy'] = false;
+		}
+
+		return $data;
+	}
+
+	public static function handleReputationChange(WOOOF $wo, $postId, $isThumbsDown = FALSE)
+	{
+		$post = $wo->db->getRow('posts', $postId);
+		if ($post === FALSE)
+		{
+			return FALSE;
+		}
+
+		if (!isset($post['id']))
+		{
+			$wo->logError(self::_ECP.'3001 Requested Post doesn\'t exist. Received post id: '. $postId);
+			return FALSE;
+		}
+
+		//// TODO: Check security!!!!!
+
+		$evaluations = new WOOOF_dataBaseTable($wo->db, 'post_user_evaluations');
+
+		$whereClauses['postId'] = $postId;
+		$whereClauses['voiceUserId']=$wo->app->userId;
+		
+		$result = $evaluations->getResult($whereClauses);
+
+		if ($result === FALSE)
+		{
+			return FALSE;
+		}
+
+		if ($result['rowsFetched']===0)
+		{
+			if ($isThumbsDown)
+			{
+				$whereClauses['isThumbsUp'] = FALSE;
+				$thumbsUp = $post['thumbsUp'];
+				$thumbsDown = $post['thumbsDown']+1;
+			}else
+			{
+				$whereClauses['isThumbsUp'] = TRUE;
+				$thumbsUp = $post['thumbsUp']+1;
+				$thumbsDown = $post['thumbsDown'];
+			}
+			$result = $evaluations->insertFromArray($whereClauses);
+			if ($result === FALSE)
+			{
+				return FALSE;
+			}
+			$result = $wo->db->query('update posts set thumbsUp=\''. $thumbsUp .'\', thumbsDown=\''. $thumbsDown .'\' where id=\''. $postId .'\'');
+			if ($result === FALSE)
+			{
+				return FALSE;
+			}
+			$result = $wo->db->query('commit');
+			if ($result === FALSE)
+			{
+				return FALSE;
+			}
+			return array('thumbsUp' => $thumbsUp, 'thumbsDown' => $thumbsDown);
+		}else
+		{
+			//TODO: this should be later changed so as to have the ability to undo previous choices without activating the alternate choice.
+			if ($evaluations->resultRows[0]['isThumbsUp']=='1')
+			{
+				if ($isThumbsDown)
+				{
+					$evaluations->resultRows[$evaluations->resultRows[0]['id']]['isThumbsUp'] = '0';
+					$result = $evaluations->updateRowFromResults($evaluations->resultRows[0]['id']);
+					if ($result === FALSE)
+					{
+						return FALSE;
+					}
+					$result = $wo->db->query('update posts set thumbsUp=\''. ($post['thumbsUp']-1) .'\', thumbsDown=\''. ($post['thumbsDown']+1) .'\' where id=\''. $postId .'\'');
+					if ($result === FALSE)
+					{
+						return FALSE;
+					}
+					$result = $wo->db->query('commit');
+					if ($result === FALSE)
+					{
+						return FALSE;
+					}
+					return array('thumbsUp' => ($post['thumbsUp']-1), 'thumbsDown' => ($post['thumbsDown']+1));
+				}else
+				{
+					return array('thumbsUp' => $post['thumbsUp'], 'thumbsDown' => $post['thumbsDown']);
+				}
+			}else
+			{
+				if (!$isThumbsDown)
+				{
+					$evaluations->resultRows[$evaluations->resultRows[0]['id']]['isThumbsUp'] = '1';
+					$result = $evaluations->updateRowFromResults($evaluations->resultRows[0]['id']);
+					if ($result === FALSE)
+					{
+						return FALSE;
+					}
+					$result = $wo->db->query('update posts set thumbsUp=\''. ($post['thumbsUp']+1) .'\', thumbsDown=\''. ($post['thumbsDown']-1) .'\' where id=\''. $postId .'\'');
+					if ($result === FALSE)
+					{
+						return FALSE;
+					}
+					$result = $wo->db->query('commit');
+					if ($result === FALSE)
+					{
+						return FALSE;
+					}
+					return array('thumbsUp' => ($post['thumbsUp']+1), 'thumbsDown' => ($post['thumbsDown']-1));
+				}else
+				{
+					return array('thumbsUp' => $post['thumbsUp'], 'thumbsDown' => $post['thumbsDown']);
+				}
+			}
+		}
+	}
+
+	public static function handleCommentInsert(WOOOF $wo, array $inArray)
+	{ // Errors 4000
+		return self::handlePostInsert($wo,$inArray,TRUE);
+	}
+
+	public static function handlePostEdit(WOOOF $wo, $postBoxId)
+	{// Errors 5000
+		
+	}
+
+	public static function canUserReadFromBox($wo, $postBoxId)
+	{// Errors 6000
+		return true;
+	}
+
+	public static function canUserPostToBox()
+	{// Errors 7000
+		return true;
+	}
+
+	public static function canUserEditPost()
+	{// Errors 8000
+		return true;
+	}
+
+	public static function fetchUserData(WOOOF $wo, $post, array &$usersArray)
+	{// Errors 9000
+		if (!isset($usersArray[$post['userId']]))
+		{
+			$user = $wo->db->getRowByColumn('v_voice_persons', 'VUS_id', $post['userId']);
+			if ($user === FALSE)
+			{
+				return FALSE;
+			}elseif (!isset($user['VUS_id']))
+			{
+				$wo->logError(self::_ECP.'9001 Post with id '. $postId .' has user '. $post['userId'] .' as owner but the user is not in the database...');
+				return FALSE;
+			}else
+			{
+				$usersArray[$user['VUS_id']] = array ('id' => $user['VUS_id'], 'username' => $user['VUS_slug'], 'picture' => $user['VUS_avatarImg'], 'date' => $post['entryDate']);
+			}
+		}else
+		{
+			return TRUE;
+		}
+	}
+}
+
+?>

@@ -1,0 +1,167 @@
+create or replace VIEW v_person_profile_addresses
+AS
+SELECT prof.id PROF_id,
+       prof.firstName PROF_firstName,
+       prof.lastName PROF_lastName,
+       prof.middleName PROF_middleName,
+       prof.email PROF_email,
+       adrgen.id id,
+       adrgen.isDeleted ADRGEN_isDeleted,
+       adrgen.createdDateTime ADRGEN_createdDateTime,
+       adrgen.areaId ADRGEN_areaId,
+       adrgen.addressText addressText,
+       adrgen.fromYear fromYear,
+       adrgen.toYear toYear,
+       adrgen.addressTypeDVId addressTypeDVId,
+       area.id areaId,
+       area.isDeleted AREA_isDeleted,
+       area.name areaText,
+       area.isoCode2 AREA_isoCode2,
+       area.isoCode3 AREA_isoCode3,
+       area.synonyms AREA_synonyms,
+       area.areaType AREA_areaType,
+       area.createdDateTime AREA_createdDateTime,
+       vdv.SDOMVAL_domainValueCode addressType,
+	   dv.description addressTypeDesc
+FROM
+  `person_profiles` `prof`,
+  `address_generic` `adrgen`,
+  `areas` `area`,
+  `__v_domain_values` `vdv`,
+  `__domain_values` `dv`
+WHERE 
+  `adrgen`.`genericType` = 'PRS'
+  AND `adrgen`.`genericId` = `prof`.`id`
+  AND `area`.`id` = `adrgen`.`areaId`
+  AND `vdv`.`SDOMVAL_id` = `adrgen`.`addressTypeDVId`
+  AND `dv`.`id` = `vdv`.`SDOMVAL_id`
+;
+
+/* 
+    SELECT `PROF_lastName`, `addressType`, `addressText`, `areaText` FROM `v_person_profile_addresses`
+*/
+
+
+create or replace view __v_domain_values as 
+select
+  sdom.id SDOM_id, sdom.isDeleted SDOM_isDeleted, sdom.code SDOM_code, sdom.description SDOM_description, 
+  sdomval.id SDOMVAL_id, sdomval.isDeleted SDOMVAL_isDeleted, sdomval.active SDOMVAL_active, sdomval.domainValueCode SDOMVAL_domainValueCode,
+  sdomval.subDomain SDOMVAL_subDomain, sdomval.ord SDOMVAL_ord, sdomval.description SDOMVAL_description, sdomval.picture SDOMVAL_picture, sdomval.iconFont SDOMVAL_iconFont 
+from 
+  __domains sdom, 
+  __domain_values sdomval
+where
+    sdomval.domainId = sdom.id
+;
+
+/*
+    SELECT `SDOM_id`, `SDOM_code`, `SDOMVAL_id`, `SDOMVAL_subDomain`, `SDOMVAL_domainValueCode`, `SDOMVAL_description`
+	FROM `__v_domain_values`
+	order by 2, 4, 5
+*/
+
+
+create or replace view v_voice_persons as 
+select
+  vus.id VUS_id, vus.isDeleted VUS_isDeleted, vus.username VUS_username, vus.systemComments VUS_systemComments, vus.isActive VUS_isActive, vus.isVerified VUS_isVerified, vus.verificationToken VUS_verificationToken, vus.organisationId VUS_organisationId, vus.isOrganisationAdmin VUS_isOrganisationAdmin, vus.createdDateTime VUS_createdDateTime, vus.updatedDateTime VUS_updatedDateTime, vus.stakeholderDVId VUS_stakeholderDVId, vus.userId VUS_userId, vus.personProfileId VUS_personProfileId, vus.avatarImg VUS_avatarImg, 
+  concat( prof.lastName, ' ', prof.firstName ) VUS_slug,
+  org.id ORG_id, org.isDeleted ORG_isDeleted, org.active ORG_active, org.name ORG_name, org.shortName ORG_shortName, org.logoImage ORG_logoImage, org.orgURL ORG_orgURL, org.orgDomain ORG_orgDomain, org.description ORG_description, org.longDescription ORG_longDescription, org.createdDateTime ORG_createdDateTime, org.updatedDateTime ORG_updatedDateTime, org.orgTypeDVId ORG_orgTypeDVId, org.legalFormDVId ORG_legalFormDVId, org.stakeholderDVId ORG_stakeholderDVId, org.stakeholderSegmentDVId ORG_stakeholderSegmentDVId, org.acceptEmailsForAdmin ORG_acceptEmailsForAdmin, org.partOfOrganisationId ORG_partOfOrganisationId, 
+  prof.id PROF_id, prof.isDeleted PROF_isDeleted, prof.createdDateTime PROF_createdDateTime, prof.firstName PROF_firstName, prof.lastName PROF_lastName, prof.middleName PROF_middleName, prof.email PROF_email, prof.birthYear PROF_birthYear, prof.gender PROF_gender, prof.cvFile PROF_cvFile, prof.updatedDateTime PROF_updatedDateTime,
+  dvStakeholder.domainValueCode VUS_stakeholderCode, dvStakeholder.description VUS_stakeholderText,
+  vustats.lastLoginDateTime STATS_lastLoginDateTime, vustats.noOfLogins STATS_noOfLogins, 
+  vustats.noOfPosts STATS_noOfPosts, 
+  vustats.noOfFollowers STATS_noOfFollowers, vustats.noOfFollowings STATS_noOfFollowings, 
+  vustats.noOfFriends STATS_noOfFriends, 
+  vustats.noOfTeams STATS_noOfTeams, vustats.noOfDGs STATS_noOfDGs, 
+  vustats.noOfShares STATS_noOfShares,
+  pob.id POB_id, pob.noOfPosts POB_noOfPosts, pob.lastPostDateTime POB_lastPostDateTime
+from 
+  voice_users vus 
+  	left outer join __domain_values dvStakeholder on dvStakeholder.id = vus.stakeholderDVId
+  	left outer join voice_user_stats vustats on vustats.userId = vus.id
+    left outer join post_boxes pob on pob.ownerType = 'PRS' and pob.ownerId = vus.id
+  , 
+  organisations org, 
+  person_profiles prof
+where
+	org.id = vus.organisationId and
+	prof.id = vus.personProfileId
+;
+
+/*
+SELECT `VUS_id`, `PROF_lastName`, `PROF_firstName`, `VUS_stakeholderText`, `ORG_name`, `PROF_birthYear`
+FROM `v_voice_persons`
+
+*/
+
+
+
+
+create or replace view v_user_actions as 
+select
+  vus.id VUS_id, vus.isDeleted VUS_isDeleted, vus.username VUS_username, vus.avatarImg VUS_avatarImg, vus.systemComments VUS_systemComments, vus.isActive VUS_isActive, vus.isVerified VUS_isVerified, vus.verificationToken VUS_verificationToken, vus.organisationId VUS_organisationId, vus.isOrganisationAdmin VUS_isOrganisationAdmin, vus.createdDateTime VUS_createdDateTime, vus.updatedDateTime VUS_updatedDateTime, vus.stakeholderDVId VUS_stakeholderDVId, vus.userId VUS_userId, vus.personProfileId VUS_personProfileId, 
+  vua.id VUA_id, vua.isDeleted VUA_isDeleted, vua.userId VUA_userId, vua.whenDateTime VUA_whenDateTime, vua.relevantUserId VUA_relevantUserId, vua.relevantOrganisationId VUA_relevantOrganisationId, vua.infoText VUA_infoText, vua.isConsumedInBadge VUA_isConsumedInBadge, vua.whatDVCode VUA_whatDVCode, 
+  vdv.SDOMVAL_id VDV_SDOMVAL_id, vdv.SDOMVAL_isDeleted VDV_SDOMVAL_isDeleted, vdv.SDOMVAL_active VDV_SDOMVAL_active, vdv.SDOMVAL_domainValueCode VDV_SDOMVAL_domainValueCode, vdv.SDOMVAL_description VDV_SDOMVAL_description, vdv.SDOMVAL_picture VDV_SDOMVAL_picture, vdv.SDOMVAL_iconFont VDV_SDOMVAL_iconFont,
+  rus.id RELUS_id, rus.username RELUS_username, rus.avatarImg RELUS_avatarImg, concat( ppr.lastName, ' ', ppr.firstName ) RELUS_slug,
+  ror.id RELOR_id, ror.name RELOR_name, ror.logoImage RELOR_logoImage, ror.orgURL RELOR_orgURL,
+  rgr.id RELGR_id, rgr.title RELGR_title, rgr.groupType RELGR_groupType, rgr.avatarImg RELGR_avatarImg,
+  rpo.id RELPO_id, rpo.title RELPO_title
+from 
+  voice_user_actions vua 
+  	left outer join 
+	  (voice_users rus inner join person_profiles ppr on ppr.id = rus.personProfileId ) on rus.id = vua.relevantUserId
+	left outer join organisations ror on ror.id = vua.relevantOrganisationId
+	left outer join groups rgr on rgr.id = vua.relevantGroupId
+	left outer join posts rpo on rpo.id = vua.relevantPostId
+	/* TODO: Add joins with Content and Idea */
+  , 
+  voice_users vus, 
+  __v_domain_values vdv
+where
+	vus.id = vua.userId and
+	vdv.SDOMVAL_domainValueCode = vua.whatDVCode and
+	vdv.SDOM_code = 'USER_ACTION_TYPE'
+;
+
+/*
+SELECT `VUA_whenDateTime`, VUS_id,`VUS_username`, `VUA_whatDVCode`, `VDV_SDOMVAL_description`, 
+	`RELUS_username`, RELUS_slug, `RELOR_name`, RELGR_title, RELPO_title,
+	`VUA_infoText`, RELUS_id, RELOR_id, RELGR_id, RELPO_id
+FROM `v_user_actions`
+ORDER BY `VUA_whenDateTime` desc, `VUS_username`, `VUA_whatDVCode`
+limit 20
+*/
+
+
+create or replace view v_user_notifications as 
+select
+  vun.id VUN_id, vun.isDeleted VUN_isDeleted, vun.userId VUN_userId, vun.whenDateTime VUN_whenDateTime, vun.relevantUserId VUN_relevantUserId, vun.relevantOrganisationId VUN_relevantOrganisationId, vun.infoText VUN_infoText, vun.whatDVCode VUN_whatDVCode, 
+  vdv.SDOMVAL_id VDV_SDOMVAL_id, vdv.SDOMVAL_isDeleted VDV_SDOMVAL_isDeleted, vdv.SDOMVAL_active VDV_SDOMVAL_active, vdv.SDOMVAL_domainValueCode VDV_SDOMVAL_domainValueCode, vdv.SDOMVAL_description VDV_SDOMVAL_description, vdv.SDOMVAL_picture VDV_SDOMVAL_picture, vdv.SDOMVAL_iconFont VDV_SDOMVAL_iconFont,
+  rus.id RELUS_id, rus.username RELUS_username, rus.avatarImg RELUS_avatarImg, concat( ppr.lastName, ' ', ppr.firstName ) RELUS_slug,
+  ror.id RELOR_id, ror.name RELOR_name, ror.logoImage RELOR_logoImage, ror.orgURL RELOR_orgURL,
+  rgr.id RELGR_id, rgr.title RELGR_title, rgr.groupType RELGR_groupType, rgr.avatarImg RELGR_avatarImg,
+  rpo.id RELPO_id, rpo.title RELPO_title
+from 
+  voice_user_notifications vun 
+  	left outer join 
+	  (voice_users rus inner join person_profiles ppr on ppr.id = rus.personProfileId ) on rus.id = vun.relevantUserId
+	left outer join organisations ror on ror.id = vun.relevantOrganisationId
+	left outer join groups rgr on rgr.id = vun.relevantGroupId
+	left outer join posts rpo on rpo.id = vun.relevantPostId
+	/* TODO: Add joins with Content and Idea */
+  , 
+  __v_domain_values vdv
+where
+	vdv.SDOMVAL_domainValueCode = vun.whatDVCode and
+	vdv.SDOM_code = 'NOTIFICATION_TYPE'
+;
+
+/*
+SELECT `VUN_whenDateTime`, VUN_userId, `VUN_whatDVCode`, `VDV_SDOMVAL_description`, 
+	`RELUS_username`, RELUS_slug, `RELOR_name`, RELGR_title, RELPO_title,
+	`VUN_infoText`, RELUS_id, RELOR_id, RELGR_id, RELPO_id
+FROM `v_user_notifications`
+ORDER BY `VUN_whenDateTime` desc, `VUN_whatDVCode`
+limit 20
+*/
+

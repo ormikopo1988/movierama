@@ -1,0 +1,16 @@
+<?php
+/* Class [VO_TblIdeaStatuses] for table [idea_statuses] */
+
+class VO_TblIdeaStatuses extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'idea_statuses';
+
+    public $id;
+    public $isDeleted;
+    public $ideaId;
+    public $ideaStatusDVCode;
+    public $fromDate;
+    public $toDate;
+    public $comments;
+
+}  // VO_TblIdeaStatuses

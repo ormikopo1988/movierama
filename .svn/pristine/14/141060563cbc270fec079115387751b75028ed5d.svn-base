@@ -1,0 +1,186 @@
+<?php
+
+class VO_ContentAPI {
+	const _ECP = 'CAP';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static
+	function getMetadata( WOOOF $wo, $format, $domainCode, $tagCategory )
+	{
+		if ( !$wo->hasContent($domainCode) and !$wo->hasContent($tagCategory) ) {
+			$wo->logError(self::_ECP."0100 Either domainCode or tagCategory must be provided");
+			return false;
+		}
+		
+		$format = $wo->myNVL($format, 'array3');
+		
+		if ( $wo->hasContent($domainCode) ) {
+			// domain metadata
+			$domainName = $wo->db->escape($domainCode);
+			
+			$sql = "
+				select SDOMVAL_id, SDOMVAL_subDomain, SDOMVAL_domainValueCode, SDOMVAL_description
+				from __v_domain_values
+				where SDOM_code = '$domainCode'
+				order by SDOMVAL_ord"
+			;
+			
+			$succ = $wo->db->getResultByQuery($sql, true, false);
+			if ( $succ === FALSE ) { return FALSE; }
+
+			$res = [];
+			foreach( $wo->db->resultRows as $aRes ) {
+				switch( $format ) {
+					case 'array3':	// id, string, parentId
+						$res[] = [ $aRes['SDOMVAL_id'], $aRes['SDOMVAL_domainValueCode'], null ];
+						break;
+						
+					default:
+						$wo->logError(self::_ECP."0110 Unknown format value [$format] was passed");
+						return false;
+				}	// which format
+			}	// foreach result
+		}
+		else {
+			// tag metadata
+			
+			$tagCategory = $wo->db->escape($tagCategory);
+			
+			if ( strtoupper($tagCategory) == 'AREA' ) {
+				// Special case. Get data from the 'areas' table
+				$sql = "
+					select
+						a.id, a.name, 
+						( select max(belongsToAreaId) 
+						  from areas_belongs_to abt where abt.areaId = a.id 
+						) parentId
+					from
+						areas a
+					order by 3, 2
+				";
+			}
+			else {
+				// Normal case. Get data from the 'tags' tables
+				$sql = "
+					select
+						id, tagPhrase name, belongsToTagId parentId
+					from tags
+					where categoryType = '$tagCategory'
+					order by belongsToTagId, tagPhrase
+				";
+			}
+			
+			$succ = $wo->db->getResultByQuery($sql, true, false);
+			if ( $succ === FALSE ) { return FALSE; }
+
+			$res = [];
+			foreach( $wo->db->resultRows as $aRes ) {
+				switch( $format ) {
+					case 'array3':	// id, string, parentId
+						$res[] = [ $aRes['id'], $aRes['name'], $aRes['parentId'] ];
+						break;
+						
+					default:
+						$wo->logError(self::_ECP."0115 Unknown format value [$format] was passed");
+						return false;
+				}	// which format
+			}	// foreach result
+		}	// domain or tag metadata
+
+		return $res;
+		
+	}	// getMetadata
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static
+	function getNewModifiedUsers( WOOOF $wo, $since, $newOrModified )
+	{
+		if ( !$wo->hasContent($since) ) {
+			$wo->logError(self::_ECP."0200 since must be provided");
+			return false;
+		}
+		
+		if ( !$wo->hasContent($newOrModified) ) {
+			$newOrModified = 'new';
+		}
+		$newOrModified = strtolower($newOrModified);
+		
+		$field1 = ( $newOrModified == 'new' ? "createdDateTime" : "updatedDateTime" );
+		
+		$sql = "
+			select id from voice_users 
+			where $field1 >= '$since' and isVerified = '1'
+			order by $field1"
+		;
+				
+		$succ = $wo->db->getResultByQuery($sql, true, false);
+		if ( $succ === FALSE ) { return FALSE; }
+
+		$res = [];
+		foreach( $wo->db->resultRows as $aRes ) {
+			$res[] = $aRes['id'];
+		}	// foreach result
+		
+		return [ 
+			'count' => count($wo->db->resultRows),
+			'list'	=> $res
+		];
+		
+	}	// getNewModifiedUsers
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static
+	function getUserData( WOOOF $wo, $userId )
+	{
+		if ( !$wo->hasContent($userId) ) {
+			$wo->logError(self::_ECP."0300 userId must be provided");
+			return false;
+		}
+		
+		$res = VO_Users::getFull($wo, $userId );
+		if ( $res === FALSE ) { return FALSE; }
+		
+		// TODO: should create an API specific getFull method.
+		
+		// For now, fix things up a little
+		
+		unset( $res['badges'], $res['profileCompleteness'], $res['connections'] );
+		
+		$res['services'] = explode( ',', $res['main']['services'] );
+		if ( $res['services'] == null ) { $res['services'] = []; }
+		
+		$res['addresses'] = $res['addresses']['list'];
+		
+		unset( 
+			$res['main']['personProfileId'], 
+			$res['main']['isSelf'], 
+			$res['main']['isLoggedIn'], 
+			$res['main']['isType'], 
+			$res['main']['srvDesc'],
+			$res['main']['services']
+		);
+		
+		unset(
+			$res['stats']['id'],
+			$res['addresses']['genericType'],
+			$res['addresses']['genericId'],
+			$res['skills']['proficiency'],
+			$res['skills']['name'],
+			$res['skills']['belongsTo']
+		);
+		
+		
+		return $res;
+		
+	}	// getUserData
+}	// VO_ContentAPI

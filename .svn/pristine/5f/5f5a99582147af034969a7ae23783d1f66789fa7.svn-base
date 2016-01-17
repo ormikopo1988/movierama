@@ -1,0 +1,205 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import MessagesBoxComp from './MessagesBoxComp';
+import LoadingComp from './LoadingComp';
+import AutoCompleteComp from './AutoCompleteComp';
+var RB = require('react-bootstrap');
+
+export default React.createClass({ //ContentTagsComp
+
+	/*
+		Properties
+		1. contentId | 
+		2. data (result of VO_Content::getContent())
+	*/
+
+	getDefaultProps: function() {
+		return {
+			data: {},
+			contentId: '',
+			editable: false
+		};
+	},
+
+	getInitialState: function() {
+		return { 
+			data: {},
+			loading: false,
+			showAddButton: true,
+			showTagForm: false
+		}
+	},
+
+	onPlusClick: function() {
+		this.setState({ 
+			showTagForm: true,
+			showAddButton: false
+		});  
+	},
+
+	componentDidMount: function() {
+		if(Object.keys(this.props.data).length === 0) {
+			var data = {
+				id: this.props.contentId
+			};
+			VOICE.ajaxCall(VOICE.linkPrefix('api/contents/getContent'), 'POST', data, this, this.handleGetContent);
+			return {
+				loading: false,
+				data: {}
+			}	
+		}
+		else {
+			return {
+				loading: false,
+				data: this.props.data
+			}
+		}
+		
+	},
+
+	handleGetContent: function(result) {
+		console.log('handleGetContent: ', result);
+		if(result.getContentOk)
+		this.setState({
+			data: result.getContent.tags
+		});
+	},
+
+	handleSave: function() {
+	    
+	},
+
+	cbHandleSave: function(result) {
+		if(result.ideaEditedOk === true) {
+  		
+			this.refs.msgBox.clearErrors();
+			this.refs.msgBox.addSuccess('Your content tags were saved successully!', false);
+			setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+		}
+		else {
+			this.refs.msgBox.addError(result.errors);
+		}
+		this.setState({
+	      loading: false
+	    });
+	},
+
+    render: function() {
+	  	var results = this.props.data;
+	  	console.log('CONTENT TAGS: ', results);
+		//var memberSince = moment.utc(result.IDE_effectiveDate, 'YYYYMMDDhhmmss').fromNow();
+	  	return (
+			<div classNameName="container">
+				<RB.Row>
+					<span id="addTag">
+						{ 
+							this.state.showAddButton ? 
+								<a href="javascript:void(0)">
+									<i className="fa fa-plus-circle" onClick={this.onPlusClick}></i>
+								</a> : null 
+						}
+					</span>
+				</RB.Row>
+				<RB.Row>
+					{
+						results.map(function(result) {
+							return (
+								<Tag key={result.id} result={result}></Tag>
+							);
+						})
+					}
+				</RB.Row>
+				<RB.Row>
+					{
+						this.props.editable === true ?
+				            <center>
+				            	{
+				           			this.state.loading === false ?
+				              			<RB.Button bsStyle="success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save Tags</RB.Button> :
+				              			<LoadingComp loadingText="Saving Tags..."></LoadingComp>
+				         	    }
+				            </center> : null
+		        	}
+				</RB.Row><br/>
+				<RB.Row>
+					<RB.Col md={12}>
+						{ this.state.showTagForm ? <TagForm {...this.props} onTagSubmit={this.handleTagSubmit} onCancelClick={this.handleCancelClick} /> : null }
+					</RB.Col>
+				</RB.Row>
+				<RB.Row>
+					<RB.Col md={12}>
+						<MessagesBoxComp ref="msgBox"/>
+					</RB.Col>
+				</RB.Row>
+			</div>
+	    );
+    }
+}); //ContentTagsComp
+
+var Tag = React.createClass({
+	onBanClick: function(tagId, event) {
+		//TODO - send api request for delete tag
+
+		//TODO - update view
+	},
+
+	render: function() {
+		var data = this.props.result;
+		return (
+			<span className="endorse-item-name">
+				<span className="endorse-item-name-text"> {data.tagText} </span>
+				<a href="javascript:void(0)">
+					<i className="fa fa-ban smallFa" data-tag-id={data.tagId} onClick={this.onBanClick.bind(null, data.tagId)}></i>
+				</a>
+			</span>
+		);
+	}
+});
+
+var TagForm = React.createClass({
+
+  handleSubmit: function(e) {
+    e.preventDefault();
+    
+  },
+  
+  handleCancel: function() {
+
+	
+	this.props.onCancelClick({
+		showTagForm: false,
+		showAddButton: true
+	});
+	
+	return;
+  },
+  
+  render: function() {
+    return (
+	  <form className="tagForm">
+		<div className="row">
+			<div className="col-md-12">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-10">Tag</span>
+					<AutoCompleteComp isType="TAG" ref="tagId" minCharsForSearching="3" 
+						aria-describedby="basic-addon-10" placeholder="Search Tags..." 
+						url={VOICE.linkPrefix('api/autoComplete/tagsALL')}>
+					</AutoCompleteComp>
+				</div>
+			</div>
+		</div><br/>
+		<div className="row">
+			<div className="col-md-1 col-md-offset-5">
+				<button type="button" className="btn btn-default" onClick={this.handleSubmit}>Add to List</button>
+			</div>
+			<div className="col-md-1">
+				<button type="button" onClick={this.handleCancel} className="btn btn-default">Cancel</button>
+			</div>
+		</div>
+      </form>
+    );
+  } 
+});	// TagForm
+

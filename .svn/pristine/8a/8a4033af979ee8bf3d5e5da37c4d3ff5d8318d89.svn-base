@@ -1,0 +1,41 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import $ from 'jquery';
+var Select = require('react-select');
+
+// AutoCompleteComp
+
+export default React.createClass({
+	// Properties:
+	// url: for fetching options
+
+	getDefaultProps: function() {
+    	return {
+    		autoload: false,
+      		multi: false,
+      		minCharsForSearching: 4
+    	};
+  	},
+  	
+	render: function() {
+		var self = this;
+		var getOptions = function(input, callback) {
+			if ( input.length < self.props.minCharsForSearching ) { return; }
+			VOICE.ajaxCall(self.props.url, 'GET', { input: input }, this, function(result) {
+				callback(null, {
+		            options: result,
+		            complete: true
+		        });
+			});
+		};
+
+		return (
+			<Select
+				{...this.props}
+			    asyncOptions={getOptions}
+			    autoload={this.props.autoload}
+			    multi={this.props.multi}
+			    onChange={this.props.getValue} />
+		);
+	}
+});

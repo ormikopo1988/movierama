@@ -1,0 +1,42 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+
+import DashboardComp from './DashboardComp';
+var RB = require('react-bootstrap');
+
+export default React.createClass({ //DashboardModalComp
+
+	getInitialState() {
+		return { showModal: false };
+	},
+
+	close() {
+		this.setState({ showModal: false });
+	},
+
+	open() {
+		this.setState({ showModal: true });
+	},
+
+	render() {
+		//let popover = <Popover title="popover">very popover. such engagement</Popover>;
+		//let tooltip = <Tooltip>wow.</Tooltip>;
+
+		return (
+			<span>
+				<a className="homeLink" href="#" onClick={this.open}>Dashboard</a>
+			    <RB.Modal show={this.state.showModal} onHide={this.close} dialogClassName="custom-modal">
+			    	<RB.Modal.Header closeButton>
+		            	<RB.Modal.Title><center>VOICE Dashboard</center></RB.Modal.Title>
+			        </RB.Modal.Header>
+			    	<RB.Modal.Body>
+						<DashboardComp withoutTitle={true} userData={this.props.userData} />
+			    	</RB.Modal.Body>
+			    	<RB.Modal.Footer>
+		            	<center><RB.Button onClick={this.close}>Close</RB.Button></center>
+		            </RB.Modal.Footer>
+		    	</RB.Modal>
+		    </span>
+		);
+	}
+});

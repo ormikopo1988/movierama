@@ -1,0 +1,293 @@
+<?php
+class VO_PostBox
+{
+	const _ECP = 'PoB';
+
+	public static function handlePostInsert(WOOOF $wo, array $inArray, $isAComment = FALSE)
+	{
+		
+		//TODO: Check security!!!!
+
+		$posts = new WOOOF_dataBaseTable($wo->db, 'posts');
+		
+		//TODO: add attachments here... populate attachmentSetId
+		if (!isset($inArray['parentPostId']))
+		{
+			$inArray['parentPostId'] = '';
+		}
+
+		$insertArray['entryDate']=$wo->getCurrentDateTime();
+		$insertArray['parentPostId']=$inArray['parentPostId'];
+		$insertArray['title']=$inArray['title'];
+		$insertArray['content']=$inArray['message'];
+		$insertArray['thumbsUp']=0;
+		$insertArray['thumbsDown']=0;
+		$insertArray['visibilityType']=$inArray['privacySelection'];
+		$insertArray['isOpenToEvaluations']=0;
+		$insertArray['noOfChildren']=0;
+		$result = $posts->insertFromArray($insertArray);
+		if ($result === FALSE)
+		{
+			return FALSE;
+		}
+		$insertArray['id'] = $result;
+		$insertArray['comments'] = [];
+
+		if (!$isAComment)
+		{
+			$postBox = $wo->db->getRow('post_boxes',$inArray['postBoxId']);
+
+			if ($postBox === FALSE)
+			{
+				return FALSE;
+			}
+
+			if (!isset($postBox['id']))
+			{
+				$wo->logError(self::_ECP.'1001 Requested post box not found.');
+				return FALSE;
+			}
+
+			$pPBoxes = new WOOOF_dataBaseTable($wo->db, 'post_post_boxes');
+
+			$pPBInsert['boxId'] = $postBox['id'];
+			$pPBInsert['postId'] = $insertArray['id'];
+			$pPBInsert['associationReason'] = 'PBA_DIRECT';
+
+			if ($pPBoxes->insertFromArray($pPBInsert)===FALSE)
+			{
+				return FALSE;
+			}
+		}
+		$wo->db->commit();
+		return (array('newPostId' => $result, 'newPost' => $insertArray));
+	}
+
+	public static function getBoxPosts(WOOOF $wo, $postBoxId, $orderBy = 'entryDate desc', $limitFrom = 0, $limitHowMany = 30)
+	{
+		$browserTitle = 'Activity Feed';
+		$data = [];
+		$lookUps = [];
+		
+		$postBox = $wo->db->getRow('post_boxes', $postBoxId);
+		if ($postBox === FALSE)
+		{
+			return FALSE;
+		}
+
+		if (!$wo->hasContent($postBox['id']) || $postBoxId != $postBox['id'])
+		{
+			$wo->logError( self::_ECP.'2001 Invalid post box ID requested.' );
+			return FALSE;
+		}
+
+		if (!self::canUserReadFromBox($wo, $postBoxId))
+		{
+			$wo->logError( self::_ECP.'2002 Current user cannot access this post box.' );
+			return FALSE;
+		}
+
+		$result = $wo->db->query('SELECT posts.* FROM post_post_boxes, posts WHERE posts.id = post_post_boxes.postId AND post_post_boxes.boxId=\''. 
+			$wo->db->escape($postBox['id']) .'\' order by '. $wo->db->escape($orderBy) .' limit '. $wo->db->escape($limitFrom) .','. 
+			$wo->db->escape($limitHowMany) );
+		
+		$data['postBoxId'] = $postBox['id'];
+		
+		$data['posts'] = [];
+
+		$dateShowFormat = 'DD/MM/YYYY';
+		
+		$postsTable = new WOOOF_dataBaseTable($wo->db, 'posts');
+		if ($wo->db->getNumRows($result))
+		{
+			$counter = 0;
+			while($post = $wo->db->fetchAssoc($result))
+			{
+				$data['posts'][$counter] = $post;
+				$whereClauses['parentPostId'] = $post['id'];
+				$selectStats = $postsTable->getResult($whereClauses, 'entryDate', '', '', '', TRUE, FALSE);
+				
+				if ($selectStats['rowsFetched']==0)
+				{
+					$data['posts'][$counter]['comments'] = [];
+				}else
+				{
+					$data['posts'][$counter]['comments'] = $postsTable->resultRows;
+				}
+
+				$counter++;
+			}
+		}
+
+		$lookUps['POST_PRIVACY_CHOICES'] = WOOOF_Domains::getDomainValues($wo,'POST_PRIVACY_CHOICES');
+
+		$data = json_encode($data);
+		$lookUps = json_encode($lookUps);
+
+		$content = "
+		<div id='content-main'></div>
+
+		<script>
+        	var data = $data;
+        	var lookUps = $lookUps; 
+        	var dateShowFormat = '$dateShowFormat';
+        	ReactDOM.render(
+        		React.createElement(
+        			PostBox, 
+        			{ data: data, lookUps: lookUps }
+        		), 
+        		document.getElementById('content-main')
+        	);
+		</script>
+		";
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	}
+
+	public static function handleReputationChange(WOOOF $wo, $postId, $isThumbsDown = FALSE)
+	{
+		$post = $wo->db->getRow('posts', $postId);
+		if ($post === FALSE)
+		{
+			return FALSE;
+		}
+
+		if (!isset($post['id']))
+		{
+			$wo->logError(self::_ECP.'3001 Requested Post doesn\'t exist. Received post id: '. $postId);
+			return FALSE;
+		}
+
+		//// TODO: Check security!!!!!
+
+		$evaluations = new WOOOF_dataBaseTable($wo->db, 'post_user_evaluations');
+
+		$whereClauses['postId'] = $postId;
+		$whereClauses['voiceUserId']=$wo->app->userId;
+		
+		$result = $evaluations->getResult($whereClauses);
+
+		if ($result === FALSE)
+		{
+			return FALSE;
+		}
+
+		if ($result['rowsFetched']===0)
+		{
+			if ($isThumbsDown)
+			{
+				$whereClauses['isThumbsUp'] = FALSE;
+				$thumbsUp = $post['thumbsUp'];
+				$thumbsDown = $post['thumbsDown']+1;
+			}else
+			{
+				$whereClauses['isThumbsUp'] = TRUE;
+				$thumbsUp = $post['thumbsUp']+1;
+				$thumbsDown = $post['thumbsDown'];
+			}
+			$result = $evaluations->insertFromArray($whereClauses);
+			if ($result === FALSE)
+			{
+				return FALSE;
+			}
+			$result = $wo->db->query('update posts set thumbsUp=\''. $thumbsUp .'\', thumbsDown=\''. $thumbsDown .'\' where id=\''. $postId .'\'');
+			if ($result === FALSE)
+			{
+				return FALSE;
+			}
+			$result = $wo->db->query('commit');
+			if ($result === FALSE)
+			{
+				return FALSE;
+			}
+			return array('thumbsUp' => $thumbsUp, 'thumbsDown' => $thumbsDown);
+		}else
+		{
+			//TODO: this should be later changed so as to have the ability to undo previous choices without activating the alternate choice.
+			if ($evaluations->resultRows[0]['isThumbsUp']=='1')
+			{
+				if ($isThumbsDown)
+				{
+					$evaluations->resultRows[$evaluations->resultRows[0]['id']]['isThumbsUp'] = '0';
+					$result = $evaluations->updateRowFromResults($evaluations->resultRows[0]['id']);
+					if ($result === FALSE)
+					{
+						return FALSE;
+					}
+					$result = $wo->db->query('update posts set thumbsUp=\''. ($post['thumbsUp']-1) .'\', thumbsDown=\''. ($post['thumbsDown']+1) .'\' where id=\''. $postId .'\'');
+					if ($result === FALSE)
+					{
+						return FALSE;
+					}
+					$result = $wo->db->query('commit');
+					if ($result === FALSE)
+					{
+						return FALSE;
+					}
+					return array('thumbsUp' => ($post['thumbsUp']-1), 'thumbsDown' => ($post['thumbsDown']+1));
+				}else
+				{
+					return array('thumbsUp' => $post['thumbsUp'], 'thumbsDown' => $post['thumbsDown']);
+				}
+			}else
+			{
+				if (!$isThumbsDown)
+				{
+					$evaluations->resultRows[$evaluations->resultRows[0]['id']]['isThumbsUp'] = '1';
+					$result = $evaluations->updateRowFromResults($evaluations->resultRows[0]['id']);
+					if ($result === FALSE)
+					{
+						return FALSE;
+					}
+					$result = $wo->db->query('update posts set thumbsUp=\''. ($post['thumbsUp']+1) .'\', thumbsDown=\''. ($post['thumbsDown']-1) .'\' where id=\''. $postId .'\'');
+					if ($result === FALSE)
+					{
+						return FALSE;
+					}
+					$result = $wo->db->query('commit');
+					if ($result === FALSE)
+					{
+						return FALSE;
+					}
+					return array('thumbsUp' => ($post['thumbsUp']+1), 'thumbsDown' => ($post['thumbsDown']-1));
+				}else
+				{
+					return array('thumbsUp' => $post['thumbsUp'], 'thumbsDown' => $post['thumbsDown']);
+				}
+			}
+		}
+	}
+
+	public static function handleCommentInsert(WOOOF $wo, array $inArray)
+	{
+		return self::handlePostInsert($wo,$inArray,TRUE);
+	}
+
+	public static function handlePostEdit(WOOOF $wo, $postBoxId)
+	{
+		
+	}
+
+	public static function canUserReadFromBox($wo, $postBoxId)
+	{
+		return true;
+	}
+
+	public static function canUserPostToBox()
+	{
+		return true;
+	}
+
+	public static function canUserEditPost()
+	{
+		return true;
+	}
+}
+
+?>

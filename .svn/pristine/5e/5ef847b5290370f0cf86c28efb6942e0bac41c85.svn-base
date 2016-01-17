@@ -1,0 +1,30 @@
+<?php
+	require_once '../setup.inc.php';
+	
+	$requestedAction='viewUncontroled';
+	$pageLocation = '3';
+	$pageTitle='Download File.';
+	
+	$wo = new WOOOF();
+	
+	$file = $wo->db->getRow('__externalFiles', $_REQUEST['fileId']);
+	$absoluteFilesRepositoryPath = $wo->getConfigurationFor('absoluteFilesRepositoryPath');
+	$fullFilename = $absoluteFilesRepositoryPath . $file['fileName'];
+	if ( !file_exists($fullFilename) ) {
+		$wo->logError("File [$fullFilename] was not found!");
+		return FALSE;
+	}
+
+	header('Content-Description: File Transfer');
+	header('Content-Type: application/octet-stream');
+	header('Content-Disposition: attachment; filename='. $file['originalFileName']);
+	header('Content-Transfer-Encoding: binary');
+	header('Expires: 0');
+	header('Cache-Control: must-revalidate');
+	header('Pragma: public');
+	header('Content-Length: ' . filesize($fullFilename));
+	ob_clean();
+	flush();
+	$succ = readfile($fullFilename);
+	// TODO: Check for FALSE ... ??
+	exit;

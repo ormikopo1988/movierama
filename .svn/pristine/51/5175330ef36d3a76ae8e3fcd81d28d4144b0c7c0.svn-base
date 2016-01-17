@@ -1,0 +1,16 @@
+<?php
+/* Class [VO_TblGroupMembershipRequests] for table [group_membership_requests] */
+
+class VO_TblGroupMembershipRequests extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'group_membership_requests';
+
+    public $id;
+    public $isDeleted;
+    public $statusDateTime;
+    public $fromUserId;
+    public $toUserId;
+    public $groupId;
+    public $status;
+
+}  // VO_TblGroupMembershipRequests

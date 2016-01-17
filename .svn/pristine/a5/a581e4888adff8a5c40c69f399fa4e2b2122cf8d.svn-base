@@ -1,0 +1,17 @@
+<?php
+/* Class [VO_TblEducationGeneric] for table [person_profile_educations] */
+
+class VO_TblEducationGeneric extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'address_generic';
+
+    public $id;
+    public $isDeleted;
+    public $personProfileId;
+    public $fromYear;
+    public $toYear;
+    public $title;
+    public $degreeTypeDVId;
+    public $organisationId;
+
+}  // VO_TblEducationGeneric

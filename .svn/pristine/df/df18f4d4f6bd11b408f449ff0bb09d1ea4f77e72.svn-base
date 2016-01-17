@@ -1,0 +1,94 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import AutoCompleteComp from './AutoCompleteComp';
+import BookmarkComp from './BookmarkComp';
+import ContentComp from './ContentComp';
+
+var RB = require('react-bootstrap');
+
+import EvaluationFormComp from './EvaluationFormComp';
+
+export default React.createClass({ //ContentView
+  getDefaultProps: function() {
+  	return {
+	    showEditLink: false
+	 };
+  },
+
+  getInitialState() {
+    return { showModal: false };
+  },
+
+  close() {
+    this.setState({ showModal: false });
+  },
+
+  open() {
+    this.setState({ showModal: true });
+  },
+
+  onSuccessfullEvalSubmit() {
+	this.setState({ showModal: false });
+  },
+
+  render: function() {
+  	console.log( 'ContentView.render: props:', this.props );
+
+  	return (
+      <div classNameName="container">
+		<div className="row">
+			{ 
+				this.props.showEditLink === true ?
+					<span>
+						<a href={VOICE.linkPrefix('content/edit/'+this.props.contentId)}><i className="fa fa-pencil"></i> Edit Content</a>
+						<br/><br/>
+						{
+							this.props.hasRunningEvals === '1' ?
+								<span>
+									<a href="#" onClick={this.open}>Click here to evaluate Content</a>
+									<br/><br/>
+									<RB.Modal show={this.state.showModal} onHide={this.close} dialogClassName="custom-modal">
+								    	<RB.Modal.Header closeButton>
+							            	<RB.Modal.Title><center>Evaluation Form</center></RB.Modal.Title>
+								        </RB.Modal.Header>
+								    	<RB.Modal.Body>
+											<EvaluationFormComp onSuccessEval={this.onSuccessfullEvalSubmit} isType="CNT" data={this.props.runningEvalId}></EvaluationFormComp>
+								    	</RB.Modal.Body>
+								    	<RB.Modal.Footer>
+							            	<center><RB.Button onClick={this.close}>Close</RB.Button></center>
+							            </RB.Modal.Footer>
+							    	</RB.Modal>
+								</span> : null 
+						}
+					</span>
+					:
+					<span>
+						{
+							this.props.hasRunningEvals === '1' ?
+								<span>
+									<a href="#" onClick={this.open}>Click here to evaluate Content</a>
+									<br/><br/>
+									<RB.Modal show={this.state.showModal} onHide={this.close} dialogClassName="custom-modal">
+								    	<RB.Modal.Header closeButton>
+							            	<RB.Modal.Title><center>Evaluation Form</center></RB.Modal.Title>
+								        </RB.Modal.Header>
+								    	<RB.Modal.Body>
+											<EvaluationFormComp onSuccessEval={this.onSuccessfullEvalSubmit} isType="CNT" data={this.props.runningEvalId}></EvaluationFormComp>
+								    	</RB.Modal.Body>
+								    	<RB.Modal.Footer>
+							            	<center><RB.Button onClick={this.close}>Close</RB.Button></center>
+							            </RB.Modal.Footer>
+							    	</RB.Modal>
+								</span> : null
+						}
+					</span>
+			}
+	        <ContentComp {...this.props} editable={false}></ContentComp>
+	    </div>
+      </div>
+    );
+  } 
+}); //ContentView
+

@@ -1,0 +1,204 @@
+<?php
+
+
+
+class VO_CtrlProfile {
+	const _ECP = 'PRO';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	public static function profileEdit( WOOOF $wo ) {
+	
+		wooofTimerStart('profileEditSpecial');
+		
+		$requestedAction='viewUncontroled';	// TODO: should be edit
+		$pageLocation='3';
+		$browserTitle='VOICE Edit User Profile';
+
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		$lookUps = WOOOF_Domains::getMultipleDomains($wo, 
+			array(
+				array('ADDRESS_TYPE','PRS'),
+			))
+		;
+		if ( $lookUps === FALSE ) { $wo->handleShowStopperError(); }
+		
+		$areas = VO_Various::getAreasLookUp($wo);
+		if($areas === FALSE) { $wo->handleShowStopperError(); }
+		
+		$lookUps['AREA'] = $areas; 
+		
+		$lookUps = json_encode($lookUps);
+		
+		// TODO: complete getdata
+        $data = VO_Users::getFull($wo, $wo->app->userId);
+        if ( $data === FALSE ) { $wo->handleShowStopperError(); }
+		$data = json_encode( $data );
+		
+        $content = "
+		<div id='content-main'></div>
+
+		<script>
+        	var data = $data;
+        	var lookUps = $lookUps; 
+        	ReactDOM.render(
+        		React.createElement(
+        			ProfileEdit, 
+        			{ data: data, lookUps: lookUps }
+        		), 
+        		document.getElementById('content-main')
+        	);
+			/*ReactDOM.render(
+				<ProfileEdit data={data} lookUps = {lookUps}/>,
+				document.getElementById('voice-user-profile-edit')
+			);*/
+		</script>
+		";
+	
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	}	//profileEdit
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	public static function profileView( WOOOF $wo ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE User Profile Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		VO_CtrlSite::redirectToEditProfileIfNeeded($wo);
+		
+		$content = <<<EOH
+		<div id='content-main'></div>
+
+		<script>
+			ReactDOM.render(
+				React.createElement(
+					ProfileView, 
+					null
+				), 
+				document.getElementById('content-main')
+			);
+			/*
+			ReactDOM.render(
+				<ProfileView />,
+				document.getElementById('content-main')
+			);
+			*/
+		</script>
+EOH
+	;
+	
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+		
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//profileView
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return [ 'saveOk' => bool, 'userId' => id, 'errors' => array ]
+	 */
+	public static 
+	function mainInfoSave( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		$res =  VO_Users::saveMainInfo($wo, $in);
+
+		if ( $res === FALSE ) {
+			$out = [
+				'saveOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+		
+		else {
+			$out = [
+				'saveOk'	=> true,
+				'userId'	=> $res
+			];
+			$wo->db->commit();
+		}
+		
+		return $out;
+	}	// mainInfoSave
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return [ 'saveOk' => bool, 'userId' => id, 'errors' => array ]
+	 */
+	public static
+	function saveAddresses( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+
+		$res =  VO_Users::saveAddresses($wo, $in, 'PRS', $wo->app->personProfileId);
+	
+		if ( $res === FALSE ) {
+			$out = [
+					'saveOk' => false,
+					'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+					'saveOk'	=> true,
+					'addressId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// saveAddresses
+	
+}	// VO_CtrlProfile

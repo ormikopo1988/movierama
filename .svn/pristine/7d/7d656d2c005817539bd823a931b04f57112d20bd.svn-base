@@ -1,0 +1,1685 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import $ from 'jquery';
+var RB = require('react-bootstrap');
+
+import MessagesBoxComp from './MessagesBoxComp';
+import AddressesBoxComp from './AddressesBoxComp';
+
+import YearInputComp from './YearInputComp';
+import AutoCompleteComp from './AutoCompleteComp';
+
+export default React.createClass({ //ProfileEdit
+  
+  getInitialState: function() {
+  	console.log('INITIAL STATE FOR ALL: ');
+  	console.log(this.props.data);
+    return {
+    	data: {
+    	   main : this.props.data.main,
+    	   addresses : this.props.data.addresses,
+    	   education: this.props.data.educations,
+    	   experience : this.props.data.experiences,
+    	   skills : this.props.data.skills,
+    	   socialAccounts: this.props.data.socialAccounts
+		}
+    };
+  },
+  
+  render: function() { //function that returns a tree of React components that will eventually render to HTML
+    return (
+      <div className="profileBox">
+          <Main data={this.state.data.main} lookUps= {this.props.lookUps} />
+          <AddressesBoxComp data={this.state.data.addresses} lookUps= {this.props.lookUps} />
+          <Education data={this.state.data.education} lookUps= {this.props.lookUps} />
+          <Skills data={this.state.data.skills} lookUps={this.props.lookUps} />
+          <Experience data={this.state.data.experience} lookUps={this.props.lookUps} />
+          <Accounts data={this.state.data.socialAccounts} lookUps= {this.props.lookUps} />
+      </div>
+    );
+  }
+  
+});	// ProfileBox
+
+/*************************************************************************************************************/
+
+var Main = React.createClass({
+  getInitialState: function() {
+    var tmpMainView = this.props.data; //for reseting purposes
+    this.initialState = JSON.stringify(tmpMainView);
+  
+    return {
+	  mainView: tmpMainView
+    };
+  },
+  
+  handleChange: function(event) {
+	  var tmp = this.state.mainView;
+	  tmp[event.target.name] = event.target.value;
+	  
+	  this.setState({
+		  mainView: tmp
+	  });
+  },
+  
+  handleReset: function() {
+	  var resetView = JSON.parse(this.initialState);
+	  this.setState({mainView: resetView});
+  },
+  
+  handleSave: function(e) {
+	  e.preventDefault();
+
+	  var fd = new FormData(); //api ths javascript
+
+	  var data = this.state.mainView;
+	  
+	  if(ReactDOM.findDOMNode(this.refs.cvFile).value !== '') {
+	  	fd.append('cvFile', ReactDOM.findDOMNode(this.refs.cvFile).files[0]);
+	  }
+
+	  if(ReactDOM.findDOMNode(this.refs.avatarImg).value !== '') {
+	  	fd.append('avatarImg', ReactDOM.findDOMNode(this.refs.avatarImg).files[0]);
+	  }
+	  	
+
+	  fd.append('data', JSON.stringify(data));
+	  
+	  var url = VOICE.linkPrefix('api/profile/mainInfoSave');
+	  //data to send to server!
+	  VOICE.ajaxCallWithFiles(url, 'POST', fd, this, this.cbHandleSave);
+  },
+
+  cbHandleSave: function(result) {
+  	if(result.saveOk === true) {
+  		// if successully saved
+  		var data = this.state.mainView;
+  		data.avatarImgObject = result.avatarImg;
+	    data.cvFileObject = {
+	    	externalFileId: result.cvFile.externalFileId,
+	    	fileName: result.cvFile.fileName,
+	    	originalFileName: result.cvFile.originalFileName
+	    };
+	    this.initialState = JSON.stringify(this.state.mainView);
+	    this.setState({mainView: data});
+  		this.refs.msgBox.clearErrors();
+	  	this.refs.msgBox.addSuccess('Your information was saved successully!', false);
+	  	setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+  	}
+  	else {
+  		this.refs.msgBox.addError(result.errors);
+  	}
+  },
+
+  render: function() {
+	var mainInfo = this.state.mainView;
+	var avatarImg = mainInfo.avatarImgObject || 'profile_none.png';
+	var avatarURL = '';
+	if(avatarImg !== 'profile_none.png') {
+		avatarURL = VOICE.imgPrefix(avatarImg);
+	}
+	else {
+		avatarURL = VOICE.systemImgPrefix(avatarImg);
+	}
+	var avatarDivStyle = {
+		backgroundImage: 'url(' + avatarURL + ')'
+	};
+	var cvFileURL = VOICE.filePrefix(mainInfo.cvFileObject.externalFileId);
+
+	var male;
+	if (mainInfo.gender === 'M') 
+		male = true; 
+	else 
+		male=false;
+	
+    return (
+	  <RB.Well>
+	  	<center><h3><a href={VOICE.linkPrefix('profile/view')}>View Profile</a></h3></center>
+	    <RB.Row>
+			<RB.Col md={12}>
+				<a href={avatarURL} target="_blank">
+					<div className="circle" style={avatarDivStyle}></div>
+				</a>
+				<center>
+					<label>
+						<i className="fa fa-camera"></i>
+					</label>
+		  			<input type="file" id="input-1" ref="avatarImg" name="avatarImg" />
+				</center>
+			</RB.Col>
+		</RB.Row><br/>
+      	<RB.Row>
+      		<RB.Col md={4}>
+				<RB.Input type="text" addonBefore="First Name (*)" placeholder="Your First Name..." value={mainInfo.firstName} ref="firstName" name="firstName" onChange={this.handleChange} />
+			</RB.Col>
+			<RB.Col md={4}>
+				<RB.Input type="text" addonBefore="Middle Name" placeholder="Your Middle Name..." value={mainInfo.middleName} ref="middleName" name="middleName" onChange={this.handleChange} />
+			</RB.Col>
+			<RB.Col md={4}>
+				<RB.Input type="text" addonBefore="Last Name (*)" placeholder="Your Last Name..." value={mainInfo.lastName} ref="lastName" name="lastName" onChange={this.handleChange} />
+			</RB.Col>
+		</RB.Row><br/>
+		<RB.Row>
+			<RB.Col md={2} mdOffset={1}>
+				<RB.Input type="radio" label="Male" name="gender" ref="gender" checked={male ? 'checked' : null} value="M" onChange={this.handleChange} />
+				<RB.Input type="radio" label="Female" name="gender" ref="gender" checked={!male ? 'checked' : null} value="F" onChange={this.handleChange} />
+			</RB.Col>
+			<RB.Col md={3}  mdOffset={1}>
+			    <YearInputComp placeholder="Select Year of Birth" addonBefore="Birth Year" ref="birthYear" name="birthYear" min={1980} max={2015} value={mainInfo.birthYear} onChange={this.handleChange} ></YearInputComp>
+			</RB.Col>
+  			<RB.Col md={3}  mdOffset={1}>
+				<RB.Input type="select" addonBefore="Title" value={mainInfo.personTitleDVId} placeholder="Select Title" ref="personTitleDVId" name="personTitleDVId" onChange={this.handleChange}>
+					<option value=""> - Select Title - </option>
+					{VOICE.renderOptions(this.props.lookUps.PERSON_TITLE)}
+			    </RB.Input>
+			</RB.Col>
+		</RB.Row><br/>
+		<RB.Row>
+			<RB.Col md={12}>
+  				<RB.Input type="textarea" rows="7" value={mainInfo.shortDescription} addonBefore="Description" ref="shortDescription" name="shortDescription" placeholder="Write something about you..." onChange={this.handleChange}></RB.Input> 
+			</RB.Col>
+		</RB.Row><br/>
+		<RB.Row>
+			<center>
+				<RB.Col md={12}>
+	  				<label>
+						<i className="fa fa-file"> CV File: <a href={cvFileURL} target="_blank">{mainInfo.cvFileObject.originalFileName}</a></i>
+					</label>
+					<input type="file" id="input-2" ref="cvFile" name="cvFile" />
+				</RB.Col>
+			</center>
+		</RB.Row><br/>
+		<RB.Row>
+			<RB.Col md={1} mdOffset={5}>
+				<RB.Button bsStyle="success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save</RB.Button>
+			</RB.Col>
+			<RB.Col md={1}>
+				<RB.Button onClick={this.handleReset}><i className="glyphicon glyphicon-repeat"></i> Reset</RB.Button>
+			</RB.Col>
+		</RB.Row><br/>
+		<RB.Row>
+			<RB.Col md={12}>
+				<MessagesBoxComp ref="msgBox"/>
+			</RB.Col>
+		</RB.Row>
+      </RB.Well>
+    );
+  }
+});	// Main
+
+/*************************************************************************************************************/
+
+// TODO: put in separate files!!!!
+//
+
+/*************************************************************************************************************/
+
+var Education = React.createClass({
+	
+  initObject: function(data) {
+  	  var tmp = {}; //for reseting purposes
+	  
+	  for(var i=0; i<data.length; i++) {
+		  var temp = data[i];
+		  temp._status = 'R';
+		  tmp[ data[i].id ] = temp;
+	  }
+
+	  return tmp;
+  },
+
+  getInitialState: function() {
+  	  var tmp = this.initObject(this.props.data);
+	  
+	  this.initialState = JSON.stringify(tmp);
+	  
+	  return {
+		  education: tmp,
+		  showEducationForm: false,
+		  showAddButton: true,
+		  showSaveEduButton: true
+	  };
+  },
+  
+  handleSave: function(e) {
+	  e.preventDefault();
+	  
+	  //TAKE OUT the TRASH ("_status = T") before send to server
+	  for (var key in this.state.education) {
+		  if (this.state.education.hasOwnProperty(key)) {
+		  //Now, this.state.addresses[key] is the current value of the address object
+			  if (this.state.education[key]._status === 'T') {
+				  delete this.state.education[key]
+			  }
+		  }
+	  }
+
+	  var url = VOICE.linkPrefix('api/profile/saveEducations');
+	  //data to send to server!
+	  VOICE.ajaxCall(url, 'POST', this.state.education, this, this.cbHandleSave);
+  },
+
+  cbHandleSave: function(result) {
+  	console.log(result);
+  	if(result.saveOk === true) {
+  		this.refs.msgBox.clearErrors();
+	  	this.refs.msgBox.addSuccess('Your educations were saved successully!', false);
+	  	setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+
+	  	for (var key in this.state.education) {
+		  if (this.state.education.hasOwnProperty(key)) {
+		  //Now, this.state.education[key] is the current value of the address object
+			  if (this.state.education[key]._status === 'D') {
+				  delete this.state.education[key]
+			  }
+		  }
+	    }
+
+	    //After send to server update the status of all inserted to "R" from "I" OR "U"
+	  	for (var edu in this.state.education) {
+	     if (this.state.education.hasOwnProperty(edu)) {
+	         var obj = this.state.education[edu];
+	          for (var prop in obj) {
+	            // important check that this is objects own property 
+	            // not from prototype prop inherited
+	            if(obj.hasOwnProperty(prop)){
+	              if(prop === '_status' && (obj[prop] === 'I' || obj[prop] === 'U')) {
+	            	  obj[prop] = 'R';  	
+	              }
+	            }
+	         }
+	      }
+	    }
+	  
+ 		var url = VOICE.linkPrefix('api/profile/getEducations');
+
+	    VOICE.ajaxCall(url, 'GET', {}, this, this.cbHandleSaveEducation);
+  	}
+  	else {
+		this.refs.msgBox.addError(result.errors);
+  	}
+  },
+
+  cbHandleSaveEducation: function(result) {
+  		var tmp = this.initObject(result);
+  		this.initialState = JSON.stringify(tmp);
+	    this.setState({education: tmp});
+  },
+  
+  handleReset: function() {
+	  var resetView = JSON.parse(this.initialState);
+	  this.setState({education: resetView});
+  },
+  
+  handleEducationSubmit: function(newEducation) {
+	var education = this.state.education;
+	var id = Math.floor((Math.random() * 10000000000) + 1000000000);
+	newEducation.id = id;
+	education[id] = newEducation;
+	
+	this.setState({
+		education: education,
+		showEducationForm: false,
+		showAddButton: true,
+		showSaveEduButton: true
+	});
+  },
+  
+  handleChange: function(educationId, event) {
+  	  // educationId is passed from caller!
+
+	  var exists = false, 
+	  	  newEducation = this.state.education;
+	  
+	  exists = this.state.education.hasOwnProperty(educationId);
+	  if(exists) {
+		   newEducation[educationId][event.target.name] = event.target.value;
+	  }
+	  else {
+		  var tempObj = {};
+		  tempObj['id'] = educationId;
+		  tempObj[event.target.name] = event.target.value;
+		  
+		  newEducation[educationId] = tempObj;
+	  }
+	  
+	  if(newEducation[educationId]._status !== 'I') {
+	      // Insertions remain insertions even after (re)editing them.
+		  newEducation[educationId]._status = 'U';
+	  }
+	  
+	  this.setState({
+		  education: newEducation
+	  });
+  },
+
+  handleAutoCompleteChange: function(educationId, value, label) {
+  	// educationId is passed from caller!
+  	  console.log('DESSSSSSSSSSSSSS');
+  	  console.log(educationId, value, label);
+      console.log(this.refs.organisation);
+	  var exists = false, 
+	  	  newEducation = this.state.education;
+	  
+	  newEducation[educationId]['organisationId'] = value;
+	  newEducation[educationId]['organisation'] = label;
+	  
+	  if(newEducation[educationId]._status !== 'I') {
+	      // Insertions remain insertions even after (re)editing them.
+		  newEducation[educationId]._status = 'U';
+	  }
+	  console.log('NEW EDUCATION: ', newEducation);
+	  this.setState({
+		  education: newEducation
+	  });
+
+  },
+  
+  onPlusClick: function() {
+	  this.setState({ 
+		  showEducationForm: true,
+		  showAddButton: false,
+		  showSaveEduButton: false
+	  });  
+  },
+  
+  onDeleteClick: function(educationId, event) {
+  	  if(this.state.education[educationId]._status === 'I') {
+		  this.state.education[educationId]._status = 'T'; //trash status (inserted and then updated)
+	  }
+	  else {
+		  this.state.education[educationId]._status = 'D'; //update status
+	  }
+	  
+	  this.setState({
+		  education: this.state.education
+	  }); //update view
+	  
+  },
+  
+  handleCancelClick: function(newView) {
+    this.setState(newView);
+  },
+
+  render: function() {
+	var tds = [];
+	var keys = Object.keys(this.state.education);
+	console.log('Rendering with EDU: ');
+	console.log(this.state.education);
+	for(var i=0; i < keys.length; i++ ) {
+		var edu = this.state.education[keys[i]];
+		var org = edu.organisation || '';
+
+		var cb1  = this.handleChange.bind(null,edu.id);
+		var cb2  = this.handleAutoCompleteChange.bind(null, edu.id);
+		tds.push(
+			<tr key={edu.id} id={edu.id} className={(edu._status === 'D' || edu._status === 'T') ? 'hidden' : null}>
+				<td className="col-md-2">
+					<select className="form-control" value={edu.degreeTypeDVId} ref="degreeTypeDVId" name="degreeTypeDVId" onChange={cb1} >
+					    {VOICE.renderOptions(this.props.lookUps.DEGREE_TYPE)}
+				    </select>
+				</td>
+				<td className="col-md-2"><input type="text" className="form-control" value={edu.title} ref="title" name="title" onChange={cb1} /></td>
+				<td className="col-md-3">
+					<AutoCompleteComp customCallBackOnChange={cb2} value={org} ref="organisation" minCharsForSearching="4" 
+						aria-describedby="basic-addon-10" placeholder="Search Organisation..." 
+						url={VOICE.linkPrefix('api/autoComplete/organisations')}>
+					</AutoCompleteComp>
+					{/*<input type="text" className="form-control" value={edu.organisation} ref="organisation" disabled />*/}
+				</td>
+				<td className="col-md-2">
+					<YearInputComp className="form-control" placeholder="Select From Year..." ref="fromYear" name="fromYear" min={1960} max={2015} value={edu.fromYear} onChange={cb1} ></YearInputComp>
+				</td>
+				<td className="col-md-2">
+					<YearInputComp className="form-control" placeholder="Select To Year..." ref="toYear" name="toYear" min={1960} max={2015} value={edu.toYear} onChange={cb1} ></YearInputComp>
+				</td>
+				<td><a href="javascript:void(0)"><i className="fa fa-ban" data-education-id={edu.id} onClick={this.onDeleteClick.bind(null, edu.id)}></i></a></td>
+			</tr>
+		);
+	}
+	
+    return (
+      <div className="well well-large formInlineStyle">
+	  	<div className="panel panel-default">
+		  <div className="panel-heading">
+		  	Education
+		  	<span id="addEducation">{ this.state.showAddButton ? <a href="javascript:void(0)"><i className="fa fa-plus-circle" onClick={this.onPlusClick}></i></a> : null }</span>
+		  </div>
+	  		  <div className="table-responsive">
+				  <table className="table table-hover">
+					<thead>
+						<tr>
+						    <th>Degree Type</th>
+						    <th>Title</th>
+						    <th>Organisation</th>
+						    <th>From Year</th>
+						    <th>To Year</th>
+						    <th>Options</th>
+					    </tr>
+					</thead>
+					<tbody>
+					    {tds}
+					</tbody>
+				  </table>
+			  </div>
+		  </div>
+		  <div className="row">
+			  <div className="col-md-1 col-md-offset-5">
+			    { this.state.showSaveEduButton ? <button type="button" className="btn btn-success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save</button> : null }
+			  </div>
+			  <div className="col-md-1">
+			    { this.state.showSaveEduButton ? <button type="button" className="btn btn-default" onClick={this.handleReset}><i className="glyphicon glyphicon-repeat"></i> Reset</button> : null }
+			  </div>
+		  </div><br/>
+		  <br/>
+		  <div className="row">
+		  	<div className="col-md-12">
+		  		<MessagesBoxComp ref="msgBox"/>
+		  	</div>
+		  </div>
+		  <div className="row">
+		  	<div className="col-md-12">
+		  		{ this.state.showEducationForm ? <EducationForm {...this.props} onEducationSubmit={this.handleEducationSubmit} onCancelClick={this.handleCancelClick} /> : null }
+		  	</div>
+		  </div>
+      </div>
+	  
+    );
+  }
+});	// Educations
+
+/*************************************************************************************************************/
+
+var EducationForm = React.createClass({
+
+  handleSubmit: function(e) {
+    e.preventDefault();
+    var degreeTypeForm = ReactDOM.findDOMNode(this.refs.degreeTypeForm).value.trim();
+    var organisationId = this.refs.organisationId.getValue();
+    var organisationName = this.refs.organisationId.getLabel();
+    console.log(organisationId, organisationName)
+    var titleForm = ReactDOM.findDOMNode(this.refs.titleForm).value.trim();
+    var fromYearForm = this.refs.fromYear.getValue();
+    var toYearForm = this.refs.toYear.getValue();
+    
+    if (!degreeTypeForm || !titleForm) {
+    	alert('Please fill all the required input fields!');
+        return;
+    }
+    
+	this.props.onEducationSubmit({
+		degreeTypeDVId: degreeTypeForm,
+		organisationId: organisationId,
+		organisation: organisationName,
+		title: titleForm,
+		fromYear: fromYearForm,
+		toYear: toYearForm,
+		_status: 'I'
+	});
+	
+    ReactDOM.findDOMNode(this.refs.degreeTypeForm).value = '';
+    ReactDOM.findDOMNode(this.refs.titleForm).value = '';
+    return;
+  },
+  
+  handleCancel: function() {
+	ReactDOM.findDOMNode(this.refs.degreeTypeForm).value = '';
+    ReactDOM.findDOMNode(this.refs.titleForm).value = '';
+	
+	this.props.onCancelClick({
+		showEducationForm: false,
+		showAddButton: true,
+		showSaveEduButton: true
+	});
+	
+	return;
+  },
+  
+  render: function() {
+    return (
+	  <form className="educationForm">
+	    <div className="row">
+			<div className="col-md-6">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-5">Degree Type (*)</span>
+					<select className="form-control" aria-describedby="basic-addon-5" ref="degreeTypeForm">
+						<option value="">- Please Choose -</option>
+					    {VOICE.renderOptions(this.props.lookUps.DEGREE_TYPE)}
+				    </select>
+			    </div>
+			</div>
+			<div className="col-md-6">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-13">Title (*)</span>
+					<input type="text" className="form-control" placeholder="Title..." aria-describedby="basic-addon-13" ref="titleForm" />
+				</div>
+			</div>
+		</div><br/>
+		<div className="row">
+			<div className="col-md-6">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-14">From Year</span>
+					<YearInputComp className="form-control" placeholder="Select From Year..." ref="fromYear" min={1960} max={2015} ></YearInputComp>
+				</div>
+			</div>
+			<div className="col-md-6">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-15">To Year</span>
+					<YearInputComp className="form-control" placeholder="Select To Year..." ref="toYear" min={1960} max={2015} ></YearInputComp>
+				</div>
+			</div>
+		</div><br/>
+		<div className="row">
+			<div className="col-md-6 col-md-offset-3">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-10">Organisation</span>
+					<AutoCompleteComp ref="organisationId" minCharsForSearching="4" 
+						aria-describedby="basic-addon-10" placeholder="Search Organisation..." 
+						url={VOICE.linkPrefix('api/autoComplete/organisations')}>
+					</AutoCompleteComp>
+				</div>
+			</div>
+		</div><br/>
+		<div className="row">
+			<div className="col-md-1 col-md-offset-5">
+				<button type="button" className="btn btn-default" onClick={this.handleSubmit}>Add to List</button>
+			</div>
+			<div className="col-md-1">
+				<button type="button" onClick={this.handleCancel} className="btn btn-default">Cancel</button>
+			</div>
+		</div>
+      </form>
+    );
+  } 
+});	// EducationForm
+
+/*************************************************************************************************************/
+
+var Accounts = React.createClass({
+	
+  initObject: function(data) {
+  	  var tmp = {}; //for reseting purposes
+	  
+	  for(var i=0; i<data.length; i++) {
+		  var temp = data[i];
+		  temp._status = 'R';
+		  tmp[ data[i].id ] = temp;
+	  }
+
+	  return tmp;
+  },
+
+  getInitialState: function() {
+  	  var tmp = this.initObject(this.props.data);
+	  
+	  this.initialState = JSON.stringify(tmp);
+	  
+	  return {
+		  account: tmp,
+		  showAccountForm: false,
+		  showAddButton: true,
+		  showSaveAccButton: true
+	  };
+  },
+  
+  handleSave: function(e) {
+	  e.preventDefault();
+	  
+	  //TAKE OUT the TRASH ("_status = T") before send to server
+	  for (var key in this.state.account) {
+		  if (this.state.account.hasOwnProperty(key)) {
+		  //Now, this.state.addresses[key] is the current value of the address object
+			  if (this.state.account[key]._status === 'T') {
+				  delete this.state.account[key]
+			  }
+		  }
+	  }
+
+	  var url = VOICE.linkPrefix('api/profile/saveAccounts');
+	  //data to send to server!
+	  VOICE.ajaxCall(url, 'POST', this.state.account, this, this.cbHandleSave);
+  },
+
+  cbHandleSave: function(result) {
+  	console.log(result);
+  	if(result.saveOk === true) {
+  		this.refs.msgBox.clearErrors();
+	  	this.refs.msgBox.addSuccess('Your social accounts were saved successully!', false);
+	  	setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+
+	  	for (var key in this.state.account) {
+		  if (this.state.account.hasOwnProperty(key)) {
+		  //Now, this.state.account[key] is the current value of the address object
+			  if (this.state.account[key]._status === 'D') {
+				  delete this.state.account[key]
+			  }
+		  }
+	    }
+
+	    //After send to server update the status of all inserted to "R" from "I" OR "U"
+	  	for (var acc in this.state.account) {
+	     if (this.state.account.hasOwnProperty(acc)) {
+	         var obj = this.state.account[acc];
+	          for (var prop in obj) {
+	            // important check that this is objects own property 
+	            // not from prototype prop inherited
+	            if(obj.hasOwnProperty(prop)){
+	              if(prop === '_status' && (obj[prop] === 'I' || obj[prop] === 'U')) {
+	            	  obj[prop] = 'R';  	
+	              }
+	            }
+	         }
+	      }
+	    }
+	  
+ 		var url = VOICE.linkPrefix('api/profile/getSocialAccounts');
+
+	    VOICE.ajaxCall(url, 'GET', {}, this, this.cbHandleSaveAccount);
+  	}
+  	else {
+		this.refs.msgBox.addError(result.errors);
+  	}
+  },
+
+  cbHandleSaveAccount: function(result) {
+  		var tmp = this.initObject(result);
+  		this.initialState = JSON.stringify(tmp);
+	    this.setState({account: tmp});
+  },
+  
+  handleReset: function() {
+	  var resetView = JSON.parse(this.initialState);
+	  this.setState({account: resetView});
+  },
+  
+  handleAccountSubmit: function(newAccount) {
+	var account = this.state.account;
+	var id = Math.floor((Math.random() * 10000000000) + 1000000000);
+	newAccount.id = id;
+	account[id] = newAccount;
+	
+	this.setState({
+		account: account,
+		showAccountForm: false,
+		showAddButton: true,
+		showSaveAccButton: true
+	});
+  },
+  
+  handleChange: function(accountId, event) {
+  	  // educationId is passed from caller!
+
+	  var exists = false, 
+	  	  newAccount = this.state.account;
+	  
+	  exists = this.state.account.hasOwnProperty(accountId);
+	  if(exists) {
+		   newAccount[accountId][event.target.name] = event.target.value;
+	  }
+	  else {
+		  var tempObj = {};
+		  tempObj['id'] = accountId;
+		  tempObj[event.target.name] = event.target.value;
+		  
+		  newAccount[accountId] = tempObj;
+	  }
+	  
+	  if(newAccount[accountId]._status !== 'I') {
+	      newAccount[accountId]._status = 'U';
+	  }
+	  
+	  this.setState({
+		  account: newAccount
+	  });
+  },
+  
+  onPlusClick: function() {
+	  this.setState({ 
+		  showAccountForm: true,
+		  showAddButton: false,
+		  showSaveAccButton: false
+	  });  
+  },
+  
+  onDeleteClick: function(accountId, event) {
+  	  if(this.state.account[accountId]._status === 'I') {
+		  this.state.account[accountId]._status = 'T'; //trash status (inserted and then updated)
+	  }
+	  else {
+		  this.state.account[accountId]._status = 'D'; //update status
+	  }
+	  
+	  this.setState({
+		  account: this.state.account
+	  }); //update view
+	  
+  },
+  
+  handleCancelClick: function(newView) {
+    this.setState(newView);
+  },
+
+  render: function() {
+	var tds = [];
+	var keys = Object.keys(this.state.account);
+	for(var i=0; i < keys.length; i++ ) {
+		var acc = this.state.account[keys[i]];
+
+		// partial call to callback. Pass edu.id as parameter
+		var cb1  = this.handleChange.bind(null,acc.id);
+		tds.push(
+			<tr key={acc.id} id={acc.id} className={(acc._status === 'D' || acc._status === 'T') ? 'hidden' : null}>
+				<td>
+					<select className="form-control" value={acc.socialAccountDVId} ref="socialAccountDVId" name="socialAccountDVId" onChange={cb1} >
+					    {VOICE.renderOptions(this.props.lookUps.SOCIAL_ACCOUNT)}
+				    </select>
+				</td>
+				<td><input type="text" className="form-control" value={acc.url} ref="url" name="url" onChange={cb1} /></td>
+				<td><a href="javascript:void(0)"><i className="fa fa-ban" data-account-id={acc.id} onClick={this.onDeleteClick.bind(null, acc.id)}></i></a></td>
+			</tr>
+		);
+	}
+	
+    return (
+      <div className="well well-large formInlineStyle">
+	  	<div className="panel panel-default">
+		  <div className="panel-heading">
+		  	Social Accounts
+		  	<span id="addAccount">{ this.state.showAddButton ? <a href="javascript:void(0)"><i className="fa fa-plus-circle" onClick={this.onPlusClick}></i></a> : null }</span>
+		  </div>
+	  		  <div className="table-responsive">
+				  <table className="table table-hover">
+					<thead>
+						<tr>
+						    <th>Type</th>
+						    <th>URL</th>
+						    <th>Options</th>
+					    </tr>
+					</thead>
+					<tbody>
+					    {tds}
+					</tbody>
+				  </table>
+			  </div>
+		  </div>
+		  <div className="row">
+			  <div className="col-md-1 col-md-offset-5">
+			    { this.state.showSaveAccButton ? <button type="button" className="btn btn-success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save</button> : null }
+			  </div>
+			  <div className="col-md-1">
+			    { this.state.showSaveAccButton ? <button type="button" className="btn btn-default" onClick={this.handleReset}><i className="glyphicon glyphicon-repeat"></i> Reset</button> : null }
+			  </div>
+		  </div><br/>
+		  <br/>
+		  <div className="row">
+		  	<div className="col-md-12">
+		  		<MessagesBoxComp ref="msgBox"/>
+		  	</div>
+		  </div>
+		  <div className="row">
+		  	<div className="col-md-12">
+		  		{ this.state.showAccountForm ? <AccountForm {...this.props} onAccountSubmit={this.handleAccountSubmit} onCancelClick={this.handleCancelClick} /> : null }
+		  	</div>
+		  </div>
+      </div>
+	  
+    );
+  }
+});	// Accounts
+
+/*************************************************************************************************************/
+
+var AccountForm = React.createClass({
+
+  handleSubmit: function(e) {
+    e.preventDefault();
+    var accountTypeForm = ReactDOM.findDOMNode(this.refs.accountTypeForm).value.trim();
+    var urlForm = ReactDOM.findDOMNode(this.refs.urlForm).value.trim();
+    
+    if (!accountTypeForm || !urlForm) {
+    	alert('Please fill all the required input fields!');
+        return;
+    }
+    
+	this.props.onAccountSubmit({
+		socialAccountDVId: accountTypeForm,
+		url: urlForm,
+		_status: 'I'
+	});
+	
+    ReactDOM.findDOMNode(this.refs.accountTypeForm).value = '';
+    ReactDOM.findDOMNode(this.refs.urlForm).value = '';
+    return;
+  },
+  
+  handleCancel: function() {
+  	ReactDOM.findDOMNode(this.refs.accountTypeForm).value = '';
+    ReactDOM.findDOMNode(this.refs.urlForm).value = '';
+	
+	this.props.onCancelClick({
+		showAccountForm: false,
+		showAddButton: true,
+		showSaveAccButton: true
+	});
+	
+	return;
+  },
+  
+  render: function() {
+    return (
+	  <form className="accountForm">
+	    <div className="row">
+			<div className="col-md-6">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-5">Account Type (*)</span>
+					<select className="form-control" aria-describedby="basic-addon-5" ref="accountTypeForm">
+						<option value="">- Please Choose -</option>
+					    {VOICE.renderOptions(this.props.lookUps.SOCIAL_ACCOUNT)}
+				    </select>
+			    </div>
+			</div>
+			<div className="col-md-6">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-13">URL (*)</span>
+					<input type="text" className="form-control" placeholder="Social Account URL..." aria-describedby="basic-addon-13" ref="urlForm" />
+				</div>
+			</div>
+		</div><br/>
+		<div className="row">
+			<div className="col-md-1 col-md-offset-5">
+				<button type="button" className="btn btn-default" onClick={this.handleSubmit}>Add to List</button>
+			</div>
+			<div className="col-md-1">
+				<button type="button" onClick={this.handleCancel} className="btn btn-default">Cancel</button>
+			</div>
+		</div>
+      </form>
+    );
+  } 
+});	// AccountForm
+
+/*************************************************************************************************************/
+
+var Skills = React.createClass({
+	
+  initObject: function(data) {
+  	  var tmp = {}; //for reseting purposes
+	  
+	  for(var i=0; i<data.length; i++) {
+		  var temp = data[i];
+		  temp._status = 'R';
+		  tmp[ data[i].id ] = temp;
+	  }
+
+	  return tmp;
+  },
+
+  getInitialState: function() {
+  	  var tmp = this.initObject(this.props.data);
+	  
+	  this.initialState = JSON.stringify(tmp);
+	  
+	  return {
+		  skill: tmp,
+		  showSkillForm: false,
+		  showAddButton: true,
+		  showSaveSkiButton: true
+	  };
+  },
+  
+  handleSave: function(e) {
+	  e.preventDefault();
+	  
+	  //TAKE OUT the TRASH ("_status = T") before send to server
+	  for (var key in this.state.skill) {
+		  if (this.state.skill.hasOwnProperty(key)) {
+		  //Now, this.state.addresses[key] is the current value of the address object
+			  if (this.state.skill[key]._status === 'T') {
+				  delete this.state.skill[key]
+			  }
+		  }
+	  }
+
+	  var url = VOICE.linkPrefix('api/profile/saveSkills');
+	  //data to send to server!
+	  VOICE.ajaxCall(url, 'POST', this.state.skill, this, this.cbHandleSave);
+  },
+
+  cbHandleSave: function(result) {
+  	console.log(result);
+  	if(result.saveOk === true) {
+  		this.refs.msgBox.clearErrors();
+	  	this.refs.msgBox.addSuccess('Your skills were saved successully!', false);
+	  	setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+
+	  	for (var key in this.state.skill) {
+		  if (this.state.skill.hasOwnProperty(key)) {
+		  //Now, this.state.account[key] is the current value of the address object
+			  if (this.state.skill[key]._status === 'D') {
+				  delete this.state.skill[key]
+			  }
+		  }
+	    }
+
+	    //After send to server update the status of all inserted to "R" from "I" OR "U"
+	  	for (var ski in this.state.skill) {
+	     if (this.state.skill.hasOwnProperty(ski)) {
+	         var obj = this.state.skill[ski];
+	          for (var prop in obj) {
+	            // important check that this is objects own property 
+	            // not from prototype prop inherited
+	            if(obj.hasOwnProperty(prop)){
+	              if(prop === '_status' && (obj[prop] === 'I' || obj[prop] === 'U')) {
+	            	  obj[prop] = 'R';  	
+	              }
+	            }
+	         }
+	      }
+	    }
+	  
+ 		var url = VOICE.linkPrefix('api/profile/getSkills');
+
+	    VOICE.ajaxCall(url, 'GET', {}, this, this.cbHandleSaveSkill);
+  	}
+  	else {
+		this.refs.msgBox.addError(result.errors);
+  	}
+  },
+
+  cbHandleSaveSkill: function(result) {
+  		var tmp = this.initObject(result);
+  		this.initialState = JSON.stringify(tmp);
+	    this.setState({skill: tmp});
+  },
+  
+  handleReset: function() {
+	  var resetView = JSON.parse(this.initialState);
+	  this.setState({skill: resetView});
+  },
+  
+  handleSkillSubmit: function(newSkill) {
+	var skill = this.state.skill;
+	var id = Math.floor((Math.random() * 10000000000) + 1000000000);
+	newSkill.id = id;
+	skill[id] = newSkill;
+	
+	this.setState({
+		skill: skill,
+		showSkillForm: false,
+		showAddButton: true,
+		showSaveSkiButton: true
+	});
+  },
+  
+  handleChange: function(skillId, event) {
+  	  // educationId is passed from caller!
+
+	  var exists = false, 
+	  	  newSkill = this.state.skill;
+	  
+	  exists = this.state.skill.hasOwnProperty(skillId);
+	  if(exists) {
+		   newSkill[skillId][event.target.name] = event.target.value;
+	  }
+	  else {
+		  var tempObj = {};
+		  tempObj['id'] = skillId;
+		  tempObj[event.target.name] = event.target.value;
+		  
+		  newSkill[skillId] = tempObj;
+	  }
+	  
+	  if(newSkill[skillId]._status !== 'I') {
+	      newSkill[skillId]._status = 'U';
+	  }
+	  
+	  this.setState({
+		  skill: newSkill
+	  });
+  },
+  
+  onPlusClick: function() {
+	  this.setState({ 
+		  showSkillForm: true,
+		  showAddButton: false,
+		  showSaveSkiButton: false
+	  });  
+  },
+  
+  onDeleteClick: function(skillId, event) {
+  	  if(this.state.skill[skillId]._status === 'I') {
+		  this.state.skill[skillId]._status = 'T'; //trash status (inserted and then updated)
+	  }
+	  else {
+		  this.state.skill[skillId]._status = 'D'; //update status
+	  }
+	  
+	  this.setState({
+		  skill: this.state.skill
+	  }); //update view
+	  
+  },
+  
+  handleCancelClick: function(newView) {
+    this.setState(newView);
+  },
+
+  render: function() {
+	var tds = [];
+	var keys = Object.keys(this.state.skill);
+	for(var i=0; i < keys.length; i++ ) {
+		var view = this.state.skill[keys[i]];
+
+		// partial call to callback. Pass edu.id as parameter
+		var cb1  = this.handleChange.bind(null,view.id);
+		tds.push(
+			<tr key={view.id} id={view.id} className={(view._status === 'D' || view._status === 'T') ? 'hidden' : null}>
+				<td>
+					<input type="text" className="form-control" value={view.name} ref="tagId" name="tagId" disabled />
+				</td>
+				<td>
+					<select className="form-control" value={view.proficiencyTypeDVId} ref="proficiencyTypeDVId" name="proficiencyTypeDVId" onChange={cb1} >
+					    {VOICE.renderOptions(this.props.lookUps.PROFICIENCY_TYPE)}
+				    </select>
+				</td>
+				<td>
+					<YearInputComp className="form-control" placeholder="Select From Year..." ref="fromYear" name="fromYear" min={1960} max={2015} value={view.fromYear} onChange={cb1} ></YearInputComp>
+				</td>
+				<td>
+					<input type="text" className="form-control" value={view.comments} ref="comments" name="comments" onChange={cb1} />
+				</td>
+				<td><a href="javascript:void(0)"><i className="fa fa-ban" data-skill-id={view.id} onClick={this.onDeleteClick.bind(null, view.id)}></i></a></td>
+			</tr>
+		);
+	}
+	
+    return (
+      <div className="well well-large formInlineStyle">
+	  	<div className="panel panel-default">
+		  <div className="panel-heading">
+		  	Skills
+		  	<span id="addSkill">{ this.state.showAddButton ? <a href="javascript:void(0)"><i className="fa fa-plus-circle" onClick={this.onPlusClick}></i></a> : null }</span>
+		  </div>
+	  		  <div className="table-responsive">
+				  <table className="table table-hover">
+					<thead>
+						<tr>
+							<th>Skill Name</th>
+						    <th>Proficiency</th>
+						    <th>From Year</th>
+						    <th>Comments</th>
+						    <th>Options</th>
+					    </tr>
+					</thead>
+					<tbody>
+					    {tds}
+					</tbody>
+				  </table>
+			  </div>
+		  </div>
+		  <div className="row">
+			  <div className="col-md-1 col-md-offset-5">
+			    { this.state.showSaveSkiButton ? <button type="button" className="btn btn-success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save</button> : null }
+			  </div>
+			  <div className="col-md-1">
+			    { this.state.showSaveSkiButton ? <button type="button" className="btn btn-default" onClick={this.handleReset}><i className="glyphicon glyphicon-repeat"></i> Reset</button> : null }
+			  </div>
+		  </div><br/>
+		  <br/>
+		  <div className="row">
+		  	<div className="col-md-12">
+		  		<MessagesBoxComp ref="msgBox"/>
+		  	</div>
+		  </div>
+		  <div className="row">
+		  	<div className="col-md-12">
+		  		{ this.state.showSkillForm ? <SkillForm {...this.props} onSkillSubmit={this.handleSkillSubmit} onCancelClick={this.handleCancelClick} /> : null }
+		  	</div>
+		  </div>
+      </div>
+	  
+    );
+  }
+});	// Skills
+
+/*************************************************************************************************************/
+
+var SkillForm = React.createClass({
+
+  getInitialState: function() {
+  	this.autoCompleteLabel = '';
+  	return {
+  		autoCompleteValue: ''
+  	};
+  },
+
+  handleSubmit: function(e) {
+    e.preventDefault();
+    console.log(this.state);
+    var tagId = this.refs.skill.getValue();
+    var name = this.refs.skill.getLabel();
+    var proficiencyTypeDVId = ReactDOM.findDOMNode(this.refs.proficiencyTypeDVId).value.trim();
+    var fromYear = this.refs.fromYear.getValue();
+    var comments = ReactDOM.findDOMNode(this.refs.comments).value.trim();
+    
+    if (!tagId) {
+    	alert('Please fill all the required input fields!');
+        return;
+    }
+    
+	this.props.onSkillSubmit({
+		tagId: tagId,
+		name: name,
+		proficiencyTypeDVId: proficiencyTypeDVId,
+		fromYear: fromYear,
+		comments: comments,
+		_status: 'I'
+	});
+	
+    ReactDOM.findDOMNode(this.refs.proficiencyTypeDVId).value = '';
+    ReactDOM.findDOMNode(this.refs.fromYear).value = '';
+    ReactDOM.findDOMNode(this.refs.comments).value = '';
+    return;
+  },
+  
+  handleCancel: function() {
+  	ReactDOM.findDOMNode(this.refs.proficiencyTypeDVId).value = '';
+    ReactDOM.findDOMNode(this.refs.fromYear).value = '';
+    ReactDOM.findDOMNode(this.refs.comments).value = '';
+	
+	this.props.onCancelClick({
+		showSkillForm: false,
+		showAddButton: true,
+		showSaveSkiButton: true
+	});
+	
+	return;
+  },
+  
+  render: function() {
+    return (
+	  <form className="accountForm">
+	    <div className="row">
+			<div className="col-md-4">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-11">Skill (*)</span>
+					<AutoCompleteComp ref="skill" minCharsForSearching="2" 
+						aria-describedby="basic-addon-11" placeholder="Search Skill..." 
+						url={VOICE.linkPrefix('api/autoComplete/skills')}>
+					</AutoCompleteComp>
+				</div>
+			</div>
+			<div className="col-md-4">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-5">Proficiency Level</span>
+					<select className="form-control" aria-describedby="basic-addon-5" ref="proficiencyTypeDVId">
+						<option value="">- Please Choose -</option>
+					    {VOICE.renderOptions(this.props.lookUps.PROFICIENCY_TYPE)}
+				    </select>
+			    </div>
+			</div>
+			<div className="col-md-4">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-13">From Year</span>
+					<YearInputComp className="form-control" placeholder="Select From Year" ref="fromYear" min={1960} max={2015} ></YearInputComp>
+				</div>
+			</div>
+		</div><br/>
+		<div className="row">
+			<div className="col-md-6 col-md-offset-3">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-14">Comments</span>
+					<textarea rows="2" className="form-control" placeholder="Comments..." aria-describedby="basic-addon-14" ref="comments" />
+				</div>
+			</div>
+		</div><br/>
+		<div className="row">
+			<div className="col-md-1 col-md-offset-5">
+				<button type="button" className="btn btn-default" onClick={this.handleSubmit}>Add to List</button>
+			</div>
+			<div className="col-md-1">
+				<button type="button" onClick={this.handleCancel} className="btn btn-default">Cancel</button>
+			</div>
+		</div>
+      </form>
+    );
+  } 
+});	// SkillForm
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*************************************************************************************************************/
+
+var Experience = React.createClass({
+	
+  initObject: function(data) {
+  	  var tmp = {}; //for reseting purposes
+	  
+	  for(var i=0; i<data.length; i++) {
+		  var temp = data[i];
+		  temp._status = 'R';
+		  tmp[ data[i].id ] = temp;
+	  }
+
+	  return tmp;
+  },
+
+  getInitialState: function() {
+  	  var tmp = this.initObject(this.props.data);
+	  
+	  this.initialState = JSON.stringify(tmp);
+	  
+	  return {
+		  experience: tmp,
+		  showExperienceForm: false,
+		  showAddButton: true,
+		  showSaveExpButton: true
+	  };
+  },
+  
+  handleSave: function(e) {
+	  e.preventDefault();
+	  
+	  //TAKE OUT the TRASH ("_status = T") before send to server
+	  for (var key in this.state.experience) {
+		  if (this.state.experience.hasOwnProperty(key)) {
+			  if (this.state.experience[key]._status === 'T') {
+				  delete this.state.experience[key]
+			  }
+		  }
+	  }
+
+	  var url = VOICE.linkPrefix('api/profile/saveExperiences');
+	  VOICE.ajaxCall(url, 'POST', this.state.experience, this, this.cbHandleSave);
+  },
+
+  cbHandleSave: function(result) {
+  	console.log(result);
+  	if(result.saveOk === true) {
+  		this.refs.msgBox.clearErrors();
+	  	this.refs.msgBox.addSuccess('Your experiences were saved successully!', false);
+	  	setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+
+	  	for (var key in this.state.experience) {
+		  if (this.state.experience.hasOwnProperty(key)) {
+		  	  if (this.state.experience[key]._status === 'D') {
+				  delete this.state.experience[key]
+			  }
+		  }
+	    }
+
+	    for (var exp in this.state.experience) {
+	     if (this.state.experience.hasOwnProperty(exp)) {
+	         var obj = this.state.experience[exp];
+	          for (var prop in obj) {
+	            if(obj.hasOwnProperty(prop)){
+	              if(prop === '_status' && (obj[prop] === 'I' || obj[prop] === 'U')) {
+	            	  obj[prop] = 'R';  	
+	              }
+	            }
+	         }
+	      }
+	    }
+	  
+ 		var url = VOICE.linkPrefix('api/profile/getExperiences');
+
+	    VOICE.ajaxCall(url, 'GET', {}, this, this.cbHandleSaveExperience);
+  	}
+  	else {
+		this.refs.msgBox.addError(result.errors);
+  	}
+  },
+
+  cbHandleSaveExperience: function(result) {
+  		var tmp = this.initObject(result);
+  		this.initialState = JSON.stringify(tmp);
+	    this.setState({experience: tmp});
+  },
+  
+  handleReset: function() {
+	  var resetView = JSON.parse(this.initialState);
+	  this.setState({experience: resetView});
+  },
+  
+  handleExperienceSubmit: function(newExperience) {
+	var experience = this.state.experience;
+	var id = Math.floor((Math.random() * 10000000000) + 1000000000);
+	newExperience.id = id;
+	experience[id] = newExperience;
+	
+	this.setState({
+		experience: experience,
+		showExperienceForm: false,
+		showAddButton: true,
+		showSaveExpButton: true
+	});
+  },
+  
+  handleChange: function(experienceId, event) {
+  	console.log(event.target.name, event.target.value);
+  	  var exists = false, 
+	  	  newExperience = this.state.experience;
+	  
+	  exists = this.state.experience.hasOwnProperty(experienceId);
+	  if(exists) {
+		   newExperience[experienceId][event.target.name] = event.target.value;
+	  }
+	  else {
+		  var tempObj = {};
+		  tempObj['id'] = experienceId;
+		  tempObj[event.target.name] = event.target.value;
+		  
+		  newExperience[experienceId] = tempObj;
+	  }
+	  
+	  if(newExperience[experienceId]._status !== 'I') {
+	      // Insertions remain insertions even after (re)editing them.
+		  newExperience[experienceId]._status = 'U';
+	  }
+	  console.log(newExperience);
+	  this.setState({
+		  experience: newExperience
+	  });
+  },
+
+  handleAutoCompleteChange: function(experienceId, value, label) {
+  	  console.log('DESSSSSSSSSSSSSS');
+  	  console.log(experienceId, value, label);
+      console.log(this.refs.organisation);
+	  var exists = false, 
+	  	  newExperience = this.state.experience;
+	  
+	  newExperience[experienceId]['organisationId'] = value;
+	  newExperience[experienceId]['organisation'] = label;
+	  
+	  if(newExperience[experienceId]._status !== 'I') {
+	      newExperience[experienceId]._status = 'U';
+	  }
+	  console.log('NEW EXPERIENCE: ', newExperience);
+	  this.setState({
+		  experience: newExperience
+	  });
+
+  },
+  
+  onPlusClick: function() {
+	  this.setState({ 
+		  showExperienceForm: true,
+		  showAddButton: false,
+		  showSaveExpButton: false
+	  });  
+  },
+  
+  onDeleteClick: function(experienceId, event) {
+  	  if(this.state.experience[experienceId]._status === 'I') {
+		  this.state.experience[experienceId]._status = 'T'; //trash status (inserted and then updated)
+	  }
+	  else {
+		  this.state.experience[experienceId]._status = 'D'; //update status
+	  }
+	  
+	  this.setState({
+		  experience: this.state.experience
+	  }); //update view
+	  
+  },
+  
+  handleCancelClick: function(newView) {
+    this.setState(newView);
+  },
+
+  render: function() {
+	var tds = [];
+	var keys = Object.keys(this.state.experience);
+	console.log('Rendering with EXP: ');
+	console.log(this.state.experience);
+	for(var i=0; i < keys.length; i++ ) {
+		var exp = this.state.experience[keys[i]];
+		var org = exp.organisation || '';
+
+		var cb1  = this.handleChange.bind(null,exp.id);
+		var cb2  = this.handleAutoCompleteChange.bind(null, exp.id);
+		tds.push(
+			<tr key={exp.id} id={exp.id} className={(exp._status === 'D' || exp._status === 'T') ? 'hidden' : null}>
+				<td className="col-md-2">
+					<select className="form-control" value={exp.workRelationTypeDVId} name="workRelationTypeDVId" ref="workRelationTypeDVId" onChange={cb1} >
+					    {VOICE.renderOptions(this.props.lookUps.WORK_RELATION_TYPE)}
+				    </select>
+				</td>
+				<td className="col-md-2"><input type="text" className="form-control" value={exp.position} name="position" ref="position" onChange={cb1} /></td>
+				<td className="col-md-3">
+					<AutoCompleteComp customCallBackOnChange={cb2} value={org} ref="organisation" name="organisation" minCharsForSearching="4" 
+						aria-describedby="basic-addon-10" placeholder="Search Organisation..." 
+						url={VOICE.linkPrefix('api/autoComplete/organisations')}>
+					</AutoCompleteComp>
+					{/*<input type="text" className="form-control" value={edu.organisation} ref="organisation" disabled />*/}
+				</td>
+				<td className="col-md-2">
+					<YearInputComp className="form-control" placeholder="Select From Year..." ref="fromYear" name="fromYear" min={1960} max={2015} value={exp.fromYear} onChange={cb1} ></YearInputComp>
+				</td>
+				<td className="col-md-2">
+					<YearInputComp className="form-control" placeholder="Select To Year..." ref="toYear" name="toYear" min={1960} max={2015} value={exp.toYear} onChange={cb1} ></YearInputComp>
+				</td>
+				<td className="col-md-12">
+					<input type="text" className="form-control" placeholder="Comments..." name="comments" ref="comments" value={exp.comments} onChange={cb1} />
+				</td>
+				<td><a href="javascript:void(0)"><i className="fa fa-ban" data-experience-id={exp.id} onClick={this.onDeleteClick.bind(null, exp.id)}></i></a></td>
+			</tr>
+		);
+	}
+	
+    return (
+      <div className="well well-large formInlineStyle">
+	  	<div className="panel panel-default">
+		  <div className="panel-heading">
+		  	Experience
+		  	<span id="addExperience">{ this.state.showAddButton ? <a href="javascript:void(0)"><i className="fa fa-plus-circle" onClick={this.onPlusClick}></i></a> : null }</span>
+		  </div>
+	  		  <div className="table-responsive">
+				  <table className="table table-hover">
+					<thead>
+						<tr>
+						    <th>Relation Type</th>
+						    <th>Position</th>
+						    <th>Organisation</th>
+						    <th>From Year</th>
+						    <th>To Year</th>
+						    <th>Comments</th>
+						    <th>Options</th>
+					    </tr>
+					</thead>
+					<tbody>
+					    {tds}
+					</tbody>
+				  </table>
+			  </div>
+		  </div>
+		  <div className="row">
+			  <div className="col-md-1 col-md-offset-5">
+			    { this.state.showSaveExpButton ? <button type="button" className="btn btn-success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save</button> : null }
+			  </div>
+			  <div className="col-md-1">
+			    { this.state.showSaveExpButton ? <button type="button" className="btn btn-default" onClick={this.handleReset}><i className="glyphicon glyphicon-repeat"></i> Reset</button> : null }
+			  </div>
+		  </div><br/>
+		  <br/>
+		  <div className="row">
+		  	<div className="col-md-12">
+		  		<MessagesBoxComp ref="msgBox"/>
+		  	</div>
+		  </div>
+		  <div className="row">
+		  	<div className="col-md-12">
+		  		{ this.state.showExperienceForm ? <ExperienceForm {...this.props} onExperienceSubmit={this.handleExperienceSubmit} onCancelClick={this.handleCancelClick} /> : null }
+		  	</div>
+		  </div>
+      </div>
+	  
+    );
+  }
+});	// Experience
+
+/*************************************************************************************************************/
+
+var ExperienceForm = React.createClass({
+
+  handleSubmit: function(e) {
+    e.preventDefault();
+    var degreeTypeForm = ReactDOM.findDOMNode(this.refs.degreeTypeForm).value.trim();
+    var organisationId = this.refs.organisationId.getValue();
+    var organisationName = this.refs.organisationId.getLabel();
+    console.log(organisationId, organisationName)
+    var titleForm = ReactDOM.findDOMNode(this.refs.titleForm).value.trim();
+    var fromYearForm = this.refs.fromYear.getValue();
+    var toYearForm = this.refs.toYear.getValue();
+    
+    if (!degreeTypeForm || !titleForm) {
+    	alert('Please fill all the required input fields!');
+        return;
+    }
+    
+	this.props.onEducationSubmit({
+		degreeTypeDVId: degreeTypeForm,
+		organisationId: organisationId,
+		organisation: organisationName,
+		title: titleForm,
+		fromYear: fromYearForm,
+		toYear: toYearForm,
+		_status: 'I'
+	});
+	
+    ReactDOM.findDOMNode(this.refs.degreeTypeForm).value = '';
+    ReactDOM.findDOMNode(this.refs.titleForm).value = '';
+    return;
+  },
+  
+  handleCancel: function() {
+	ReactDOM.findDOMNode(this.refs.degreeTypeForm).value = '';
+    ReactDOM.findDOMNode(this.refs.titleForm).value = '';
+	
+	this.props.onCancelClick({
+		showEducationForm: false,
+		showAddButton: true,
+		showSaveEduButton: true
+	});
+	
+	return;
+  },
+  
+  render: function() {
+    return (
+	  <form className="educationForm">
+	    <div className="row">
+			<div className="col-md-6">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-5">Degree Type (*)</span>
+					<select className="form-control" aria-describedby="basic-addon-5" ref="degreeTypeForm">
+						<option value="">- Please Choose -</option>
+					    {VOICE.renderOptions(this.props.lookUps.DEGREE_TYPE)}
+				    </select>
+			    </div>
+			</div>
+			<div className="col-md-6">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-13">Title (*)</span>
+					<input type="text" className="form-control" placeholder="Title..." aria-describedby="basic-addon-13" ref="titleForm" />
+				</div>
+			</div>
+		</div><br/>
+		<div className="row">
+			<div className="col-md-6">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-14">From Year</span>
+					<YearInputComp className="form-control" placeholder="Select From Year..." ref="fromYear" min={1960} max={2015} ></YearInputComp>
+				</div>
+			</div>
+			<div className="col-md-6">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-15">To Year</span>
+					<YearInputComp className="form-control" placeholder="Select To Year..." ref="toYear" min={1960} max={2015} ></YearInputComp>
+				</div>
+			</div>
+		</div><br/>
+		<div className="row">
+			<div className="col-md-6 col-md-offset-3">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-10">Organisation</span>
+					<AutoCompleteComp ref="organisationId" minCharsForSearching="4" 
+						aria-describedby="basic-addon-10" placeholder="Search Organisation..." 
+						url={VOICE.linkPrefix('api/autoComplete/organisations')}>
+					</AutoCompleteComp>
+				</div>
+			</div>
+		</div><br/>
+		<div className="row">
+			<div className="col-md-1 col-md-offset-5">
+				<button type="button" className="btn btn-default" onClick={this.handleSubmit}>Add to List</button>
+			</div>
+			<div className="col-md-1">
+				<button type="button" onClick={this.handleCancel} className="btn btn-default">Cancel</button>
+			</div>
+		</div>
+      </form>
+    );
+  } 
+});	// ExperienceForm

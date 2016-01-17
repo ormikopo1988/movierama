@@ -1,0 +1,35 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import ReactBootstrap from 'react-bootstrap';
+
+export default React.createClass({
+	  
+  render: function() {
+    return (
+        <nav className="navbar navbar-default navbar-fixed-bottom">
+	        <div className="container">
+	        	<div className="navbar-footer">
+					<button type="button" className="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-2" data-aria-expanded="false">
+						<span className="sr-only">Toggle navigation</span>
+	                    <span className="icon-bar"></span>
+	                    <span className="icon-bar"></span>
+	                    <span className="icon-bar"></span>
+					</button>
+				</div>
+				<div className="collapse navbar-collapse" id="bs-example-navbar-collapse-2">
+		            <ul className="nav navbar-nav">
+		                <li><a href={VOICE.linkPrefix('about')}>About Voice</a></li>
+		                <li><a href={VOICE.linkPrefix('privacy')}>Privacy</a></li>
+		                <li><a href={VOICE.linkPrefix('terms')}>Terms of use</a></li>
+		            </ul>
+		            <ul className="nav navbar-nav navbar-right">
+		                <li><a>Voice is not responsible for user-posted content</a></li>
+		            </ul>
+	            </div>
+	        </div>
+        </nav>
+    );
+  }
+  
+});
+

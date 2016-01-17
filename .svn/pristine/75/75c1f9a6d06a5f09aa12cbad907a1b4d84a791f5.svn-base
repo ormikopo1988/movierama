@@ -1,0 +1,139 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import $ from 'jquery';
+var Select = require('react-select');
+
+// AutoCompleteComp
+
+export default React.createClass({
+	// Properties:
+	// url: for fetching options
+	// autoLoad
+	// multi
+	// minCharsForSearching
+	// optionStyle
+	// isType
+	
+	// Functions:
+	// getValue()
+	// getLabel()
+
+	getInitialState: function() {
+		this.autoCompleteLabel = '';
+		return {
+			autoCompleteValue: ''
+		};
+	},
+
+	getValue: function() {
+		return this.state.autoCompleteValue;
+	},
+
+	getLabel: function() {
+		return this.autoCompleteLabel;
+	},
+
+	getDefaultProps: function() {
+    	return {
+    		autoload: false,
+      		multi: false,
+      		minCharsForSearching: 3,
+      		optionStyle: {
+      			color: 'black'
+      		},
+      		customCallBackOnChange: function() {}
+    	};
+  	},
+
+	handleOnChange: function(value) {
+		console.log('CHANGING: ', value);
+		this.setState({
+			autoCompleteValue: value
+		});
+
+		if(value === '') {
+			this.autoCompleteLabel = '';
+		}
+
+		var self = this;
+		setTimeout(function(){
+			self.props.customCallBackOnChange(self.state.autoCompleteValue, self.autoCompleteLabel);
+		}, 0);
+	},
+
+	getAutoCompleteLabel: function(option) {
+		console.log(option);
+		this.autoCompleteLabel = option.label;
+		return <p style={this.props.optionStyle}>{option.label}</p>;
+	},
+
+	renderOption: function(option) {
+		var avatarImg;
+		var avatarUrl = '';
+		console.log('OPTION: ', option, this.props.isType);
+		if(this.props.isType === 'PRS') {
+			avatarImg = option.avatarImg || '$profile_none.png';
+			avatarUrl = VOICE.imgPrefix(avatarImg, 'T');
+		}
+
+		else if(this.props.isType === 'ORG') {
+			// For Orgs the avatarImg is like a URL
+			avatarImg = option.avatarImg || '$no_image_available.jpg';
+			if ( avatarImg == '$no_image_available.jpg' ) {
+				avatarUrl = VOICE.imgPrefix(avatarImg, 'T');
+			}
+			else {
+				avatarUrl = avatarImg;
+			}
+		}
+
+		else if(this.props.isType === 'DIS' || this.props.isType === 'TEA') {
+			avatarImg = option.avatarImg || '$no_image_available.jpg';
+			avatarUrl = VOICE.imgPrefix(avatarImg, 'T');
+		}
+		
+		return (
+			<span>
+				{
+					this.props.isType !== 'SKL' && this.props.isType !== 'TAG' ?
+						<span><img src={avatarUrl} className="searchResultImg" /> <p style={this.props.optionStyle} className="searchResultSubtitle" >{option.label}</p></span> :
+						<p style={this.props.optionStyle} className="searchResultSubtitle" >{option.label}</p>
+				}
+			</span>
+		);
+	},
+
+	render: function() {
+		var self = this;
+		var getOptions = function(input, callback) {
+			if ( input.length < self.props.minCharsForSearching ) { return; }
+			VOICE.ajaxCall(self.props.url, 'GET', { input: input }, this, function(result) {
+				console.log(result);
+				callback(null, {
+		            options: result,
+		            complete: true
+		        });
+			});
+		};
+
+		return (
+			<Select
+				{...this.props}
+			    asyncOptions={getOptions}
+			    autoload={this.props.autoload}
+			    cacheAsyncResults={false}
+			    multi={this.props.multi}
+			    valueRenderer={this.getAutoCompleteLabel}
+			    filterOption={this.filterOption}
+			    optionRenderer={this.renderOption}
+			    onChange={this.handleOnChange} />
+		);
+	}
+	,
+
+	// override matchPos, matchProp and ignoreCase.
+	// trust all results returned by asynch call
+	filterOption: function(option, filter) {
+		return option;
+	}
+});

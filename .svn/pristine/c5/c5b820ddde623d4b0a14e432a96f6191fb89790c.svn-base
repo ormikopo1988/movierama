@@ -1,0 +1,56 @@
+<?php
+
+class VO_Educations {
+	const _ECP = 'EDU';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param VO_TblEducationGeneric $obj
+	 * @param bool $fetchBack
+	 * @param array $education
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static 
+	function save( WOOOF $wo, VO_TblEducationGeneric &$obj, $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	    
+		if ( !$wo->hasContent($obj->degreeTypeDVId) ) {
+			$wo->logError(self::_ECP."0455 No value provided for [degreeTypeDVId]" );
+			return false;
+		}
+		
+		$tblEducationGeneric = new WOOOF_dataBaseTable($wo->db, 'person_profile_educations');
+		if($tblEducationGeneric === FALSE) { return false; }
+		
+		if ( $wo->hasContent($obj->id) ) {
+			// update
+			
+			$res = $tblEducationGeneric->updateRowFromArraySimple( $obj->toArray() );
+			if ( $res === FALSE ) { return FALSE; }
+		}
+		else {
+			// insert
+			
+			$newId = $tblEducationGeneric->insertRowFromArraySimple( $obj->toArray() );
+			if ( $newId === FALSE ) { return false; }
+			$obj->id = $newId;
+		}
+
+		if ( $fetchBack ) {
+			// Get back into $obj based on id
+			// TODO:
+		}
+	  
+		return $obj->id;
+	}	// save
+	
+}	// VO_Educations

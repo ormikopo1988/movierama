@@ -1,0 +1,125 @@
+
+
+/*
+insert into organisation_domains (
+  id,
+  organisationId,	 
+  domainType,	 
+  domain
+)
+select
+  id,
+  0,
+  id,
+  'email',
+  orgDomain
+from
+  organisations
+where
+  orgDomain != '' and orgDomain is not null
+*/
+
+select
+  id,
+  0,
+  id,
+  'email',
+  orgDomain
+from
+  organisations
+where
+  orgDomain != '' and orgDomain is not null
+order by id
+INTO OUTFILE '/tmp/organisation_domains.txt'
+;
+
+
+/*SET SESSION TRANSACTION ISOLATION LEVEL  READ COMMITTED;*/
+/*alter table organisation_domains disable keys;*/
+LOAD DATA INFILE '/tmp/organisation_domains.txt' 
+INTO TABLE organisation_domains
+(
+  id,
+  isDeleted,
+  organisationId,	 
+  domainType,	 
+  domain
+)
+;
+/*alter table organisation_domains enable keys;*/
+
+
+
+/*
+facebook_url	Zd07Cd0gVb 
+twitter_url	8ySvIbDeCq	 
+linkedin_url NvEnDzZn6e
+*/
+
+select
+  concat('F',voice_id),
+  voice_id,
+  'Zd07Cd0gVb',
+  facebook_url
+from
+  _load_organisations
+where
+  facebook_url != '' and facebook_url is not null
+order by voice_id
+INTO OUTFILE '/tmp/organisation_sa_facebook.txt'
+;
+
+select
+  concat('T',voice_id),
+  voice_id,
+  '8ySvIbDeCq',
+  twitter_url
+from
+  _load_organisations
+where
+  twitter_url != '' and twitter_url is not null
+order by voice_id
+INTO OUTFILE '/tmp/organisation_sa_twitter.txt'
+;
+
+select
+  concat('L',voice_id),
+  voice_id,
+  'NvEnDzZn6e',
+  linkedin_url
+from
+  _load_organisations
+where
+  linkedin_url != '' and linkedin_url is not null
+order by voice_id
+INTO OUTFILE '/tmp/organisation_sa_linkedin.txt'
+;
+
+
+LOAD DATA INFILE '/tmp/organisation_sa_facebook.txt'
+INTO TABLE organisation_social_accounts
+(
+  id,
+  organisationId,	 
+  socialAccountDVId,	 
+  url
+)
+;
+LOAD DATA INFILE '/tmp/organisation_sa_twitter.txt'
+INTO TABLE organisation_social_accounts
+(
+  id,
+  organisationId,	 
+  socialAccountDVId,	 
+  url
+)
+;
+LOAD DATA INFILE '/tmp/organisation_sa_linkedin.txt'
+INTO TABLE organisation_social_accounts
+(
+  id,
+  organisationId,	 
+  socialAccountDVId,	 
+  url
+)
+;

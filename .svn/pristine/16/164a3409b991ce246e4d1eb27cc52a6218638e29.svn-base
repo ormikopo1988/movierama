@@ -1,0 +1,48 @@
+<?php
+
+class VO_Constants {
+	
+	const c_addressGeneric = [
+		'person_profiles' => [
+			'genericType' => 'PRS',
+			'addressType' => [
+				'BORN', 'LIVE', 'WORK'
+			]
+		]
+		,	
+		'organisations' => [
+			'genericType' => 'ORG',
+			'addressType' => [
+				'HEAD', 'BRANCH1', 'BRANCH2'
+			]
+		]	
+	];	// c_addressGeneric
+		
+	const c_organisationForIndividuals = 'individual';
+	
+	const c_tags = [
+		'Skills' 		=> 'SKL',
+		'Services'		=> 'SRV',
+		'Industries'    => 'IND'
+	];
+	
+	// https://gist.github.com/tbrianjones/5992856
+	// https://github.com/mailcheck/mailcheck/wiki/List-of-Popular-Domains
+	const c_emailDomainsForIndividuals = [
+		// TODO: Add others!!!! 
+		// complete match is required
+	];
+	
+	const c_emailSubDomainsForIndividuals = [
+		'gmail', 'yahoo', 'hotmail', 'msn',
+		// TODO: Add others!!!! 
+		// Will match anything starting with that and ending with a period.
+	];
+	
+	const c_emailsForOrgAdmins = [
+		'admin', 'administrator', 'info',
+	];
+	
+	const c_minAgeForRegistration = 13;
+	
+}	// VO_Constants

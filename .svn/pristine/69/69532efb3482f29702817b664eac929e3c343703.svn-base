@@ -1,0 +1,94 @@
+<?php
+
+class VO_Tags {
+	const _ECP = 'TAG';	// Error Code Prefix
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static
+	function search( WOOOF $wo, $input, $categoryType, $matchMode='STD', $data='FULL', $maxRows=100 )
+	{
+		$maxRows = (int) $maxRows;
+	
+		$delimiters =  ' .,-';
+		$tok = strtok($input, $delimiters);
+		$searchFT = '';
+		while ($tok !== false) {
+			$searchFT .= '+'.$tok.'* ';
+			$tok = strtok($delimiters);
+		}
+		
+		$sql =  "select id value, concat(tagPhrase, ' [', categoryType, ']' ) label ";
+		$sql .=	"from tags ";
+		$sql .= "where match(tagPhrase) against('{$searchFT}' IN BOOLEAN MODE) and isDeleted='0' ";
+		if ($wo->hasContent($categoryType)) {
+			$sql .= " and categoryType = '$categoryType' ";
+		}
+		$sql .= "order by tagPhrase ";
+		$sql .= "limit $maxRows";
+	
+		$res = $wo->db->getResultByQuery($sql, true, false);
+		if ( $res === FALSE ) { return FALSE; }
+	
+		$res = $wo->db->resultRows;
+	
+		$out = [];
+		foreach( $res as $view ) {
+			$out[] = [
+				'value' => $view['value'],
+				'label' => $view['label']
+			];
+		}
+	
+		return $out;
+	}	// search
+	
+		/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static
+	function searchTagsAndAreas( WOOOF $wo, $input, $data='FULL', $maxRows=100 )
+	{
+		$maxRows = (int) $maxRows;
+
+		$delimiters =  ' .,-';
+		$tok = strtok($input, $delimiters);
+		$searchFT = '';
+		while ($tok !== false) {
+			$searchFT .= '+'.$tok.'* ';
+			$tok = strtok($delimiters);
+		}
+		
+		$sql =  "select concat('TAG_',id) value, concat(tagPhrase, ' [', categoryType, ']' ) label ";
+		$sql .=	"from tags ";
+		$sql .= "where match(tagPhrase) against('{$searchFT}' IN BOOLEAN MODE) and isDeleted='0' ";
+		
+		$sql .= 'UNION ALL ';
+		$sql .=  "select concat('ARE_',id), concat(name, ' [AREA]')  ";
+		$sql .=	"from areas ";
+		$sql .= "where match(name) against('{$searchFT}' IN BOOLEAN MODE) and isDeleted='0' ";
+		
+		
+		$sql .= "order by 2 ";
+		$sql .= "limit $maxRows";
+	
+		$res = $wo->db->getResultByQuery($sql, true, false);
+		if ( $res === FALSE ) { return FALSE; }
+	
+		$res = $wo->db->resultRows;
+	
+		$out = [];
+		foreach( $res as $view ) {
+			$out[] = [
+				'value' => $view['value'],
+				'label' => $view['label']
+			];
+		}
+	
+		return $out;
+	}	// searchAll
+	
+}	// VO_Tags

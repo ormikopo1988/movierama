@@ -1,0 +1,15 @@
+<?php
+/* Class [VO_TblAccountGeneric] for table [person_profile_social_accounts] */
+
+class VO_TblAccountGeneric extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'person_profile_social_accounts';
+
+    public $id;
+    public $isDeleted;
+    public $personProfileId;
+    public $socialAccountDVId;
+    public $url;
+    public $credentials;
+
+}  // VO_TblAccountGeneric

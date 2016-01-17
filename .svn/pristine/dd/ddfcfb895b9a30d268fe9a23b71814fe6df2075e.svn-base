@@ -1,0 +1,24 @@
+create table _load_countries (
+         iso char(2),
+         isoalpha char(3),
+         isonum int,
+         fips varchar(3),
+         name varchar(100),
+         capital varchar(100),
+         area float,
+         population int,
+         continent varchar(2),
+         currencyCode varchar(20),
+         currencyName varchar(20),
+         phonePrefix varchar(20),
+         postalCodeFormat  varchar(20),
+         postalCodeRegex  varchar(200),
+         languages varchar(100),
+         geonameId int,
+         neighbourCountries varchar(100),
+         equivalentFipsCode varchar(20),
+         endings varchar(20), /* for ending field in csv */
+         voiceId varchar(10)
+);
+
+

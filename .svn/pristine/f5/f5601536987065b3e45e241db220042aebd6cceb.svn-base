@@ -1,0 +1,16 @@
+<?php
+/* Class [VO_TblContentTitle] for table [content_titles] */
+
+class VO_TblContentTitle extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'content_titles';
+
+    public $id;
+    public $isDeleted;
+    public $contentId;
+    public $title;
+    public $subTitle;
+    public $titleImg;
+    public $snippet;
+
+}  // VO_TblContentTitle

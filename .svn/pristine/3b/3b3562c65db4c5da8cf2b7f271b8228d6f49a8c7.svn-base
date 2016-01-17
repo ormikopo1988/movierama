@@ -1,0 +1,102 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import Reputation from './PostReputationComp.jsx';
+import PostInput from './PostInputComp.jsx';
+import PersonDisplay from './SmallPersonPresentationComp.jsx';
+
+var RB = require('react-bootstrap');
+
+var Post = React.createClass({
+	getInitialState: function()
+	{
+		var reputation = {thumbsUp: this.props.data.POS_thumbsUp, thumbsDown: this.props.data.POS_thumbsDown, postId: this.props.data.POS_id};
+		return { 
+				commentsVisible: false,
+				commentsNumber: this.props.data.comments.length,
+				comments: this.props.data.comments,
+				reputation: reputation,
+				commentsBlockIdentifier: 'commentBlock_' + this.props.data.POS_id
+				};
+	},
+
+	render: function()
+	{
+		return (
+				<RB.Well key={this.props.data.POS_id}>
+				   <RB.Row>
+					    <RB.Col md={10}>
+							<RB.Panel header={this.props.data.POS_title}>
+						      {this.props.data.POS_content}
+						      <RB.Row>
+						      	<RB.Col md={6}>
+						      		<Reputation data = {this.state.reputation} /> 
+						      	</RB.Col>
+								<RB.Col md={6}>
+						      		<div className="xsmall">{this.props.data.visibilityLiteral}</div>
+						      	</RB.Col>
+						      </RB.Row>
+						    </RB.Panel>
+						</RB.Col>
+						<RB.Col md={2}>
+						<PersonDisplay data={{'VUS_slug': this.props.data.VUS_slug, 'VUS_avatarImg': this.props.data.VUS_avatarImg , 'POS_entryDate': this.props.data.POS_entryDate }} key={this.props.data.VUS_id +'_'+ this.props.data.POS_entryDate}/>
+						</RB.Col>
+				    </RB.Row>
+				    { !this.state.commentsVisible ? <RB.Button onClick={this.displayComments}>{this.state.commentsNumber} Replies</RB.Button> : null}
+				    <RB.Panel collapsible expanded={this.state.commentsVisible}>
+				    	<CommentsBlock data = { {comments: this.state.comments, postId: this.props.data.POS_id} } key={this.state.commentsBlockIdentifier}/>
+			        </RB.Panel>
+				</RB.Well>
+			);
+	},
+
+	displayComments: function()
+	{
+		var tmp = this.state;
+		tmp.commentsVisible = true;
+		this.setState(tmp);
+	}
+});
+
+var CommentsBlock = React.createClass({
+	
+	getInitialState: function()
+	{
+		return {comments: this.props.data.comments};
+	},
+
+	render: function()
+	{
+		var comments = [];
+		this.state.comments.forEach(function (comment)
+		{
+			var reputation = {thumbsUp: comment.POS_thumbsUp, thumbsDown: comment.POS_thumbsDown, postId: comment.POS_id};
+			
+			comments.push(<Post data = {comment} key={comment.POS_id}/>)
+		});
+
+		var inputData = {
+							parentPostId: this.props.data.postId,
+							postBoxId: null,
+							showPrivacy: false,
+						};
+		var inputLookUps = 	{ 
+								POST_PRIVACY_CHOICES: null, 
+							};
+		return(
+			<div>
+			{comments}
+			<PostInput data={inputData} lookUps = {inputLookUps} newInsertCallBack = {this.handleCommentInsert}/>
+			</div>
+			);
+	},
+
+	handleCommentInsert: function(responseData)
+	{
+		var tmp = this.state;
+		tmp.comments.push(responseData.newPost);
+		this.setState(tmp);
+	},
+
+});
+
+module.exports = Post;

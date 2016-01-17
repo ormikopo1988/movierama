@@ -1,0 +1,38 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var RB = require('react-bootstrap');
+
+// TooltipComp
+
+// Properties:
+// placement: where to show (top | bottom | left | right)
+// infoText: text to show in tooltip
+
+export default React.createClass({
+
+	getInitialState: function() {
+		return {
+			placement: this.props.placement || 'right',
+			infoText: this.props.infoText,
+			id: this.props.id
+		}
+	},
+
+	render: function() {
+
+		const tooltip = (
+			<RB.Tooltip id={this.state.id}>
+				<strong>{this.state.infoText}</strong>
+			</RB.Tooltip>
+		);
+
+		return (
+			<RB.ButtonToolbar>
+				<RB.OverlayTrigger placement={this.state.placement} overlay={tooltip} trigger={['click', 'hover']}>
+					<i className="fa fa-question-circle loading"></i>
+				</RB.OverlayTrigger>
+		  	</RB.ButtonToolbar>
+		);
+	}
+
+});

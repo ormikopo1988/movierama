@@ -1,0 +1,28 @@
+<?php
+/* Class [VO_TblOrganisation] for table [organisations] */
+
+class VO_TblOrganisation extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'organisations';
+
+    public $id;
+    public $isDeleted;
+    public $active;
+    public $name;
+    public $shortName;
+    public $logoImage;
+    public $orgURL;
+    public $orgDomain;
+    public $description;
+    public $longDescription;
+    public $createdDateTime;
+    public $updatedDateTime;
+    public $orgTypeDVId;
+    public $legalFormDVId;
+    public $stakeholderDVId;
+    public $stakeholderSegmentDVId;
+    public $acceptEmailsForAdmin;
+    public $partOfOrganisationId;
+    public $source;
+
+}  // VO_TblOrganisation

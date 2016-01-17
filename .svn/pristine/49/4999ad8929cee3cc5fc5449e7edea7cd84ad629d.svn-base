@@ -1,0 +1,73 @@
+<?php
+
+class VO_Various {
+	const _ECP = 'VAR';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @return false | array
+	 * Returns look ups for front end
+	 */
+	public static 
+	function getAreasLookUp( WOOOF $wo )
+	{
+		$t1 = new WOOOF_dataBaseTable($wo->db, 'areas');
+		if ( !$t1->constructedOk ) { return false; }
+		$out = [];
+		$res = $t1->getResult(
+			[],
+			'name', '', '', '', true, false
+		);
+		if ( $res === FALSE ) { return false; }
+		
+		if ( $res['totalRows'] != 0 ) {
+			foreach($t1->resultRows as $area) {
+				$out[] = [
+					'value' => $area['id'],
+					'label' => substr($area['name'], 0, 20) . " ({$area['isoCode2']})"
+				];
+			}
+		}
+		
+		return $out;
+		
+	} // getAreasLookUp
+
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	// Too slow!!!!!
+	//
+	public static
+	function populateIds( WOOOF $wo, $tableName, $columnName, $where='' )
+	{
+		$sqlStmt = "select `$columnName` from `$tableName` ";
+		if ( $wo->hasContent($where) ) {
+			$sqlStmt .= " where $where";
+		}
+		
+		$res = $wo->db->query( "select `$columnName` from `$tableName`" );
+		if ( $res === FALSE ) { return FALSE; }
+		
+		$updStmt = "update `$tableName` set `$columnName` = ";
+		
+		$noOfRecs = 0;
+		while ( ( $row = $res->fetch_row() ) !== NULL ) {
+			$noOfRecs++;
+			
+			$updRes = $wo->db->query(  $updStmt . "'" . WOOOF::randomString(10) ."'" );
+			if ( $updRes === FALSE ) { return FALSE; }
+		}
+		
+		return $noOfRecs;
+		
+	}	// populateIds
+
+}	// VO_Various

@@ -1,0 +1,13 @@
+<?php
+/* Class [VO_TblVoiceUserServices] for table [voice_user_services] */
+
+class VO_TblVoiceUserServices extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'voice_user_services';
+
+    public $id;
+    public $isDeleted;
+    public $voiceUserId;
+    public $tagId;
+    
+}  // VO_TblVoiceUserServices

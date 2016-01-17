@@ -1,0 +1,399 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import $ from 'jquery';
+var RB = require('react-bootstrap');
+
+import SocialActionsComp from './SocialActionsComp';
+import BookmarkComp from './BookmarkComp';
+
+export default React.createClass({ //ProfileView
+  
+  getInitialState: function() {
+  	console.log('PROFILE VIEW DATA: ',this.props.data);
+    return {
+		data: {
+    	   main : {
+    	   	'main'    : this.props.data.main,
+    	   	'org'     : this.props.data.ORG_shortName,
+    	   	'orgName' : this.props.data.ORG_name,
+    	   	'orgId'   : this.props.data.ORG_id
+    	   },
+    	   addresses : this.props.data.addresses,
+    	   education: this.props.data.educations,
+    	   skills: this.props.data.skills,
+    	   experience : this.props.data.experiences,
+    	   socialAccounts: this.props.data.socialAccounts,
+    	   connections: this.props.data.connections[0]
+		}
+    };
+  },
+  
+  render: function() { //function that returns a tree of React components that will eventually render to HTML
+    return (
+      <div className="profileBox">
+      	<Main data={this.state.data} />
+      </div>
+    );
+  }
+  
+});
+
+var Main = React.createClass({
+  getInitialState: function() {
+  	console.log(this.props.data.main)
+    return {
+	  profileView: this.props.data
+    };
+  },
+
+  render: function() {
+	var mainView = this.state.profileView.main['main'];
+	var addressView = this.state.profileView.addresses;
+	var educationView = this.state.profileView.education;
+	var skillsView = this.state.profileView.skills;
+	var experienceView = this.state.profileView.experience;
+	var accountView = this.state.profileView.socialAccounts;
+	var connectionView = this.state.profileView.connections;
+
+	var avatarImg = mainView.avatarImgObject || 'profile_none.png';
+	var avatarURL = '';
+	if(avatarImg !== 'profile_none.png') {
+		avatarURL = VOICE.imgPrefix(avatarImg);
+	}
+	else {
+		avatarURL = VOICE.systemImgPrefix(avatarImg);
+	}
+	console.log(avatarURL);
+	var avatarDivStyle = {
+		backgroundImage: 'url(' + avatarURL + ')'
+	};
+	
+    return (
+		<div className="container">
+			<div className="row">
+				<div className="col-sm-3 col-md-3 col-lg-2">
+					<a href={avatarURL} target="_blank">
+						<div className="circle" style={avatarDivStyle}></div>
+					</a>
+				</div>
+		  		<div className="col-sm-7 col-md-9 col-lg-10 profile-name">
+		  			<h1>{mainView.firstName + ' ' + mainView.lastName}</h1>
+		  			<h3><i className="fa fa-registered smallFa"></i> Registered As: { 
+							this.state.profileView.main['org'] !== 'Individual' ?
+							<a href={VOICE.linkPrefix('organisation/view/'+this.state.profileView.main['orgId'])}>{this.state.profileView.main['orgName']}</a> :
+							<span>{this.state.profileView.main['orgName']}</span>
+						}
+		  			</h3>
+		  			{
+		  				mainView.isSelf !== 'true' ? 
+		  					<span>
+		  						<SocialActionsComp connections={connectionView} userId={connectionView.targetId}></SocialActionsComp>
+		  						<BookmarkComp connections={connectionView} userId={connectionView.targetId}></BookmarkComp>
+		  					</span>
+							: null
+					}
+		  			{
+		  				mainView.isSelf === 'true' ? 
+		  					<h4>
+		  						<br/>
+		  						<i className="fa fa-pencil"></i> <a href={VOICE.linkPrefix('profile/edit')}>Edit Profile</a><br/><br/>
+		  						<i className="fa fa-bookmark"></i> <a href={VOICE.linkPrefix('user/bookmarks')}>See Bookmarks</a>
+	  						</h4> 
+		  					: null}
+		  			<div className="col-lg-offset-7 col-md-offset-5 col-sm-offset-3">
+			  			<i className="fa fa-share-alt"></i> <a href={VOICE.linkPrefix('users/followers/'+mainView.voiceUserId)}>Followers</a> | <a href={VOICE.linkPrefix('users/followings/'+mainView.voiceUserId)}>Followings</a> |  <a href={VOICE.linkPrefix('users/peers/'+mainView.voiceUserId)}>Peers</a> | <a href={VOICE.linkPrefix('users/friends/'+mainView.voiceUserId)}>Friends</a>
+		  			</div>
+		  		</div>
+		    </div>
+		    <hr/>
+		    <div className="row">
+		  		<SideBar data={mainView} account={accountView}/>
+		    	<div className="col-sm-9">
+		           <div className="row">
+			            <div className="panel panel-default">
+							<div className="panel-heading"><i className="fa fa-info-circle"></i> About</div>
+							<div className="panel-body">
+								<AboutMe data={mainView.shortDescription} />
+							</div>
+					    </div>
+				    </div>
+				    <ul className="nav nav-tabs" id="myTab">
+			             <li className="active"><a href="#addresses" data-toggle="tab">Addresses</a></li>
+			             <li><a href="#education" data-toggle="tab">Education</a></li>
+			             <li><a href="#skills" data-toggle="tab">Skills</a></li>
+			             <li><a href="#experience" data-toggle="tab">Experience</a></li>
+		            </ul>
+				    <div className="tab-content">
+			             <Addresses data={addressView}/>
+			             <Education data={educationView}/>
+			             <Skills data={skillsView}/>
+			             <Experience data={experienceView}/><br/>
+		            </div>
+			 	 </div>
+			 </div>
+		</div>
+    );
+  }
+});
+
+var SideBar = React.createClass({
+	getInitialState: function() {
+		var data = this.props.data;
+		var account = this.props.account;
+		return {
+			data: data,
+			account: account
+		}
+	},
+	
+	render: function() {
+		var data = this.state.data;
+		var account = this.state.account;
+		var cvFileURL = VOICE.filePrefix(data.cvFileObject.externalFileId);
+
+		var accounts = [];
+		for(var i=0; i<account.length; i++) {
+			accounts.push(
+				<span>
+					<a href={account[i].url} target="_blank"><i className={account[i].socialAccountIcon}></i></a>
+				</span>
+			);
+		}
+
+		return(
+		<div className="col-sm-3">
+			<div className="panel panel-default">
+				<div className="panel-heading"><i className="fa fa-user"></i> Profile</div>
+				<div className="panel-body">
+					{(data.middleName !== '' && data.middleName !== undefined) ? <li className="list-group-item text-right"><span className="pull-left"><strong>Middle Name</strong></span> {data.middleName}</li> : null}
+					{(data.gender !== '' && data.gender !== '?') ? <li className="list-group-item text-right"><span className="pull-left"><strong>Gender</strong></span> {data.gender === 'M' ? <i className="fa fa-male"></i> : <i className="fa fa-female"></i> }</li> : null}
+					{data.birthYear > 0 ? <li className="list-group-item text-right"><span className="pull-left"><strong>Birth Year</strong></span> {data.birthYear}</li> : null}
+					{(data.title !== '' && data.title !== undefined) ? <li className="list-group-item text-right"><span className="pull-left"><strong>Title</strong></span> {data.personTitleDesc}</li> : null}
+					{data.cvFileObject.externalFileId ? <li className="list-group-item text-right"><span className="pull-left"><strong>CV File</strong></span> <a href={cvFileURL} target="_blank">{data.cvFileObject.originalFileName}</a></li> : null}
+				</div>
+			</div> 
+
+			<div className="panel panel-default">
+				<div className="panel-heading"><i className="fa fa-dashboard fa-1x"></i> Activity</div>
+				<div className="panel-body">
+					<li className="list-group-item text-right"><span className="pull-left"><strong>Shares</strong></span> 125</li>
+					<li className="list-group-item text-right"><span className="pull-left"><strong>Likes</strong></span> 13</li>
+					<li className="list-group-item text-right"><span className="pull-left"><strong>Posts</strong></span> 37</li>
+					<li className="list-group-item text-right"><span className="pull-left"><strong>Followers</strong></span> 78</li>
+				</div>
+			</div> 
+
+			<div className="panel panel-default">
+				<div className="panel-heading"><i className="fa fa-users"></i> Social Media</div>
+				<div className="panel-body">
+					<h3>{accounts}</h3>
+				</div>
+			</div>
+		</div>
+		);
+	}
+});
+
+var Addresses = React.createClass({
+	getInitialState: function() {
+		var addresses = this.props.data.list;
+		//console.log(addresses);
+		return {
+			addresses: addresses
+		}
+	},
+	
+	render: function() {
+		var tds = [];
+		var addresses = this.state.addresses;
+		for(var i=0; i < addresses.length; i++ ) {
+			var fromYear = addresses[i].fromYear !== '0' ? addresses[i].fromYear : '';
+			var toYear = addresses[i].toYear !== '0' ? addresses[i].toYear : '';
+			tds.push(
+				<tr>
+					<td>{addresses[i].addressTypeDesc}</td>
+					<td>{addresses[i].addressText}</td>
+					<td>{addresses[i].areaText}</td>
+					<td>{fromYear}</td>
+					<td>{toYear}</td>
+				</tr>
+			);
+		}
+		return(
+			<div className="tab-pane active" id="addresses">
+			  <div className="table-responsive">
+			    <table className="table table-hover">
+			      <thead>
+			        <tr>
+			          <th>Address Type</th>
+			          <th>Address Text</th>
+			          <th>Area</th>
+			          <th>From Date</th>
+			          <th>To Date</th>
+			        </tr>
+			      </thead>
+			      <tbody id="items">
+			        {tds}
+			      </tbody>
+			    </table>
+			    {/*<div className="row">
+			      <div className="col-md-4 col-md-offset-4 text-center">
+			      	<ul className="pagination" id="myPager"></ul>
+			      </div>
+			    </div>*/}
+			  </div>
+			</div>
+		);
+	}
+});
+
+var AboutMe = React.createClass({
+	render: function() {
+		return (
+			<p><i>{this.props.data}</i></p> 
+		);
+	}
+});
+
+var Education = React.createClass({
+	getInitialState: function() {
+		var education = this.props.data;
+		return {
+			education: education
+		}
+	},
+	
+	render: function() {
+		//this.state.education -> take the education data passed
+		var tds = [];
+		var educations = this.state.education;
+		//console.log('Educations: ', educations);
+		for(var i=0; i < educations.length; i++ ) {
+			var fromYear = educations[i].fromYear !== '0' ? educations[i].fromYear : '';
+			var toYear = educations[i].toYear !== '0' ? educations[i].toYear : '';
+			tds.push(
+				<tr>
+					<td>{educations[i].degreeTypeDesc}</td>
+					<td>{educations[i].organisation}</td>
+					<td>{educations[i].title}</td>
+					<td>{fromYear}</td>
+					<td>{toYear}</td>
+				</tr>
+			);
+		}
+		return(
+			<div className="tab-pane" id="education">
+			  <div className="table-responsive">
+			    <table className="table table-hover">
+			      <thead>
+			        <tr>
+			          <th>Degree Type</th>
+			          <th>Organisation</th>
+			          <th>Title</th>
+			          <th>From Year</th>
+			          <th>To Year</th>
+			        </tr>
+			      </thead>
+			      <tbody id="items">
+			        {tds}
+			      </tbody>
+			    </table>
+			  </div>
+			</div>
+		);
+	}
+});
+
+var Skills = React.createClass({
+	getInitialState: function() {
+		var skills = this.props.data;
+		return {
+			skills: skills
+		}
+	},
+	
+	render: function() {
+		//console.log(this.state.skills);
+		var spans = [];
+		var styleClass = '';
+		for(var i=0; i<this.state.skills.length;i++) {
+			//console.log(this.state.skills[i].proficiency);
+			if(this.state.skills[i].proficiency === 'junior') {
+				styleClass = 'fa fa-battery-empty';
+			}
+			else if(this.state.skills[i].proficiency === 'intermediate') {
+				styleClass = 'fa fa-battery-quarter';
+			}
+			else if(this.state.skills[i].proficiency === 'midSenior') {
+				styleClass = 'fa fa-battery-half';
+			}
+			else if(this.state.skills[i].proficiency === 'senior') {
+				styleClass = 'fa fa-battery-three-quarters';
+			}
+			else if(this.state.skills[i].proficiency === 'Expert') {
+				styleClass = 'fa fa-battery-full';
+			}
+			//console.log(styleClass);
+			spans.push(
+				<span className="endorse-item-name">
+					{/*<i className={styleClass}></i>*/} <span className="endorse-item-name-text"> {this.state.skills[i].name}</span>
+				</span>
+			);
+		}
+		return (
+			 <div className="tab-pane col-sm-12" id="skills">
+          	    {spans}
+             </div>
+		);
+	}
+});
+
+var Experience = React.createClass({
+	getInitialState: function() {
+		var experience = this.props.data;
+		return {
+			experience: experience
+		}
+	},
+	
+	render: function() {
+		var tds = [];
+		var experiences = this.state.experience;
+		//console.log('experiences: ', experiences);
+		for(var i=0; i < experiences.length; i++ ) {
+			var fromYear = experiences[i].fromYear !== '0' ? experiences[i].fromYear : '';
+			var toYear = experiences[i].toYear !== '0' ? experiences[i].toYear : '';
+			tds.push(
+				<tr>
+					<td>{experiences[i].relation}</td>
+					<td>{experiences[i].position}</td>
+					<td>{fromYear}</td>
+					<td>{toYear}</td>
+					<td>{experiences[i].organisation}</td>
+					<td>{experiences[i].comments}</td>
+				</tr>
+			);
+		}
+		return(
+			<div className="tab-pane" id="experience">
+			  <div className="table-responsive">
+			    <table className="table table-hover">
+			      <thead>
+			        <tr>
+			          <th>Relation Type</th>
+			          <th>Position</th>
+			          <th>From Year</th>
+			          <th>To Year</th>
+			          <th>Organisation</th>
+			          <th>Comments</th>
+			        </tr>
+			      </thead>
+			      <tbody id="items">
+			        {tds}
+			      </tbody>
+			    </table>
+			  </div>
+			</div>
+		);
+	}
+});

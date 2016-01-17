@@ -1,0 +1,57 @@
+Domains
+
+ADDRESS_TYPE
+DEGREE_TYPE
+//ORG_ASSOCIATION_TYPE
+ORG_TYPE
+PERSON_TITLE
+PROFICIENCY_TYPE
+//SOCIAL_ACCOUNT
+WORK_RELATION_TYPE
+
+Tags
+categoryType	count(*)
+ICT	2196
+IND	146
+SKL	574
+SRV	11
+
+Areas
+CONTINENT	7
+COUNTRY	252
+
+
+id string parentId
+
+
+
+/capi/synch/metadata/tag/[tagCategory]
+	ICT IND SKL SRV AREA
+
+/capi/synch/metadata/tags
+	Returns data for all Tag Categories except AREA
+
+/capi/synch/metadata/domain/[domainCode]
+	ADDRESS_TYPE DEGREE_TYPE // ORG_ASSOCIATION_TYPE
+	ORG_TYPE PERSON_TITLE PROFICIENCY_TYPE // SOCIAL_ACCOUNT
+	WORK_RELATION_TYPE
+
+/capi/synch/metadata/domains
+	Returns data for all Domains
+
+/capi/synch/users/get/new/[since]
+	since: 20151201 or 20151201130423
+	
+/capi/synch/users/get/modified/[since]
+	since: 20151201 or 20151201130423
+
+/capi/synch/user/[id]
+
+
+
+
+capi/synch/organisations/get/modified/[since]
+	since: 20151201 or 20151201130423 (but 2015 will work as well)
+
+/capi/synch/organisation/[id]
+

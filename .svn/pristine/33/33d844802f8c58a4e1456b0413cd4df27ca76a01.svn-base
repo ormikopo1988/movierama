@@ -1,0 +1,93 @@
+// The Content API (VCON) (Called by VCEN)
+// 
+// API URI prefix: api/webcontent/
+
+
+/*
+	All results are JSON encoded.
+	(for brevity, double quotes are/may be omitted below)
+	
+	All results are of the form:
+		{ ok: bool, errors: string[], data }
+	
+	If 'ok' is false
+		'errors' will contain one or more error messages (strings).
+		'data' will be NULL (or absent).
+	Otherwise errors will be empty (or NULL or absent ?).
+	
+	
+*/
+
+/*
+	Get newly retrieved contents
+	
+	contents/getNewSince/<dateTime>
+	
+	Example:
+		contents/getNewSince/20151025153000
+		-->
+		{ ok: true, data: [ '1abcswd1xy', '2abcswd1xy', '3abcswd1xy', '4abcswd1xy' ] }
+	
+	Get updated contents
+	
+	contents/getUpdatedSince/<dateTime>
+	
+	Get all available sources
+	sources/
+		
+	Example:
+		sources/
+		-->
+		{ ok: true, data: [ {id:'agreshsja3', name:'Steve Blank Channel', father_id:'dfdsw34fr1'}, {id:'dfdsw34fr1', name:'YouTube', father_id:null} ] }
+*/
+
+/*
+	Common expressions
+	
+	<id>		: 10 alphanumeric
+	<dateTime>	: 14 digits, format: YYYYMMDDHHMISS
+	<date>		:  8 digits, format: YYYYMMDD
+	<url>		: an absolute URL
+	TBD			: to be determined
+*/
+
+
+/*
+	Get full data for each Object by its ID
+
+	contents/get/<id> --> <contentData>
+		<id> format: ten alphanumeric chars. As returned by the getNewSince and getUpdatedSince calls.
+
+	Each get call returns a structure as described below.
+	
+	Example:
+		contents/get/2abcswd1xy
+		-->
+		{ ok: true, data: <contentData> }
+		
+*/
+
+//<contentData>
+
+{
+	mainData: {
+		id, title,
+		URL,
+		description, longDescription,
+		discoveredDateTime, updatedDateTime,
+		creationDateTime,
+		sourceId,
+		thumbnail_url,
+		authors[{name,voice_user_id}] //voice_user_id is an optional identification number referring to the user ids in VCEN
+	}
+	classificationData: {
+		mediaFormatId,
+		originId,
+		thematicSubjectIds[],
+		fetchTypeId,
+		incubationPhaseIds[],
+		contentTypeIds[],
+		lifeSpanId
+	}
+}
+

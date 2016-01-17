@@ -1,0 +1,465 @@
+<?php
+
+class VO_CtrlContent {
+	const _ECP = 'CCO';	// Error Code Prefix
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $contentId
+	 * @return false | [] | [] ta
+	 */
+	public static function viewContent( WOOOF $wo, $contentId ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE Content View Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+	
+		$contentRec = $wo->db->getRowByColumn('contents', 'id', $contentId);
+		if($contentRec === FALSE) { $wo->handleShowStopperError('500'); }
+		if($contentRec === NULL) {
+			$wo->logError(self::_ECP."5075 No row with id [$contentId] found in 'contents' table!");
+			$wo->handleShowStopperError('404'); 
+		}
+		
+		// TODO: Security!!!
+	
+		$usActId = VO_Users::saveAction( $wo, 'VIC', null, null, null, $wo->app->userId, null, $contentId );
+	
+		$wo->db->commit();
+		
+		$showEditLink = 'true';
+	
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			ReactDOM.render(
+				React.createElement(
+					ContentView,
+					{ contentId: '$contentId', showEditLink: $showEditLink }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+		;
+	
+		$tpl = array(
+			'browserTitle'	=> $browserTitle,
+			'content' 		=> $content,
+			'errorMessage'	=> '',
+			'message'		=> '',
+		);
+	
+	
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	// viewContent
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function createContentForm( WOOOF $wo ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE Content Creation Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$userId = $wo->app->userId;
+		
+		$lookUps = WOOOF_Domains::getMultipleDomains($wo,
+			array(
+				'CNT_TYPE'
+			)
+		);
+		if ( $lookUps === FALSE ) { $wo->handleShowStopperError(); }
+		
+		$templates = VO_Content::getTemplates($wo, '' );	// TODO: How to get proper Templates ???
+		if ( $templates === FALSE ) { $wo->handleShowStopperError(); }
+		$lookUps['_TEMPLATES'] = $templates;
+		
+		$lookUps = json_encode($lookUps);
+		
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var lookUps = $lookUps;
+			ReactDOM.render(
+				React.createElement(
+					ContentCreateForm,
+					{ userId: '$userId', lookUps: lookUps }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+		;
+	
+		$tpl = array(
+			'browserTitle'	=> $browserTitle,
+			'content' 		=> $content,
+			'errorMessage'	=> '',
+			'message'		=> '',
+		);
+		
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	// createContentForm
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $contentId
+	 * @return false | [] | [] ta
+	 */
+	public static function editContent( WOOOF $wo, $contentId ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE Content Edit Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+	
+		$contentRec = $wo->db->getRowByColumn('contents', 'id', $contentId);
+		if($contentRec === FALSE) { $wo->handleShowStopperError('500'); }
+		if($contentRec === NULL) {
+			$wo->logError(self::_ECP."5075 No row with id [$contentId] found in 'contents' table!");
+			$wo->handleShowStopperError('404'); 
+		}
+		
+		// TODO: Security!!!
+	
+		//$usActId = VO_Users::saveAction( $wo, 'VIC', null, null, null, $wo->app->userId, null, $contentId );
+	
+		$wo->db->commit();
+		
+		$lookUps = WOOOF_Domains::getMultipleDomains($wo,
+				array(
+					'CNT_TEXT_TYPE',
+					'CNT_SECTION_TYPE',
+				)
+		);
+		if ( $lookUps === FALSE ) { $wo->handleShowStopperError(); }
+		$typeDVCode = 'IDEA';	// TODO: relevant to the content shown
+		$templates = VO_Content::getTemplates($wo, $typeDVCode );
+		if ( $templates === FALSE ) { $wo->handleShowStopperError(); }
+		$lookUps['_TEMPLATES'] = $templates;
+		$lookUps = json_encode($lookUps);
+		
+		
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			ReactDOM.render(
+				React.createElement(
+					ContentEdit,
+					{ contentId: '$contentId', editable: true, lookUps: $lookUps }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+		;
+	
+		$tpl = array(
+			'browserTitle'	=> $browserTitle,
+			'content' 		=> $content,
+			'errorMessage'	=> '',
+			'message'		=> '',
+		);
+	
+	
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	// editContent
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	
+	/************************ Front-end API Calls ******************************/
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | [ 'contentCreatedOk' => bool, 'contentCreatedId' => id, 'errors' => [] ]
+	 */
+	
+	public static function createContent( WOOOF $wo, $in ) {
+		
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if( !$wo->hasContent($in) ) {
+			$wo->logError(self::_ECP."1346 You must provide data in order to create Content!");
+			return false;
+		}
+		
+		$res = VO_Content::create($wo, $in, $wo->app->userId);
+		
+		if($res === FALSE) {
+			$out = [
+				'contentCreatedOk' => false,
+				'errors' 		=> $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'contentCreatedOk'	=> true,
+				'contentCreatedId'	=> $res,
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+
+	}	//createContent
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $action	// authorSave, authorDelete, sectionSave, sectionDelete
+	 * @param array $in
+	 * @return false | [ 'actionOk' => bool, 'id' => id ]
+	 */
+	
+	public static function contentSaveDeleteAPI( WOOOF $wo, $action, $in ) {
+	
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if( !$wo->hasContent($in) ) {
+			$wo->logError(self::_ECP."1000 You must provide data for [$action]");
+			return false;
+		}
+		
+		$userId = $wo->app->userId;
+		
+		switch( $action ) {
+			case 'authorSave':
+				$res = VO_Content::authorSave($wo, $in, $userId); 
+				break;
+			case 'authorDelete':
+				$res = VO_Content::authorDelete($wo, $in, $userId);
+				break;
+			case 'sectionSave':
+				$tmpArr = [];
+				$res = VO_Content::sectionSave($wo, $in, $userId, $tmpArr );
+				break;
+			case 'sectionDelete':
+				// TODO: Extra param for recursive ??
+				$res = VO_Content::sectionDelete($wo, $in, $userId, true);
+				break;
+			default:
+				$wo->logError(self::_ECP."1100 Unknown action [$action]");
+				$res = false;
+		}
+	
+		if($res === FALSE) {
+			$out = [
+				'actionOk' => false,
+				'errors' 		=> $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'actionOk'	=> true,
+				'id'	=> $res,
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	
+	}	// contentSaveDeleteAPI
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $contentId
+	 * @return false | [ 'actionOk' => bool, 'data' => [] ]
+	 */
+	
+	public static function authorsGet( WOOOF $wo, $contentId ) {
+	
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if( !$wo->hasContent($contentId) ) {
+			$wo->logError(self::_ECP."1000 You must provide 'contentId'");
+			return false;
+		}
+	
+		$userId = $wo->app->userId;
+		
+		$res = VO_Content::authorsGet($wo, $contentId, $userId);
+	
+		if($res === FALSE) {
+			$out = [
+				'actionOk' => false,
+				'errors'   => $wo->getErrorsAsArrayAndClear()
+			];
+		}
+	
+		else {
+			$out = [
+				'actionOk'	=> true,
+				'data'		=> $res,
+			];
+		}
+	
+		return $out;
+	
+	}	// authorsGet
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $contentId
+	 * @return false | [ 'actionOk' => bool, 'data' => [] ]
+	 */
+	
+	public static function sectionsGet( WOOOF $wo, $contentId ) {
+	
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if( !$wo->hasContent($contentId) ) {
+			$wo->logError(self::_ECP."1000 You must provide 'contentId'");
+			return false;
+		}
+	
+		$userId = $wo->app->userId;
+	
+		$res = VO_Content::sectionsGet($wo, $contentId, $userId);
+	
+		if($res === FALSE) {
+			$out = [
+					'actionOk' => false,
+					'errors'   => $wo->getErrorsAsArrayAndClear()
+			];
+		}
+	
+		else {
+			$out = [
+					'actionOk'	=> true,
+					'data'		=> $res,
+			];
+		}
+	
+		return $out;
+	
+	}	// sectionsGet
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $toContentId
+	 * @return false | [ 'actionOk' => bool, 'data' => [] ]
+	 */
+	
+	public static function sectionsAdd( WOOOF $wo, $toContentId, $in ) {
+	
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if( !$wo->hasContent($toContentId) ) {
+			$wo->logError(self::_ECP."1000 You must provide 'toContentId'");
+			return false;
+		}
+	
+		if( !$wo->hasContentArrayEntry($in, 'fromContentId') ) {
+			$wo->logError(self::_ECP."1005 You must POST 'fromContentId'");
+			return false;
+		}
+	
+		$userId = $wo->app->userId;
+	
+		$res = VO_Content::addSections($wo, $in['fromContentId'], $toContentId, $userId);
+	
+		if($res === FALSE) {
+			$out = [
+				'actionOk' => false,
+				'errors'   => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'actionOk'	=> true,
+				'data'		=> $res,
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	
+	}	// sectionsAdd
+	
+	
+	
+}	// VO_CtrlContent

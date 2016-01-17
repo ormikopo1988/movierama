@@ -1,0 +1,77 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import ReactBootstrap from 'react-bootstrap';
+import DashboardModalComp from './DashboardModalComp';
+
+
+export default React.createClass({
+  
+  render: function() { 
+  	console.log('SiteHeader.render: props:', this.props);
+  	var userData = this.props.userData || null;
+  	var userId = this.props.userData.voiceUserId || null;
+
+
+  	if(userData.voiceUserId != null) {
+  		var avatarImg = userData.avatarImg || '$profile_none.png';
+
+  		var avatarURL = '';
+		var avatarDivStyle = {
+			backgroundImage: 'url(' + VOICE.imgPrefix(avatarImg, 'T') + ')'
+		};
+  	}
+
+  	var logoURL = VOICE.imgPrefix('$inovvoice_logo.png');
+
+    return (
+        <nav className="navbar navbar-inverse navbar-fixed-top">
+			<div className="container-fluid">
+				<div className="navbar-header">
+					<button type="button" className="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" data-aria-expanded="false">
+						<span className="sr-only">Toggle navigation</span>
+	                    <span className="icon-bar"></span>
+	                    <span className="icon-bar"></span>
+	                    <span className="icon-bar"></span>
+					</button>
+					<a className="navbar-brand" href={VOICE.linkPrefix('')}><img src={logoURL} width={196} /></a>
+				</div>
+				<div className="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+		            <ul className="nav navbar-right nav-pills">
+		            	{
+		            		userData.voiceUserId != null ?
+				            	<li role="presentation">
+			            			<a href={VOICE.linkPrefix('profile/view')}>
+										<div className="circle-header" style={avatarDivStyle}></div>
+										<span className="userName"> {userData.firstName}</span>
+									</a>
+				            	</li> : null
+				        }
+			            {
+			            	userData.voiceUserId != null ?
+				            	<li className="_55bh" role="presentation">
+									<DashboardModalComp userData={this.props.userData} />
+
+				            		{/* <a className="homeLink" href={VOICE.linkPrefix('')}>Home</a> */}
+				            	</li>
+				            	 : null
+		            	}
+		            	<li role="presentation"><a href="#">COMMUNITY</a></li>
+	                    <li role="presentation"><a href="#">EXPLORE</a></li>
+	                    <li role="presentation"><a href="#">CREATE</a></li>
+	                    <li role="presentation"><a href="#">MARKETPLACE</a></li>
+	                    <li role="presentation"><a href="#">OUTSOURCING</a></li>
+	                    <li role="presentation"><a href="#">MENTORING</a></li>
+	                    <li role="presentation">
+	                    	{(userId === null) ? <a href={VOICE.linkPrefix('login')}>LOGIN</a> : <a href={VOICE.linkPrefix('logout')}>LOGOUT</a>}
+	                    </li>
+	                    <li role="presentation"> 
+                    		{(userData.voiceUserId == null) ? <a href={VOICE.linkPrefix('register')}>REGISTER</a> : null}
+                    	</li>
+		            </ul>
+		        </div>
+			</div>
+        </nav>
+    );
+  }
+  
+});

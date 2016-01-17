@@ -1,0 +1,132 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var RB = require('react-bootstrap');
+import $ from 'jquery';
+
+import MessagesBoxComp from './MessagesBoxComp';
+
+export default React.createClass({ //GroupActionsComp
+
+  getInitialState: function() {
+    var member;
+    var friendStatus;
+    var isAdmin = 'false';
+    console.log(this.props.memberships);
+    if(this.props.memberships.memberStatus === 'Y' || this.props.memberships.memberStatus === 'A') {
+      member = 'true';
+      if(this.props.memberships.memberStatus === 'A') {
+        isAdmin = 'true';
+      }
+    }
+    
+    else {
+      member = 'false';
+    }
+
+    return {
+      memberships: this.props.memberships,
+      member: member,
+      isAdmin: isAdmin
+  	};
+  },
+
+  joinGroup: function(urlString) {
+    var url = VOICE.linkPrefix(urlString);
+    VOICE.ajaxCall(url, 'POST', {}, this, this.cbHandleJoin);
+  },
+
+  cbHandleJoin: function(result) {
+    console.log(result);
+    if(result.joinOk) {
+      this.refs.msgBox.clearErrors();
+      this.refs.msgBox.addSuccess('Join request successful!', false);
+      setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+      this.setState({
+        member: 'true'
+      });
+
+      var refreshData = {
+        requestorId: VOICE.globals.userId,
+        targetIds: [this.state.memberships.targetId]
+      };
+      console.log('Refresh Data: ', refreshData);
+      VOICE.ajaxCall(VOICE.linkPrefix('api/groups/getMembershipInfo'), 'POST', refreshData, this, this.refreshData);
+    }
+
+    else {
+      this.refs.msgBox.addError(result.errors);
+      setTimeout(this.refs.msgBox.clearErrors, 5000);
+    }
+  },
+
+  leaveGroup: function(urlString) {
+    var url = VOICE.linkPrefix(urlString);
+    VOICE.ajaxCall(url, 'POST', {}, this, this.cbHandleLeave);
+  },
+
+  cbHandleLeave: function(result) {
+    console.log(result);
+    if(result.leaveOk) {
+      this.refs.msgBox.clearErrors();
+      this.refs.msgBox.addSuccess('Leave request successful!', false);
+      setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+      this.setState({
+        member: 'false'
+      });
+
+      var refreshData = {
+        requestorId: VOICE.globals.userId,
+        targetIds: [this.state.memberships.targetId]
+      };
+      
+      VOICE.ajaxCall(VOICE.linkPrefix('api/groups/getMembershipInfo'), 'POST', refreshData, this, this.refreshData);
+    }
+
+    else {
+      this.refs.msgBox.addError(result.errors);
+      setTimeout(this.refs.msgBox.clearErrors, 5000);
+    }
+  },
+
+  refreshData: function(result) {
+    console.log('REFRESHED DATA: ', result);
+    this.setState({
+      memberships: result.getMemberships[0]
+    });
+  },
+
+  render: function() {
+     var con = this.state.memberships;
+     console.log('CCCCCCCCCCOOOOOOOOOONNNNNNNNN: ', con);
+
+     var cbJoin = this.joinGroup.bind(null, con.membershipLink);
+     var cbLeave = this.leaveGroup.bind(null, con.membershipLink);
+     
+     return (
+        <span>
+          {
+            VOICE.globals.userId !== con.targetId ?
+              <div className="groupActionsDiv">
+                  {
+                    this.state.member === 'false' ? 
+                      <button type="button" className="btn btn-default btn-lg btn-link" 
+                        onClick={cbJoin}>
+                          <span><i className="fa fa-sign-in fa-lg"></i> Join Group</span>
+                      </button> :
+                    this.state.isAdmin === 'false' ?
+                      <button type="button" className="btn btn-default btn-lg btn-link" 
+                        onClick={cbLeave}>
+                          <span><i className="fa fa-sign-out"></i> Leave Group</span>
+                      </button> :
+                      <a href={VOICE.linkPrefix('group/edit/'+con.targetId)}>
+                        <i className="fa fa-pencil"></i> Edit Group
+                      </a>
+                  }
+                  <br/><br/>
+                  <MessagesBoxComp ref="msgBox"/>
+               </div> : null
+           }
+         </span>
+      );
+  }
+}); //GroupActionsComp

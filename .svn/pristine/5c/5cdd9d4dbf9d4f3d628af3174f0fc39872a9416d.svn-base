@@ -1,0 +1,18 @@
+<?php
+/* Class [VO_TblExperienceGeneric] for table [person_profile_experiences] */
+
+class VO_TblExperienceGeneric extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'person_profile_experiences';
+
+    public $id;
+    public $isDeleted;
+    public $personProfileId;
+    public $fromYear;
+    public $toYear;
+    public $position;
+    public $workRelationTypeDVId;
+    public $comments;
+    public $organisationId;
+
+}  // VO_TblExperienceGeneric

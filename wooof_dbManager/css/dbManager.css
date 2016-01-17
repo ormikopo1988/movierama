@@ -1,0 +1,61 @@
+.normalTextRed {color: #AA0000; font-family: verdana; font-size: 12pt }
+.normalTextGreen {color: #00AA00; font-family: verdana; font-size: 12pt }
+.normalTextBlue {color: #0000BB; font-family: verdana; font-size: 12pt }
+.normalTextCyan {color: #0099AA; font-family: verdana; font-size: 12pt }
+.normalTextYellow {color: #E3EC98; font-family: verdana; font-size: 12pt }
+.normalTextOrange {color: #FF7700; font-family: verdana; font-size: 12pt }
+.normalTextWhite {color: #FFFFFF; font-family: verdana; font-size: 12pt }
+.normalTextBlack {color: #000000; font-family: verdana; font-size: 12pt }
+.normalTextPurple {color: #7851A9; font-family: verdana; font-size: 12pt }
+.normalTextPink {color: #FFCBDB; font-family: verdana; font-size: 12pt }
+.largeTextRed {color: #AA0000; font-family: verdana; font-size: 15pt }
+.largeTextGreen {color: #00AA00; font-family: verdana; font-size: 15pt }
+.largeTextBlue {color: #0000BB; font-family: verdana; font-size: 15pt }
+.largeTextCyan {color: #0099AA; font-family: verdana; font-size: 15pt }
+.largeTextYellow {color: #E3EC98; font-family: verdana; font-size: 15pt }
+.largeTextOrange {color: #FF7700; font-family: verdana; font-size: 15pt }
+.largeTextWhite {color: #FFFFFF; font-family: verdana; font-size: 15pt }
+.largeTextBlack {color: #000000; font-family: verdana; font-size: 15pt }
+.largeTextPurple {color: #7851A9; font-family: verdana; font-size: 15pt }
+.largeTextPink {color: #FFCBDB; font-family: verdana; font-size: 15pt }
+
+.normalTextGrey {color: #D0C1C1; font-family: verdana; font-size: 12pt }
+.largeTextGrey {color: #D0C1C1; font-family: verdana; font-size: 15pt }
+	
+body {
+	background-color: black !important;
+}
+
+input {
+	color: black !important;
+}
+
+td {
+	padding: 5px 20px !important;
+	color: white !important;
+}
+
+.tooltip.right .tooltip-arrow {
+	border-right-color: white !important;
+}
+
+.tooltip-inner {
+	background-color: white !important;
+	color: black !important;
+}
+
+button, input, optgroup, select, textarea {
+    color: black !important;
+}
+
+
+.hoverContainer {
+	width: 100%
+}
+.showOnHoverDiv{
+    display: none;
+}
+
+.hoverContainer:hover .showOnHoverDiv{
+    display : inline;
+}

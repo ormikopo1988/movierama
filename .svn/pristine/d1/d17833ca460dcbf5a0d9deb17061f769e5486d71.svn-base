@@ -1,0 +1,181 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import AutoCompleteComp from './AutoCompleteComp';
+import BookmarkComp from './BookmarkComp';
+import SocialActionsComp from './SocialActionsComp';
+import ContentComp from './ContentComp';
+import FlagComp from './FlagComp';
+var RB = require('react-bootstrap');
+
+import EvaluationFormComp from './EvaluationFormComp';
+
+export default React.createClass({ //IdeaView
+  
+  render: function() {
+  	var result = this.props.data[0];
+  	console.log(this.props.data);
+  	return (
+      <div classNameName="container">
+		<center><h1>{this.props.title}</h1></center>
+		<div className="row">
+	        <Idea key={result.IDE_id} result={result} preVersions={this.props.preVersions} hasRunningEvals={this.props.hasRunningEvals} runningEvalId={this.props.runningEvalId}></Idea>
+	    </div>
+      </div>
+    );
+  } 
+}); //IdeaView
+
+var Idea = React.createClass({ // Idea
+
+	getInitialState: function() {
+		return {
+			ideaView: this.props.data,
+			preVersions: this.props.preVersions,
+			showModal: false
+	    };
+	},
+
+  	close() {
+    	this.setState({ showModal: false });
+    },
+
+    open() {
+    	this.setState({ showModal: true });
+    },
+
+    onSuccessfullEvalSubmit() {
+		this.setState({ showModal: false });
+    },
+
+	handleChange: function(event) {
+		if(event.target.value === 'current') {
+			window.location.href = VOICE.linkPrefix('idea/view/'+this.props.result.IDE_id);	
+		}
+		else {
+			window.location.href = VOICE.linkPrefix('idea/view/'+this.props.result.IDE_id+'/'+event.target.value);
+		}
+	},
+
+	render: function() {
+		console.log('IDEA VIEW PROPS: ', this.props);
+		var result = this.props.result;
+		var avatarImg = result.CNT_titleImg || '$no_image_available.jpg';
+		var avatarURL = VOICE.imgPrefix(avatarImg, 'M');
+
+		var createdDT = moment.utc(result.CNT_createdDateTime, 'YYYYMMDDhhmmss').fromNow();	// WRONG! This is content's created dt.
+		var lastEdited = moment.utc(result.IDV_fromDate, 'YYYYMMDDhhmmss').fromNow();
+
+		var connectionView = this.props.result.connections[0];
+
+		return (
+			<div className="col-md-12 col-sm-12">
+				<div className="panel panel-default well-agency">           
+					<a href={VOICE.linkPrefix('idea/view/'+result.IDE_id)}><img src={avatarURL}/></a>
+					<a className="lead agency-name" href={VOICE.linkPrefix('idea/view/'+result.IDE_id)}>
+						{result.CNT_title}
+					</a>
+					<a href={VOICE.linkPrefix('group/view/'+result.SUBTEAM_id)}>
+						Submitted By Team Group: {result.SUBTEAM_title}
+					</a>
+					<div className="sub-info">
+						<p><i className="fa fa-lightbulb-o smallFa"></i> {result.DVIDEATYPE_SDOMVAL_description}</p>
+						<p>
+							{ result.CNT_snippet }
+						</p>
+						<p><i className="fa fa-bolt smallFa"> State: <b>{result.DVIDEASTATUS_SDOMVAL_description}</b></i></p>
+						{/*<p><i className="fa fa-clock-o smallFa"> Created: {createdDT}</i></p>*/}
+						<hr/>
+						{
+							result.CNT_subTitle !== '' ?
+								<div>
+									<i className="fa fa-paragraph smallFa"></i> {result.CNT_subTitle}<hr/>
+								</div>
+								: null 
+						}
+						<p><i className="fa fa-code-fork smallFa"></i> {result.IDV_versionString} 
+							{
+								result.IDV_versionName !== '' ?
+									<span> {result.IDV_versionName}</span>
+									:null
+							}
+						</p>
+						<p><i className="fa fa-pencil-square-o smallFa"> Last Edited: {lastEdited}</i></p>
+						<hr/>
+						{
+							result.isSelfOwner ? 
+								<span>
+									<a href={VOICE.linkPrefix('idea/edit/'+result.IDE_id)}><i className="fa fa-pencil"></i> Edit Idea</a><br/><br/>
+									{
+										this.props.hasRunningEvals === '1' ?
+											<span>
+												<a href="#" onClick={this.open}>Click here to evaluate Idea</a>
+												<br/><br/>
+												<RB.Modal show={this.state.showModal} onHide={this.close} dialogClassName="custom-modal">
+											    	<RB.Modal.Header closeButton>
+										            	<RB.Modal.Title><center>Evaluation Form</center></RB.Modal.Title>
+											        </RB.Modal.Header>
+											    	<RB.Modal.Body>
+														<EvaluationFormComp onSuccessEval={this.onSuccessfullEvalSubmit} isType="IDE" data={this.props.runningEvalId}></EvaluationFormComp>
+											    	</RB.Modal.Body>
+											    	<RB.Modal.Footer>
+										            	<center><RB.Button onClick={this.close}>Close</RB.Button></center>
+										            </RB.Modal.Footer>
+										    	</RB.Modal>
+											</span> : null 
+									}
+								</span> : 
+								<span>
+									{
+										this.props.hasRunningEvals === '1' ?
+											<span>
+												<a href="#" onClick={this.open}>Click here to evaluate Idea</a>
+												<br/><br/>
+												<RB.Modal show={this.state.showModal} onHide={this.close} dialogClassName="custom-modal">
+											    	<RB.Modal.Header closeButton>
+										            	<RB.Modal.Title><center>Evaluation Form</center></RB.Modal.Title>
+											        </RB.Modal.Header>
+											    	<RB.Modal.Body>
+														<EvaluationFormComp onSuccessEval={this.onSuccessfullEvalSubmit} isType="IDE" data={this.props.runningEvalId}></EvaluationFormComp>
+											    	</RB.Modal.Body>
+											    	<RB.Modal.Footer>
+										            	<center><RB.Button onClick={this.close}>Close</RB.Button></center>
+										            </RB.Modal.Footer>
+										    	</RB.Modal>
+											</span> : null
+									}
+								</span>
+						}
+			  			<BookmarkComp targetType="IDE" connections={connectionView} userId={connectionView.targetId}></BookmarkComp>
+						<SocialActionsComp targetType="IDE" followOnly={true} connections={connectionView} userId={connectionView.targetId}></SocialActionsComp>
+			  			<a href={VOICE.linkPrefix('timeline/'+result.postBox.id)}><i className="fa fa-comment"></i> See Timeline </a>&nbsp;
+						<a href={VOICE.linkPrefix('group/view/'+result.OWNGR_id)}><i className="fa fa-users"></i> View Ownership Group</a>&nbsp;
+						<FlagComp whatId={result.IDE_id} whatType="IDE"></FlagComp>
+					</div>
+				</div>
+				<div className="panel panel-default well-agency">  
+					{
+						result.isSelfOwner ? 
+							<span>
+								<RB.Input defaultValue={result.IDV_ideaTypeDVId} onChange={this.handleChange} type="select" addonBefore="Previous Versions" ref="ideaTypeDVId" name="ideaTypeDVId" >
+									<option value=""> - Select To See Previous Idea Version - </option>
+									<option value="current">Current Version</option>
+									{
+										this.state.preVersions.map(function(version) {
+											return (
+												<option value={version.versionId}>
+													{version.versionString} - {version.versionName}
+												</option>
+											);
+										})
+									}
+				              	</RB.Input>
+							</span> : null
+					}         
+					<ContentComp editable={false} lookUps={this.props.lookUps} contentId={result.CNT_id}></ContentComp>
+				</div>
+			</div>
+		)
+	}
+}); // Idea

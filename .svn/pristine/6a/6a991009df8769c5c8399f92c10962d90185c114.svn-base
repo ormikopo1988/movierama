@@ -1,0 +1,115 @@
+<?php 
+
+	/********************************************************************/
+	// Ideas
+	
+	// idea/create
+	$router->map(
+		'GET',
+		'/idea/createForm',
+		function() use($wo) {
+			VO_CtrlIdeas::createIdeaViewForm($wo);
+		}
+		, 'createIdeaViewForm'
+	);
+	
+	// idea/view/[a:ideaId]
+	$router->map(
+		'GET',
+		'/idea/view/[a:ideaId]',
+		function($ideaId) use($wo) {
+			VO_CtrlIdeas::viewIdea($wo, $ideaId);
+		}
+		, 'viewIdea'
+	);
+	
+	// idea/view/[a:ideaId]
+	$router->map(
+		'GET',
+		'/idea/view/[a:ideaId]/[a:ideaVersionId]',
+		function($ideaId, $ideaVersionId) use($wo) {
+			VO_CtrlIdeas::viewIdeaVersion($wo, $ideaId, $ideaVersionId);
+		}
+		, 'viewIdeaVersion'
+	);
+	
+	// idea/edit/[a:ideaId]
+	$router->map(
+		'GET',
+		'/idea/edit/[a:ideaId]',
+		function($ideaId) use($wo) {
+			VO_CtrlIdeas::editIdeaViewForm($wo, $ideaId);
+		}
+		, 'editIdeaViewForm'
+	);
+	
+	// user/ideas/[a:userId]
+	$router->map(
+		'GET',
+		'/user/ideas/[a:userId]',
+		function($userId) use($wo) {
+			VO_CtrlIdeas::userIdeas($wo, $userId);
+		}
+		, 'userIdeas'
+	);
+	
+	// ideas/list
+	$router->map(
+		'GET',
+		'/ideas/list',
+		function() use($wo) {
+			VO_CtrlIdeas::userIdeas($wo, '');
+		}
+		, 'ideas'
+	);
+	
+	/**************************** API calls ****************************************/
+	
+	// /api/ideas/createIdea
+	$router->map('POST', '/api/ideas/createIdea', function() use($wo) {
+		try {
+			$res = VO_CtrlIdeas::createIdea($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/ideas/saveIdea
+	$router->map('POST', '/api/ideas/saveIdea', function() use($wo) {
+		try {
+			$res = VO_CtrlIdeas::editIdeaMain($wo, json_decode($_POST['data'], true));
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/ideas/saveIdeaType
+	$router->map('POST', '/api/ideas/saveIdeaType', function() use($wo) {
+		try {
+			$res = VO_CtrlIdeas::saveIdeaType($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/ideas/newVersion
+	$router->map('POST', '/api/ideas/newVersion', function() use($wo) {
+		try {
+			$res = VO_CtrlIdeas::saveNewVersion($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/ideas/newStatus
+	$router->map('POST', '/api/ideas/newStatus', function() use($wo) {
+		try {
+			$res = VO_CtrlIdeas::saveNewStatus($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+
+/* End of file ideas.php */
+

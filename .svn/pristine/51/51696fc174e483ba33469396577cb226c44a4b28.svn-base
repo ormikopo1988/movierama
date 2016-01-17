@@ -1,0 +1,16 @@
+<?php
+/* Class [VO_TblUserFollow] for table [voice_user_followings] */
+
+class VO_TblUserFollow extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'voice_user_followings';
+
+    public $id;
+    public $isDeleted;
+    public $createdDateTime;
+    public $followsId;
+    public $thisId;
+    public $isPeer;
+    public $targetType;
+
+}  // VO_TblUserFollow

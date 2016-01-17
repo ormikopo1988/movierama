@@ -1,0 +1,677 @@
+<?php 
+
+	// index.php
+	
+	$executionTimers['wooof_1'][0] = microtime(true);
+
+	require_once '../setup.inc.php';
+	
+	$wo = new WOOOF(true, null, null, false);
+  	if ( !$wo->constructedOk ) { $wo->handleShowStopperError( "1000 Failed to init WOOOF." ); }
+
+  	wooofTimerStop('wooof_1');
+  	
+	$router = new AltoRouter();
+	$router->setBasePath( substr( $wo->getConfigurationFor('siteBaseURL') . $wo->getConfigurationFor('publicSite'), 0, -1 ) );
+	
+	/*
+	// CAUTION
+	// For tests only
+	$router->map(
+		'GET',
+		'/[a:p1]/[a:p2]?/[i:p3]?',
+		function($p1,$p2,$p3) use($wo) { 
+			echo '<h1>Nice route!</h1>'; var_dump($p1,$p2,$p3); var_dump($_GET); 
+		},
+		'testRoute'
+	);
+	echo $router->generate('testRoute', ['p1'=>'1stParam']); die();
+	$router->run($wo);
+	die('Finished');
+	*/
+	
+	/*******************************************************************/
+	
+	// the start/home
+	//
+	$router->map(
+		'GET',
+		'/',
+		function() use($wo) {
+			//header('Location: home.php');
+			//require_once 'home.php';
+			VO_CtrlSite::home($wo);
+		}
+		, 'home'
+	);
+	
+	/*******************************************************************/
+	// register
+	//
+	$router->map(
+		'GET',
+		'/register',
+		function() use($wo) {
+			VO_CtrlRegistration::register($wo);
+		}
+		, 'register'
+	);
+	
+	$router->map(
+		'GET',
+		'/register/verify',
+		function() use($wo) {
+			VO_CtrlRegistration::registerVerify($wo);
+		}
+		, 'registerVerify'
+	);
+	
+	// about, terms, privacy
+	//
+	foreach( [ 'about', 'terms', 'privacy', 'registrationThanks', 'registrationIsRequired' ] as $aTextPage ) {
+		$router->map(
+			'GET',
+			'/'.$aTextPage,
+			function() use($wo, $aTextPage) {
+				VO_CtrlSite::showText($wo, $aTextPage);
+			}
+			, $aTextPage
+		);
+	}	
+	
+	/*******************************************************************/
+	// login
+	//
+	$router->map(
+		'GET',
+		'/login',
+		function() use($wo) {
+			VO_CtrlSite::login($wo);
+		}
+		, 'login'
+	);
+	
+	/*******************************************************************/
+	// login
+	//
+	$router->map(
+		'GET',
+		'/logout',
+		function() use($wo) {
+			VO_CtrlSite::logout($wo);
+		}
+		, 'logout'
+	);
+	
+	/*******************************************************************/
+	// Profile
+	//
+	// profile/edit
+	$router->map(
+		'GET',
+		'/profile/edit',
+		function() use($wo) {
+			VO_CtrlProfile::profileEdit($wo);
+		}
+		, 'profileEdit'
+	);
+	
+	// profile/view
+	$router->map(
+		'GET',
+		'/profile/view',
+		function() use($wo) {
+			VO_CtrlProfile::profileView($wo);
+		}
+		, 'profileView'
+	);
+	
+	// profile/view/[a:id]
+	$router->map(
+		'GET',
+		'/profile/view/[a:id]',
+		function($id) use($wo) {
+			VO_CtrlProfile::profileView($wo, $id);
+		}
+		, 'profileViewPerson'
+	);
+	
+	/*******************************************************************/
+	// Organisation
+	//
+	// organisation/view/[a:id]
+	$router->map(
+		'GET',
+		'/organisation/view/[a:orgId]',
+		function($orgId) use($wo) {
+			VO_CtrlSite::organisationView($wo, $orgId);
+		}
+		, 'organisationViewOrg'
+	);
+	
+	// organisation/view
+	$router->map(
+		'GET',
+		'/organisation/view',
+		function() use($wo) {
+			VO_CtrlSite::organisationView($wo);
+		}
+		, 'organisationView'
+	);
+	
+	// organisation/edit
+	$router->map(
+		'GET',
+		'/organisation/edit',
+		function() use($wo) {
+			VO_CtrlSite::organisationEdit($wo);
+		}
+		, 'organisationEdit'
+	);
+	
+	/*******************************************************************/
+	// Lists
+	// TODO - For testing purposes
+	// users/list
+	$router->map(
+		'GET',
+		'/users/list',
+		function() use($wo) {
+			VO_CtrlSite::usersList($wo);
+		}
+		, 'usersList'
+	);
+	
+	// TODO - For testing purposes
+	// orgs/list
+	$router->map(
+		'GET',
+		'/orgs/list',
+		function() use($wo) {
+			VO_CtrlSite::orgsList($wo);
+		}
+		, 'orgsList'
+	);
+	
+	//TODO - For testing purposes
+	$router->map(
+		'GET',
+		'/autoComplete',
+		function() use($wo) {
+			VO_CtrlSite::autoCompleteUrl($wo);
+		}
+		, 'autoComplete'
+	);
+	
+	// user/bookmarks
+	$router->map(
+		'GET',
+		'/user/bookmarks',
+		function() use($wo) {
+			VO_CtrlSocial::userBookmarks($wo, $wo->app->userId);
+		}
+		, 'userBookmarks'
+	);
+	
+	// users/followers
+	$router->map(
+		'GET',
+		'/users/followers/[a:userId]',
+		function($userId) use($wo) {
+			VO_CtrlSocial::userFollowers($wo, $userId);
+		}
+		, 'userFollowers'
+	);
+	
+	// users/followings
+	$router->map(
+		'GET',
+		'/users/followings/[a:userId]',
+		function($userId) use($wo) {
+			VO_CtrlSocial::userFollowings($wo, $userId);
+		}
+		, 'userFollowings'
+	);
+	
+	// users/peers
+	$router->map(
+		'GET',
+		'/users/peers/[a:userId]',
+		function($userId) use($wo) {
+			VO_CtrlSocial::userPeers($wo, $userId);
+		}
+		, 'userPeers'
+	);
+	
+	// users/friends
+	$router->map(
+		'GET',
+		'/users/friends/[a:userId]',
+		function($userId) use($wo) {
+			VO_CtrlSocial::userFriends($wo, $userId);
+		}
+		, 'userFriends'
+	);
+	
+	/*******************************************************************/
+	
+	/*******************************************************************/
+	// Groups
+	//
+	// group/create
+	$router->map(
+		'GET',
+		'/group/createForm',
+		function() use($wo) {
+			VO_CtrlGroup::createGroupViewForm($wo);
+		}
+		, 'createGroupViewForm'
+	);
+	
+	// user/discussionGroups/[a:userId]
+	$router->map(
+		'GET',
+		'/user/discussionGroups/[a:userId]',
+		function($userId) use($wo) {
+			VO_CtrlGroup::userGroups($wo, $userId, 'DIS');
+		}
+		, 'userDiscussionGroups'
+	);
+	
+	// user/teamGroups/[a:userId]
+	$router->map(
+		'GET',
+		'/user/teamGroups/[a:userId]',
+		function($userId) use($wo) {
+			VO_CtrlGroup::userGroups($wo, $userId, 'TEA');
+		}
+		, 'userTeamGroups'
+	);
+	
+	// users/discussionGroups
+	$router->map(
+		'GET',
+		'/users/discussionGroups',
+		function($userId) use($wo) {
+			VO_CtrlGroup::userGroups($wo, '', 'DIS');
+		}
+		, 'usersDiscussionGroups'
+	);
+	
+	// users/teamGroups
+	$router->map(
+		'GET',
+		'/users/teamGroups',
+		function($userId) use($wo) {
+			VO_CtrlGroup::userGroups($wo, '', 'TEA');
+		}
+		, 'usersTeamGroups'
+	);
+	
+	// group/members/[a:groupId]
+	$router->map(
+		'GET',
+		'/group/members/[a:groupId]',
+		function($groupId) use($wo) {
+			VO_CtrlGroup::groupMembers($wo, $groupId);
+		}
+		, 'groupMembers'
+	);
+	
+	// group/view/[a:groupId]
+	$router->map(
+		'GET',
+		'/group/view/[a:groupId]',
+		function($groupId) use($wo) {
+			VO_CtrlGroup::viewGroup($wo, $groupId);
+		}
+		, 'viewGroup'
+	);
+	
+	/*******************************************************************/
+	
+	
+	/* 
+	==========================================================================
+	*/
+	
+	// API (JSON)
+	//
+	
+	/*******************************************************************/
+	// Registration
+	
+	// api/registation/checkEmail
+	$router->map('GET', '/api/registration/checkEmail/[**:email]', function($email) use($wo) {
+		try {
+			$res = VO_CtrlRegistration::checkOrgByEmail($wo, $email);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// api/registration/save
+	$router->map('POST', '/api/registration/do', function() use($wo) {
+		try {
+			$res = VO_CtrlRegistration::saveRegistration($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// api/login/do
+	$router->map('POST', '/api/login/do', function() use($wo) {
+		try {
+			$res = VO_CtrlRegistration::loginDo($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+		
+	/*******************************************************************/
+	// Profile (VOICE User)
+	//
+	// api/profile/mainInfoSave
+	$router->map('POST', '/api/profile/mainInfoSave', function() use($wo) {
+		try {
+			$res = VO_CtrlProfile::mainInfoSave($wo, json_decode($_POST['data'], true));
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// api/profile/saveAddresses
+	$router->map('POST', '/api/addresses/save', function() use($wo) {
+		try {
+			$res = VO_CtrlProfile::saveAddresses($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// api/profile/saveEducations
+	$router->map('POST', '/api/profile/saveEducations', function() use($wo) {
+		try {
+			$res = VO_CtrlProfile::saveEducations($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// api/profile/saveAccounts
+	$router->map('POST', '/api/profile/saveAccounts', function() use($wo) {
+		try {
+			$res = VO_CtrlProfile::saveAccounts($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// api/profile/saveSkills
+	$router->map('POST', '/api/profile/saveSkills', function() use($wo) {
+		try {
+			$res = VO_CtrlProfile::saveSkills($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// api/profile/saveExperiences
+	$router->map('POST', '/api/profile/saveExperiences', function() use($wo) {
+		try {
+			$res = VO_CtrlProfile::saveExperiences($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/profile/getFullInfo
+	$router->map('GET', '/api/profile/getFullInfo', function() use($wo) {
+		try {
+			$res = VO_Users::getFull($wo, $wo->app->userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/profile/getMainInfo
+	$router->map('GET', '/api/profile/getMainInfo', function() use($wo) {
+		try {
+			$res = VO_ProfileData::getMainInfo($wo, $wo->app->userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/profile/getAddresses
+	$router->map('GET', '/api/profile/getAddresses', function() use($wo) {
+		try {
+			$res = VO_ProfileData::getAddressesInfo($wo, $wo->app->userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/profile/getEducations
+	$router->map('GET', '/api/profile/getEducations', function() use($wo) {
+		try {
+			$res = VO_ProfileData::getEducationInfo($wo, $wo->app->userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/profile/getSocialAccounts
+	$router->map('GET', '/api/profile/getSocialAccounts', function() use($wo) {
+		try {
+			$res = VO_ProfileData::getSocialAccounts($wo, $wo->app->userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/profile/getSkills
+	$router->map('GET', '/api/profile/getSkills', function() use($wo) {
+		try {
+			$res = VO_ProfileData::getSkills($wo, $wo->app->userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/profile/getExperiences
+	$router->map('GET', '/api/profile/getExperiences', function() use($wo) {
+		try {
+			$res = VO_ProfileData::getExperiences($wo, $wo->app->userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/autoComplete/[a:type]
+	$router->map('GET', '/api/autoComplete/[a:type]', function($type) use($wo) {
+		try {
+			$res = VO_CtrlSite::autoComplete($wo, $type);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	/* 
+	====================== SOCIAL ====================================================
+	*/
+	
+	// /api/social/bookmarkUser -> [userId]
+	$router->map('POST', '/api/social/bookmarkUser/[a:userId]', function($userId) use($wo) {
+		try {
+			$res = VO_CtrlSocial::bookmarkUser($wo, $userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+		
+	// /api/social/unBookmarkUser -> [userId]
+	$router->map('POST', '/api/social/unBookmarkUser/[a:userId]', function($userId) use($wo) {
+		try {
+			$res = VO_CtrlSocial::unBookmarkUser($wo, $userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/social/followUser -> [userId]
+	$router->map('POST', '/api/social/followUser/[a:userId]', function($userId) use($wo) {
+		try {
+			$res = VO_CtrlSocial::followUser($wo, $userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/social/unFollowUser -> [userId]
+	$router->map('POST', '/api/social/unFollowUser/[a:userId]', function($userId) use($wo) {
+		try {
+			$res = VO_CtrlSocial::unFollowUser($wo, $userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/social/requestFriendship -> [userId]
+	$router->map('POST', '/api/social/requestFriendship/[a:userId]', function($userId) use($wo) {
+		try {
+			$res = VO_CtrlSocial::requestFriendship($wo, $userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/social/answerFriendship ->[requestId, status] -> $_POST (with requestId and status)
+	$router->map('POST', '/api/social/answerFriendship/[a:requestId]/[a:status]', function($requestId, $status) use($wo) {
+		try {
+			$data['requestId'] = $requestId;
+			$data['status'] = $status;
+			$res = VO_CtrlSocial::answerFriendship($wo, $data);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+		
+	// /api/social/deleteFriendship -> [thisUserId]
+	$router->map('POST', '/api/social/deleteFriendship/[a:userId]', function($userId) use($wo) {
+		try {
+			$res = VO_CtrlSocial::deleteFriendship($wo, $userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/social/resetFriendRequest -> [requestId]
+	$router->map('POST', '/api/social/resetFriendRequest/[a:requestId]', function($requestId) use($wo) {
+		try {
+			$res = VO_CtrlSocial::deleteUserFriendRequests($wo, $requestId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/social/getBookmarks
+	$router->map('GET', '/api/social/getBookmarks', function() use($wo) {
+		try {
+			$res = VO_Social::getBookmarks($wo);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/social/getFollowers -> [userId]
+	$router->map('POST', '/api/social/getFollowers/[a:userId]', function($userId) use($wo) {
+		try {
+			$res = VO_Social::getFollowers($wo, $userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/social/getFollowings -> [userId]
+	$router->map('POST', '/api/social/getFollowings/[a:userId]', function($userId) use($wo) {
+		try {
+			$res = VO_Social::getFollowings($wo, $userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/social/getPeers -> [userId]
+	$router->map('POST', '/api/social/getPeers/[a:userId]', function($userId) use($wo) {
+		try {
+			$res = VO_Social::getPeers($wo, $userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/social/getFriends -> [userId]
+	$router->map('POST', '/api/social/getFriends/[a:userId]', function($userId) use($wo) {
+		try {
+			$res = VO_Social::getFriends($wo, $userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/social/getConnectionInfo -> requestorUserId, $targetIds[]
+	$router->map('POST', '/api/social/getConnectionInfo', function() use($wo) {
+		try {
+			$res = VO_CtrlSocial::connectionInfo($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+		
+	/*
+	 ==========================================================================
+	 */
+	
+	/*
+	 * ======================================GROUPS===========================
+	 * */
+	
+	// /api/groups/createGroup -> [userId]
+	$router->map('POST', '/api/groups/createGroup', function() use($wo) {
+		try {
+			$res = VO_CtrlGroup::createGroup($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/groups/joinGroup -> [userId, groupId]
+	$router->map('GET', '/api/groups/joinGroup/[a:userId]/[a:groupId]', function($userId, $groupId) use($wo) {
+		try {
+			$res = VO_CtrlGroup::userJoinsGroup($wo, $userId, $groupId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/groups/leaveGroup -> [userId, groupId]
+	$router->map('GET', '/api/groups/leaveGroup/[a:userId]/[a:groupId]', function($userId, $groupId) use($wo) {
+		try {
+			$res = VO_CtrlGroup::userLeavesGroup($wo, $userId, $groupId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	/*
+	 ==========================================================================
+	 */
+
+	// Find and follow route based on URL
+	// Handling of no matches, etc. inside the 'run' function.
+	 
+	$router->run($wo);
+
+/* End of file index.php */
+

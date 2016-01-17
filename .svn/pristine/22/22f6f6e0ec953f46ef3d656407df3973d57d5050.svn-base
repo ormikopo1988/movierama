@@ -1,0 +1,418 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import MessagesBoxComp from './MessagesBoxComp';
+import LoadingComp from './LoadingComp';
+
+import AutoCompleteComp from './AutoCompleteComp';
+import AutoCompleteCompMulti from './AutoCompleteCompMulti';
+import AutoCompleteCompMulti2 from './AutoCompleteCompMulti2';
+
+var RB = require('react-bootstrap');
+
+export default React.createClass({ //ContentTagsComp
+
+	/*
+		Properties
+			contentId
+			isPartOfIdea	0 or 1 based on whether contentTypeDVCode == 'IDEA'
+			tags			tagsProcessed from getContent
+			editable		bool
+	*/
+
+	getDefaultProps: function() {
+		return {
+			tags: {},
+			contentId: '',
+			editable: false
+		};
+	},
+
+	getInitialState: function() {
+		return { 
+			tags: this.props.tags,
+			loading: false,
+		}
+	},
+
+	handleSave: function(tagCategoryType) {
+	    console.log('ContentTagsComp.handleSave: tagCategoryType:[' + tagCategoryType + ']' );
+
+	    var data = {};
+
+	    if ( tagCategoryType != '' ) {
+		    switch ( tagCategoryType ) {
+		    	case 'IND':
+		    		data = {
+						tagType: 'TAG',
+						tagCategoryType: 'IND',
+						tagIds: this.refs.industryTagsIds.getValue()
+		    		}
+		    		break;
+		    	case 'ARE':
+		    		data = {
+						tagType: 'TAG',
+						tagCategoryType: 'ARE',
+						tagIds: this.refs.areaTagsIds.getValue()
+		    		}
+		    		break;
+		    	case 'THE':
+		    		data = {
+						tagType: 'TAG',
+						tagCategoryType: 'THE',
+						tagIds: this.refs.themeTagsIds.getValue()
+		    		}
+		    		break;
+
+		    	case 'ATTRIBUTION':
+		    		data = {
+						tagType: 'DOM',
+						tagCategoryType: 'CNT_ATTRIBUTION',
+						tagIds: [this.refs.attributionId.getValue()]
+		    		}
+		    		break;
+		    	case 'LIFESPAN':
+		    		data = {
+						tagType: 'DOM',
+						tagCategoryType: 'CNT_AX_LIFESPAN',
+						tagIds: [this.refs.lifespanId.getValue()]
+		    		}
+		    		break;
+		    	case 'ORIGIN':
+		    		data = {
+						tagType: 'DOM',
+						tagCategoryType: 'CNT_AX_ORIGIN',
+						tagIds: [this.refs.originId.getValue()]
+		    		}
+		    		break;
+		    	case 'INCUBATION':
+		    		data = {
+						tagType: 'DOM',
+						tagCategoryType: 'INCUBATION_PHASE',
+						tagIds: this.refs.incubationPhaseIds.getValue()
+		    		}
+		    		break;
+		    	default:
+		    		console.log('Unknown [tagCategoryType] [' + tagCategoryType + ']' )
+		    		return;
+		    }	// switch tagCategoryType
+
+			data.contentId = this.props.contentId;
+
+			var url = VOICE.linkPrefix('api/content/tags/replace');
+		}	// if for a specific tagCategoryType
+		else {
+			console.log('NIY!!!!!!!!!!!');
+		}
+
+		this.setState({
+			loading: true
+		});
+		VOICE.ajaxCall(url, 'POST', data, this, this.cbHandleSave);
+
+	},
+
+	cbHandleSave: function(result) {
+		if(result.actionOk === true) {
+  			// TODO: Refresh Tags!!!
+  			// Now old value, e.g. in Incubation Phase is shown through re-rendering
+			this.refs.msgBox.clearErrors();
+			this.refs.msgBox.addSuccess('Tags were saved successully!', false);
+			setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+			this.refreshTags();
+		}
+		else {
+			this.refs.msgBox.addError(result.errors);
+		}
+		this.setState({
+	      loading: false
+	    });
+	},
+
+	refreshTags: function() {
+ 		var url = VOICE.linkPrefix('api/content/tags/get/'+this.props.contentId);
+	    VOICE.ajaxCall(url, 'GET', {}, this, this.cbRefreshTags);
+	},
+
+	cbRefreshTags: function(result) {
+		if(result.actionOk) {
+			this.setState( { tags: result.data } );
+		}
+		else {
+			this.refs.msgBox.addError(result.errors);
+		}
+	},
+  
+    render: function() {
+	  	console.log('ContentTagsComp.render:  props', this.props );
+	  	var tags = this.state.tags;
+
+		var tagElements = '';
+
+		if ( this.props.isPartOfIdea == '1' ) {
+			// IDEA Tags (Tags and Domains)
+
+			// TODO: Normalize AutoCompleteCompXXX to act as a simple select box with predefined options!!
+
+		  	var tagsIND = tags['TAG']['IND'];
+		  	var tagsARE = tags['TAG']['ARE'];
+		  	var tagsATTRIBUTION = tags['DOM']['CNT_AX_ATTRIBUTION'];
+
+			var handleSaveIND  = this.handleSave.bind(null, 'IND');
+			var handleSaveARE  = this.handleSave.bind(null, 'ARE');
+			var handleSaveATTRIBUTION  = this.handleSave.bind(null, 'ATTRIBUTION');
+
+			tagElements = 
+				this.props.editable ?
+				<div>
+					<div className="row">
+						<div className="col-md-10">
+							<div className="input-group">
+								<span className="input-group-addon" id="basic-addon-10">License</span>
+								<AutoCompleteComp
+									value={tagsATTRIBUTION} isType="DOM" ref="attributionId" minCharsForSearching="3" 
+									aria-describedby="basic-addon-10" placeholder="Select ..." 
+									options={this.props.lookUps.CNT_AX_ATTRIBUTION} >
+								</AutoCompleteComp>
+							</div>
+						</div>
+						<div className="col-md-2">
+							<SaveButton editable={this.props.editable} handleSave={handleSaveATTRIBUTION} loading={this.state.loading} />
+						</div>
+					</div>
+
+					<br/>
+
+					<div className="row">
+						<div className="col-md-10">
+							<div className="input-group">
+								<span className="input-group-addon" id="basic-addon-10">Industries</span>
+								<AutoCompleteCompMulti2 
+									value={tagsIND} url={VOICE.linkPrefix('api/autoComplete/industries')}  isType="TAG" ref="industryTagsIds" minCharsForSearching="3" 
+									aria-describedby="basic-addon-10" placeholder="Search Tag..." customCallBackOnChange={this.handleAutoCompleteChange}>
+								</AutoCompleteCompMulti2>
+							</div>
+						</div>
+						<div className="col-md-2">
+							<SaveButton editable={this.props.editable} handleSave={handleSaveIND} loading={this.state.loading} />
+						</div>
+					</div>
+
+					<br/>
+
+					<div className="row">
+						<div className="col-md-10">
+							<div className="input-group">
+								<span className="input-group-addon" id="basic-addon-10">Areas</span>
+								<AutoCompleteCompMulti2 
+									value={tagsARE} url={VOICE.linkPrefix('api/autoComplete/areas')}  isType="TAG" ref="areaTagsIds" minCharsForSearching="3" 
+									aria-describedby="basic-addon-10" placeholder="Search Tag..." customCallBackOnChange={this.handleAutoCompleteChange}>
+								</AutoCompleteCompMulti2>
+							</div>
+						</div>
+						<div className="col-md-2">
+							<SaveButton editable={this.props.editable} handleSave={handleSaveARE} loading={this.state.loading} />
+						</div>
+					</div>
+				</div>
+
+				:
+
+				<div>
+					<ShowTags tags={tagsATTRIBUTION} tagName={'License'} key="tagsATTRIBUTION" /> 
+					<ShowTags tags={tagsIND} tagName={'Industries'} key="tagsIND" /> 
+					<ShowTags tags={tagsARE} tagName={'Areas'} key="tagsARE" /> 
+				</div>
+			;
+		}
+		else {
+			// CONTENT (other than IDEA) Tags (Tags and Domains)
+
+		  	var tagsTHE 		= tags['TAG']['THE'];
+		  	var tagsATTRIBUTION = tags['DOM']['CNT_AX_ATTRIBUTION'];
+		  	var tagsLIFESPAN 	= tags['DOM']['CNT_AX_LIFESPAN'];
+		  	var tagsORIGIN 		= tags['DOM']['CNT_AX_ORIGIN'];
+		  	var tagsINCUBATION = tags['DOM']['INCUBATION_PHASE'];
+
+			var handleSaveTHE			= this.handleSave.bind(null, 'THE');
+			var handleSaveATTRIBUTION	= this.handleSave.bind(null, 'ATTRIBUTION');
+			var handleSaveLIFESPAN  	= this.handleSave.bind(null, 'LIFESPAN');
+			var handleSaveORIGIN  		= this.handleSave.bind(null, 'ORIGIN');
+			var handleSaveINCUBATION  	= this.handleSave.bind(null, 'INCUBATION');
+
+			tagElements = 
+				this.props.editable ?
+				<div>
+					<div className="row">
+						<div className="col-md-10">
+							<div className="input-group">
+								<span className="input-group-addon" id="basic-addon-10">License</span>
+								<AutoCompleteComp
+									value={tagsATTRIBUTION} isType="DOM" ref="attributionId" minCharsForSearching="100" 
+									aria-describedby="basic-addon-10" placeholder="Select ..." 
+									options={this.props.lookUps.CNT_AX_ATTRIBUTION} >
+								</AutoCompleteComp>
+							</div>
+						</div>
+						<div className="col-md-2">
+							<SaveButton editable={this.props.editable} handleSave={handleSaveATTRIBUTION} loading={this.state.loading} />
+						</div>
+					</div>
+
+					<br/>
+
+					<div className="row">
+						<div className="col-md-10">
+							<div className="input-group">
+								<span className="input-group-addon" id="basic-addon-10">Thematic Subject(s)</span>
+								<AutoCompleteCompMulti2 
+									value={tagsTHE} url={VOICE.linkPrefix('api/autoComplete/themes')}  isType="TAG" ref="themeTagsIds" minCharsForSearching="3" 
+									aria-describedby="basic-addon-10" placeholder="Search Tag..." >
+								</AutoCompleteCompMulti2>
+							</div>
+						</div>
+						<div className="col-md-2">
+							<SaveButton editable={this.props.editable} handleSave={handleSaveTHE} loading={this.state.loading} />
+						</div>
+					</div>
+
+					<br/>
+
+					<div className="row">
+						<div className="col-md-10">
+							<div className="input-group">
+								<span className="input-group-addon" id="basic-addon-10">Origin</span>
+								<AutoCompleteComp
+									value={tagsORIGIN} isType="DOM" ref="originId" minCharsForSearching="100" 
+									aria-describedby="basic-addon-10" placeholder="Select ..." 
+									options={this.props.lookUps.CNT_AX_ORIGIN} >
+								</AutoCompleteComp>
+							</div>
+						</div>
+						<div className="col-md-2">
+							<SaveButton editable={this.props.editable} handleSave={handleSaveORIGIN} loading={this.state.loading} />
+						</div>
+					</div>
+
+					<br/>
+
+					<div className="row">
+						<div className="col-md-10">
+							<div className="input-group">
+								<span className="input-group-addon" id="basic-addon-10">Life Span</span>
+								<AutoCompleteComp
+									value={tagsLIFESPAN} isType="DOM" ref="lifespanId" minCharsForSearching="100" 
+									aria-describedby="basic-addon-10" placeholder="Select ..." 
+									options={this.props.lookUps.CNT_AX_LIFESPAN} >
+								</AutoCompleteComp>
+							</div>
+						</div>
+						<div className="col-md-2">
+							<SaveButton editable={this.props.editable} handleSave={handleSaveLIFESPAN} loading={this.state.loading} />
+						</div>
+					</div>
+
+					<br/>
+
+					<div className="row">
+						<div className="col-md-10">
+							<div className="input-group">
+								<span className="input-group-addon" id="basic-addon-10">Incubation Phase(s)</span>
+								<AutoCompleteCompMulti
+									value={tagsINCUBATION} isType="DOM" ref="incubationPhaseIds" minCharsForSearching="100" 
+									aria-describedby="basic-addon-10" placeholder="Select ..." 
+									options={this.props.lookUps.INCUBATION_PHASE} >
+								</AutoCompleteCompMulti>
+							</div>
+						</div>
+						<div className="col-md-2">
+							<SaveButton editable={this.props.editable} handleSave={handleSaveINCUBATION} loading={this.state.loading} />
+						</div>
+					</div>
+
+					<br/>
+				</div>
+				:
+
+				<div>
+					<ShowTags tags={tagsATTRIBUTION} tagName={'License'} key="tagsATTRIBUTION" /> 
+					<ShowTags tags={tagsTHE} tagName={'Subject(s)'} key="tagsTHE" /> 
+					<ShowTags tags={tagsINCUBATION} tagName={'Phase'} key="tagsINCUBATION" /> 
+					<ShowTags tags={tagsORIGIN} tagName={'Origin'} key="tagsORIGIN" /> 
+					<ShowTags tags={tagsLIFESPAN} tagName={'Lifespan'} key="tagsLIFESPAN" /> 
+				</div>
+			;
+		}
+
+	  	return (
+	  		<div>
+				{tagElements}
+
+				<br/><br/>
+
+				<RB.Row>
+					<RB.Col md={12}>
+						<MessagesBoxComp ref="msgBox"/>
+					</RB.Col>
+				</RB.Row>
+			</div>
+	    );
+    }
+}); //ContentTagsComp
+
+
+/************************************************************************************/
+/************************************************************************************/
+
+var SaveButton = React.createClass({
+	
+  render: function() {
+  	return ( 
+  		<span>
+  			{
+				this.props.editable === true ? 
+					this.props.loading === false ?
+           				<RB.Button key={1} bsStyle="success" onClick={this.props.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save</RB.Button>
+           				:
+           				<LoadingComp loadingText="Saving Tags..."></LoadingComp>
+           			: 
+           			null
+           	}
+        </span> 
+    );
+  }
+
+}); 
+
+/************************************************************************************/
+/************************************************************************************/
+
+var ShowTags = React.createClass({
+	
+  render: function() {
+  	var tags = this.props.tags;
+  	var tagsShow = [];
+  	if ( tags.length > 0 && this.props.tagName != '' ) {
+  		tagsShow.push(
+			<span className="endorse-item-name" key={this.props.tagName}>
+				<span className="endorse-item-name-text"><i className="fa fa-tag"></i>{this.props.tagName}: </span>
+			</span>
+  		);
+  	}
+	for(var i=0; i<tags.length; i++) {
+		tagsShow.push(
+			<span className="endorse-item-name" key={tags[i].value}>
+				<span className="endorse-item-name-text">{tags[i].label}</span>
+			</span>
+		);
+	}
+
+  	return ( 
+  		<span>
+  			{tagsShow}
+        </span> 
+    );
+  }
+
+}); 

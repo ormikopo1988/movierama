@@ -1,0 +1,137 @@
+<?php 
+
+	/********************************************************************/
+	// Content
+	
+
+	// content/create
+	$router->map(
+		'GET',
+		'/content/createForm',
+		function() use($wo) {
+			VO_CtrlContent::createContentForm($wo);
+		}
+		, 'createContentForm'
+	);
+
+	// content/view/[a:contentId]
+	$router->map(
+		'GET',
+		'/content/view/[a:contentId]',
+		function($contentId) use($wo) {
+			VO_CtrlContent::viewContent($wo, $contentId);
+		}
+		, 'viewContent'
+	);
+
+	// content/edit/[a:contentId]
+	$router->map(
+		'GET',
+		'/content/edit/[a:contentId]',
+		function($contentId) use($wo) {
+			VO_CtrlContent::editContent($wo, $contentId);
+		}
+		, 'editContentForm'
+	);
+
+	// user/contents/[a:userId]
+	$router->map(
+		'GET',
+		'/user/contents/[a:userId]',
+		function($userId) use($wo) {
+			VO_CtrlContent::userContents($wo, $userId);
+		}
+		, 'userContents'
+	);
+
+	// contents/list
+	$router->map(
+		'GET',
+		'/contents/list',
+		function() use($wo) {
+			VO_CtrlContent::userContents($wo, '');
+		}
+		, 'contents'
+	);
+
+
+	
+	// API Calls
+
+	// /api/contents/getContent
+	// TODO: Why VO_CtrlIdeas ??
+	$router->map('POST', '/api/contents/getContent', function() use($wo) {
+		try {
+			$res = VO_CtrlIdeas::getContent($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+
+	// /api/content/author|section/save|delete
+
+	$router->map('POST', '/api/content/author/save', function() use($wo) {
+		try {
+			$res = VO_CtrlContent::contentSaveDeleteAPI($wo, 'authorSave', $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+		
+	$router->map('POST', '/api/content/author/delete', function() use($wo) {
+		try {
+			$res = VO_CtrlContent::contentSaveDeleteAPI($wo, 'authorDelete', $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+			
+	$router->map('POST', '/api/content/section/save', function() use($wo) {
+		try {
+			$res = VO_CtrlContent::contentSaveDeleteAPI($wo, 'sectionSave', $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+		
+	$router->map('POST', '/api/content/section/delete', function() use($wo) {
+		try {
+			$res = VO_CtrlContent::contentSaveDeleteAPI($wo, 'sectionDelete', $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+
+	// /api/content/authors|sections/get/[a:contentId]
+	
+	$router->map('GET', '/api/content/authors/get/[a:contentId]', function($contentId) use($wo) {
+		try {
+			$res = VO_CtrlContent::authorsGet($wo, $contentId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+		
+	$router->map('GET', '/api/content/sections/get/[a:contentId]', function($contentId) use($wo) {
+		try {
+			$res = VO_CtrlContent::sectionsGet($wo, $contentId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+		
+		
+	$router->map('POST', '/api/content/[a:toContentId]/sections/add', function($toContentId) use($wo) {
+		try {
+			$res = VO_CtrlContent::sectionsAdd($wo, $toContentId, $_POST );
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+		
+		
+		
+/* End of file content.php */
+

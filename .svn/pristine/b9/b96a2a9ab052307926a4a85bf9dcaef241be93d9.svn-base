@@ -1,0 +1,19 @@
+<?php
+/* Class [VO_TblContentAuthor] for table [content_authors] */
+
+class VO_TblContentAuthor extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'content_authors';
+
+    public $id;
+    public $isDeleted;
+    public $contentId;
+    public $ord;
+    public $name;
+    public $voiceUserId;
+    public $description;
+    public $email;
+    public $webURL;
+    public $logoURL;
+
+}  // VO_TblContentAuthor

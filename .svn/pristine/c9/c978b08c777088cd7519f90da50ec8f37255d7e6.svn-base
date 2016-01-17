@@ -1,0 +1,498 @@
+<?php
+
+class VO_CtrlEvaluation {
+	const _ECP = 'CEV';	// Error Code Prefix
+		
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function createEvaluationForm( WOOOF $wo, $whatType, $whatId ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE Evaluation Creation Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if ( !$wo->hasContent($whatType) ) {
+			$wo->logError(self::_ECP."5085 No value for type of object to evaluate");
+			return false;
+		}
+		
+		if ( !$wo->hasContent($whatId) ) {
+			$wo->logError(self::_ECP."5087 No value for id of object to evaluate");
+			return false;
+		}
+		
+		if(!in_array($whatType, ['CNT', 'POS', 'IDE'])) {
+			$wo->logError(self::_ECP."5086 Unknown object type to evaluate");
+			return false;
+		}
+		
+		$lookUps = WOOOF_Domains::getMultipleDomains($wo,
+			array(
+				'EVALUATION_TYPE'
+			)
+		);
+		if ( $lookUps === FALSE ) { $wo->handleShowStopperError(); }
+		
+		$templates = VO_Evaluation::getTemplates($wo, $whatType, $wo->app->userId );
+		if ( $templates === FALSE ) { $wo->handleShowStopperError(); }
+		$lookUps['_TEMPLATES'] = $templates;
+		
+		$lookUps = json_encode($lookUps);
+		
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var lookUps = $lookUps;
+			
+			ReactDOM.render(
+				React.createElement(
+					CreateEvaluationForm,
+					{ lookUps: lookUps, whatId: '$whatId', whatType: '$whatType' }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+		;
+	
+		$tpl = array(
+			'browserTitle'	=> $browserTitle,
+			'content' 		=> $content,
+			'errorMessage'	=> '',
+			'message'		=> '',
+		);
+		
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//createEvaluationForm
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function viewEvaluations( WOOOF $wo, $whatId, $whatType ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE Evaluations View Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if ( !$wo->hasContent($whatType) ) {
+			$wo->logError(self::_ECP."50895 No value for type of object to see its evaluations");
+			return false;
+		}
+	
+		if ( !$wo->hasContent($whatId) ) {
+			$wo->logError(self::_ECP."5097 No value for id of object to see its evaluations");
+			return false;
+		}
+	
+		if(!in_array($whatType, ['CNT', 'POS', 'IDE'])) {
+			$wo->logError(self::_ECP."5096 Unknown object type to see its evaluations");
+			return false;
+		}
+		
+		$data = VO_Evaluation::getObjectEvaluations($wo, $whatId, $whatType, $wo->app->userId );
+		if ( $data === FALSE ) { $wo->handleShowStopperError(); }
+	
+		$data = json_encode($data);
+	
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var data = $data;
+		
+			ReactDOM.render(
+				React.createElement(
+					ViewEvaluations,
+					{ data: data, whatId: '$whatId', whatType: '$whatType' }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+		;
+		
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+		
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//viewEvaluations
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function editEvaluationForm( WOOOF $wo, $evaluationId, $whatType ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE Evaluation Edit Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if ( !$wo->hasContent($evaluationId) ) {
+			$wo->logError(self::_ECP."5087 No value for id of object to evaluate");
+			return false;
+		}
+		
+		//CHECK IF YOU ARE OWNER OF THE EVALUATION
+		$isEvaluationOwner = VO_Evaluation::isEvaluationOwner($wo, $evaluationId, $wo->app->userId);
+		if($isEvaluationOwner === FALSE) { return false; }
+		
+		if($isEvaluationOwner === 0) {
+			$wo->logError(self::_ECP."5089 I am sorry you can not edit this evaluation, you are not the owner.");
+			return false;
+		}
+		
+		$lookUps = WOOOF_Domains::getMultipleDomains($wo,
+			array(
+				'EVALUATION_TYPE'
+			)
+		);
+		if ( $lookUps === FALSE ) { $wo->handleShowStopperError(); }
+	
+		$templates = VO_Evaluation::getTemplates($wo, $whatType, $wo->app->userId );
+		if ( $templates === FALSE ) { $wo->handleShowStopperError(); }
+		$lookUps['_TEMPLATES'] = $templates;
+	
+		$lookUps = json_encode($lookUps);
+		
+		$requestedEvaluation = $wo->db->getRow('evaluations', $evaluationId);
+		if($requestedEvaluation === FALSE) { return false; }
+		if($requestedEvaluation === NULL) {
+			$wo->logError(self::_ECP."5090 No row with id [$evaluationId] found in evaluations!");
+			return false;
+		}
+	
+		$list = json_encode($requestedEvaluation);
+		
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var lookUps = $lookUps;
+			var list = $list;
+					
+			ReactDOM.render(
+				React.createElement(
+					EvaluationEdit,
+					{ data: list, lookUps: lookUps }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+		;
+	
+		$tpl = array(
+			'browserTitle'	=> $browserTitle,
+			'content' 		=> $content,
+			'errorMessage'	=> '',
+			'message'		=> '',
+		);
+		
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//editEvaluationForm
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | [ 'evaluationCreatedOk' => bool, 'evaluationCreatedId' => id ]
+	 */
+	
+	public static function createEvaluation( WOOOF $wo, $in ) {
+		
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if( !$wo->hasContent($in) ) {
+			$wo->logError(self::_ECP."1396 You must provide data in order to create an evaluation!");
+			return false;
+		}
+		
+		$res = VO_Evaluation::create($wo, $in, $wo->app->userId);
+		
+		if($res === FALSE) {
+			$out = [
+				'evaluationCreatedOk' => false,
+				'errors' 		=> $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			// create eval??? action
+			/*$usActId = VO_Users::saveAction(
+				$wo, 'EVC', null, null, null,
+				$wo->app->userId, null, null, $res
+			);*/
+			
+			$out = [
+				'evaluationCreatedOk'	=> true,
+				'evaluationCreatedId'	=> $res,
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+
+	}	//createEvaluation
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | [ 'evaluationOpenedOk' => bool, 'evaluationOpenedId' => id ]
+	 */
+	
+	public static function openEvaluation( WOOOF $wo, $in ) {
+	
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if( !$wo->hasContent($in['id']) ) {
+			$wo->logError(self::_ECP."1226 You must provide an evaluation id to open!");
+			return false;
+		}
+		
+		if( !$wo->hasContent($in['duration']) ) {
+			$wo->logError(self::_ECP."1227 You must provide duration of evaluation!");
+			return false;
+		}
+		
+		//CHECK IF YOU ARE OWNER OF THE EVALUATION
+		$isEvaluationOwner = VO_Evaluation::isEvaluationOwner($wo, $in['id'], $wo->app->userId);
+		if($isEvaluationOwner === FALSE) { return false; }
+		
+		if($isEvaluationOwner === 0) {
+			$wo->logError(self::_ECP."1128 I am sorry you can not open this evaluation, you are not the owner.");
+			return false;
+		}
+	
+		$res = VO_Evaluation::open($wo, $in, $wo->app->userId);
+	
+		if($res === FALSE) {
+			$out = [
+				'evaluationOpenedOk' => false,
+				'errors' 			 => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'evaluationOpenedOk'	=> true,
+				'evaluationOpenedId'	=> $res,
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	
+	}	//openEvaluation
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | [ 'getCriteriaOk' => bool, 'getCriteria' => [] ]
+	 */
+	
+	public static function getEvaluationCriteria( WOOOF $wo, $in ) {
+	
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if( !$wo->hasContent($in['evaluationId']) ) {
+			$wo->logError(self::_ECP."1326 You must provide an evaluation id to get criteria!");
+			return false;
+		}
+	
+		//CHECK IF YOU ARE OWNER OF THE EVALUATION
+		/*$isEvaluationOwner = VO_Evaluation::isEvaluationOwner($wo, $in['evaluationId'], $wo->app->userId);
+		if($isEvaluationOwner === FALSE) { return false; }
+	
+		if($isEvaluationOwner === 0) {
+			$wo->logError(self::_ECP."1327 I am sorry you can not get criteria of this evaluation, you are not the owner.");
+			return false;
+		}*/
+	
+		$res = VO_Evaluation::getCriteria($wo, $in['evaluationId'], $wo->app->userId);
+	
+		if($res === FALSE) {
+			$out = [
+				'getCriteriaOk' => false,
+				'errors' 	    => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'getCriteriaOk'	=> true,
+				'getCriteria'	=> $res,
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	
+	}	//getEvaluationCriteria
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | [ 'evaluationClosedOk' => bool, 'evaluationClosedId' => id ]
+	 */
+	
+	public static function closeEvaluation( WOOOF $wo, $in ) {
+	
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if( !$wo->hasContent($in['id']) ) {
+			$wo->logError(self::_ECP."1226 You must provide an evaluation id to close!");
+			return false;
+		}
+		
+		//CHECK IF YOU ARE OWNER OF THE EVALUATION
+		$isEvaluationOwner = VO_Evaluation::isEvaluationOwner($wo, $in['id'], $wo->app->userId);
+		if($isEvaluationOwner === FALSE) { return false; }
+		
+		if($isEvaluationOwner === 0) {
+			$wo->logError(self::_ECP."1129 I am sorry you can not close this evaluation, you are not the owner.");
+			return false;
+		}
+	
+		$res = VO_Evaluation::close($wo, $in, $wo->app->userId);
+	
+		if($res === FALSE) {
+			$out = [
+				'evaluationClosedOk' => false,
+				'errors' 			 => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'evaluationClosedOk'	=> true,
+				'evaluationClosedId'	=> $res,
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	
+	}	//closeEvaluation
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in [array of user answers to eval criteria]
+	 * @return false | [ 'evaluationSavedOk' => bool, 'evaluationSavedForEvalId' => string ]
+	 */
+	
+	public static function submitEvaluation( WOOOF $wo, $in ) {
+	
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if( !$wo->hasContent($in) ) {
+			$wo->logError(self::_ECP."1226 You must provide data to submit an evaluation");
+			return false;
+		}
+	
+		$res = VO_Evaluation::submitEval($wo, $in, $wo->app->userId);
+	
+		if($res === FALSE) {
+			$out = [
+				'evaluationSavedOk' => false,
+				'errors' 			=> $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'evaluationSavedOk'	   => true,
+				'evaluationSavedForEvalId' => $res,
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	
+	}	//submitEvaluation
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+}	// VO_CtrlEvaluation

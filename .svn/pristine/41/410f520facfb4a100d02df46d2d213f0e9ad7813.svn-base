@@ -1,0 +1,104 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+
+import MessagesBoxComp from './MessagesBoxComp';
+import LoadingComp from './LoadingComp';
+var RB = require('react-bootstrap');
+
+export default React.createClass({ //IdeaStatusesComp
+
+	/*
+		Properties
+		
+		data (result of v_ideas)
+	*/
+
+	getInitialState: function() {
+		return {
+			loading: false
+		}
+	},
+
+	handleChangeStatus: function(newStatus) {
+		var data = {
+			id: this.props.data.IDE_id,
+			newStatus: newStatus
+	    }
+	  
+	    var url = VOICE.linkPrefix('api/ideas/newStatus');
+	    //data to send to server!
+	    this.setState({
+	      loading: true
+	    });
+	    
+	    VOICE.ajaxCall(url, 'POST', data, this, this.cbHandleChange);
+	},
+
+	cbHandleChange: function(result) {
+		if(result.ideaNewStatusSavedOk === true) {
+	    	this.refs.msgBox.clearErrors();
+			this.refs.msgBox.addSuccess('Your idea status updated successully!', false);
+			setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+
+			//TODO - REFRESH DATA
+			window.location.href = VOICE.linkPrefix('idea/edit/'+this.props.data.IDE_id);	
+		}
+		else {
+			this.refs.msgBox.addError(result.errors);
+		}
+		this.setState({
+			loading: false
+	    });
+	},
+
+	render: function() {
+		var data = this.props.data;
+		return (
+			<span>
+				{
+           			this.state.loading === false ?
+           				<span>
+           					{
+	           					data.DVIDEASTATUS_SDOMVAL_domainValueCode === 'CRE' ?
+		              				<span>
+			              				<RB.Button onClick={this.handleChangeStatus.bind(null, 'UEL')}>Put Idea Under Elaboration</RB.Button>
+			              				<span> </span>
+			              				<RB.Button onClick={this.handleChangeStatus.bind(null, 'WIT')}>Withdraw Idea</RB.Button>
+		              				</span> : 
+		              			data.DVIDEASTATUS_SDOMVAL_domainValueCode === 'UEL' ?
+		              				<span>
+			              				<RB.Button onClick={this.handleChangeStatus.bind(null, 'WIT')}>Withdraw Idea</RB.Button>
+			              				<span> </span>
+			              				<RB.Button onClick={this.handleChangeStatus.bind(null, 'UGR')}>Publish Idea For Graduation</RB.Button>
+			              				<span> </span>
+			              				<RB.Button onClick={this.handleChangeStatus.bind(null, 'IMA')}>Publish Idea In Market</RB.Button>
+		              				</span> : 
+		              			data.DVIDEASTATUS_SDOMVAL_domainValueCode === 'UGR' ?
+		              				<span>
+			              				<RB.Button onClick={this.handleChangeStatus.bind(null, 'UEL')}>Put Idea Back to Under Elaboration Phase</RB.Button>
+			              				<span> </span>
+			              				<RB.Button onClick={this.handleChangeStatus.bind(null, 'FFM')}>Finalize Idea For Market</RB.Button>
+		              				</span> : 
+		              			data.DVIDEASTATUS_SDOMVAL_domainValueCode === 'IMA' ?
+		              				<span>
+			              				<RB.Button onClick={this.handleChangeStatus.bind(null, 'WIT')}>Withdraw Idea</RB.Button>
+			              				<span> </span>
+			              				<RB.Button onClick={this.handleChangeStatus.bind(null, 'COM')}>Complete Idea</RB.Button>
+		              				</span> :
+		              			data.DVIDEASTATUS_SDOMVAL_domainValueCode === 'FFM' ?
+		              				<RB.Button onClick={this.handleChangeStatus.bind(null, 'IMA')}>Publish Idea In Market</RB.Button>
+			              			: null
+		              		}
+            			</span> :
+              			<LoadingComp loadingText="Saving Idea..."></LoadingComp>
+         	    }
+         	    <br/><br/>
+				<RB.Row>
+					<RB.Col md={12}>
+						<MessagesBoxComp ref="msgBox"/>
+					</RB.Col>
+				</RB.Row>
+			</span>
+		)
+	}
+}); //IdeaStatusesComp

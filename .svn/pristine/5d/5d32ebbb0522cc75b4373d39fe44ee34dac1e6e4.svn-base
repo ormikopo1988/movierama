@@ -1,0 +1,449 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import $ from 'jquery';
+
+var RB = require('react-bootstrap');
+
+import YearInputComp from './YearInputComp.jsx';
+import MessagesBoxComp from './MessagesBoxComp';
+import VOICE from './voice.js';
+
+export default React.createClass({ //RegisterBox
+  // props: nextRoute 
+  
+  getInitialState: function() {
+    return {data: []};
+  },
+  
+  render: function() {
+    return (
+		<div className="registerBox">
+		  <h1>Register</h1>
+		  <RegisterForm {...this.props} />
+		</div>
+    );
+  }
+  
+});	// RegisterBox
+
+//VOICE.comps.RegisterBox = RegisterBox;
+
+
+/*----------------------------------------------------------------------------*/
+
+var OrganisationReg = React.createClass({
+	getInitialState: function() {
+		return { 
+			hide: true, individualOnly: true, canBeAdmin: false, 
+			isOrgInVOICE: false, orgInfo: undefined, registerAs: null, 
+			loading: false  
+		};
+	}
+	,
+
+	render: function() {
+		var orgInfo = this.state.orgInfo;
+		var indiv =  ( this.state.individualOnly || this.state.registerAs == 'ind' );	// not used for now
+		//console.log('render indiv isOrgInVOICE', indiv, this.state.isOrgInVOICE);
+
+		var memberOrAdminElemement = (
+			this.state.canBeAdmin  ?
+			<code>Administrator</code>
+			:
+			'member'
+		);
+
+		var orgInfoElement = (
+			this.state.individualOnly  ?
+			null :
+			(
+				<div className="input-group">
+					<span className="input-group-addon">
+						<input type="radio" name="registerAs" value="org" checked={!indiv} onChange={this.cbRegisterAsOnChange}/>
+					</span>
+					<div className="form-control"> 
+						Register as {memberOrAdminElemement} of the <strong>{orgInfo.name}</strong>
+						<i>({orgInfo.description})</i>
+
+						{ this.state.isOrgInVOICE ? <small> [registered with VOICE] </small> : null }
+					</div>
+				</div>
+			)
+		);
+
+    	return (
+    		this.state.hide ? 
+	    		( this.state.loading ? 
+	    			<div>Loading...</div> :
+	    			null
+	    		)
+    		:
+	   			(
+					<div id="registerAs" style={{textAlign: 'center'}}>
+						{orgInfoElement}
+						<div className="input-group">
+							<span className="input-group-addon">
+								<input type="radio" name="registerAs" value="ind" checked={indiv} onChange={this.cbRegisterAsOnChange} />
+							</span>
+							<div className="form-control"> Register as Individual</div>
+						</div>
+					</div>
+				)
+    	);
+  	}
+  	,
+
+ 	cbRegisterAsOnChange: function(e) {
+ 		this.setState( { registerAs: e.target.value } );
+ 	}
+ 	,
+
+  	reset: function(loading) {
+  		loading = loading || false;	// def value
+ 		this.setState(
+  		{
+			hide: true, 
+			loading: loading,
+			individualOnly: true, 
+			canBeAdmin: false,
+			isOrgInVOICE: false,
+			orgInfo: undefined
+		});
+  		return;
+	}
+
+});	 // OrganisationReg
+
+/*----------------------------------------------------------------------------*/
+
+var RegisterForm = React.createClass({
+	getInitialState: function() {
+		return {
+			showRegButton: false,
+			emailData: { bsStyle: null, helpMessage: 'This e-mail will be used for Registering and Logging In VOICE' },
+		}
+	}
+	,
+
+	componentDidMount: function() {
+		console.log('mount');
+		//ReactDOM.findDOMNode(this.refs.userEmail).focus();
+	}
+	,
+
+	addErrors: function(msg, clear) {
+		// msg can be a single String or an array of Strings
+		clear = clear || false;	// def value
+		console.log('addErrors: ', msg);
+		this.refs.msgBox.addError(msg, clear);
+	}
+	,
+
+	clearErrors: function(msg) {
+		this.refs.msgBox.clearAll();
+	}
+	,
+
+	handleCheckEmail: function(e) {
+		console.log( 'handleCheckEmail', this );
+    
+		var self = this;
+    	self.clearErrors();
+
+	    var data = {
+	      email: this.refs.userEmail.getValue().trim()
+	    };
+	    
+	    if(data.email.length == 0) {
+	   		//userEmailDOMNode.focus();
+	   		this.refs.userEmail.getInputDOMNode().focus();
+	    	this.setState( {showRegButton: false, emailData: {bsStyle:'error', helpMessage:'Please provide your e-mail'} } );
+
+	   		//this.addErrors( 'Please provide your e-mail.', true);
+	    	this.refs.orgReg.reset();
+	    }
+	    else {
+	    	this.refs.orgReg.reset(true);
+	    	VOICE.ajaxCall('api/registration/checkEmail/'+data.email, 'GET', data, self, self.cbCheckEmail );
+	    }
+	}	// handleCheckEmail
+	,
+
+	cbCheckEmail: function(result) {
+		//console.log( 'cbCheckEmail', this );
+
+		this.refs.orgReg.setState( {hide: true} );
+
+    	var self = this;
+		console.log(result);
+		
+		self.clearErrors();
+		
+		var errorMessages = [];
+		
+    	if ( result.emailAlreadyIn ) {
+	   		this.refs.userEmail.getInputDOMNode().focus();
+	    	this.setState( {
+	    		showRegButton: false, 
+	    		emailData: {
+	    			bsStyle:'error', 
+	    			helpMessage:'This email is already registered! Maybe you would like to Login?'
+	    		} 
+	    	} );
+
+	    	this.setState( {showRegButton: false} );
+	    	// Cannot click on link anyway, because of reseting focus to the email field :-(
+	   		//errorMessages.push('You are already registered! Maybe you would like to <a href="login">Login</a>?');
+    		this.refs.orgReg.reset();
+    	}
+    	else {
+    		//do something with result from db
+	    	if(result.isValidEmail === false) {
+		   		this.refs.userEmail.getInputDOMNode().focus();
+		    	this.setState( {
+		    		showRegButton: false, 
+		    		emailData: {
+		    			bsStyle:'error', 
+		    			helpMessage:'The e-mail you provided does not look like a valid email.'
+		    		} 
+		    	} );
+	    		this.refs.orgReg.reset();
+	    	}
+	    	else {
+	    		this.setState( {
+	    			showRegButton: true, 		    		
+	    			emailData: {
+		    			bsStyle: null, 
+		    			helpMessage:''
+		    		} 
+				} );
+
+				this.refs.orgReg.setState( { 
+					hide: false,
+					individualOnly: result.isIndividual, 
+					registerAs: ( result.isIndividual ? 'ind' : 'org'),
+					canBeAdmin: result.canBeAdmin,
+					isOrgInVOICE: result.isOrgInVOICE,
+					orgInfo: result.orgInfo
+				} );
+
+			}
+    	}
+    	/*
+    	if ( errorMessages.length > 0 ) {
+    		this.addErrors(errorMessages);
+    	}
+    	*/
+    }	// cbCheckEmail
+	,
+	
+	handleSubmit: function(e) {
+	    var self = this;
+	    e.preventDefault();
+	
+	    self.clearErrors();
+	    
+	    var email = this.refs.userEmail.getValue().trim();
+	    var password = ReactDOM.findDOMNode(this.refs.password).value.trim();
+	    var passwordConfirm = ReactDOM.findDOMNode(this.refs.passwordConfirm).value.trim();
+	    var agreeWithTerms = ReactDOM.findDOMNode(this.refs.agreeCbx).checked;
+	    console.log(agreeWithTerms);
+	    //var registerAs = ReactDOM.findDOMNode(this.refs.registerAs).value();
+	    var registerAs = this.refs.orgReg.state.registerAs;
+	    //var adminCheckBox = $('#adminCheckBox').is(':checked') || false;
+	    //var registerAs = $('input[type=radio][name=registerAs]:checked').val();
+
+	    if ( !agreeWithTerms ) {
+	   		this.addErrors( 'Please accept the Terms and Privacy before proceeding.', true );
+	   		return;
+	    }
+	    
+	    var data = {
+	      email: email,
+	      password: password,
+	      passwordConfirm: passwordConfirm,
+	      registerAs: registerAs
+	    };
+	    
+	    VOICE.ajaxCall('api/registration/do', 'POST', data, self, this.cbHandleSubmit);
+	    
+	    return;
+	}	// handleSubmit
+	,
+
+	cbHandleSubmit: function(result) {
+    	var self = this;
+
+    	console.log('cbHandleSubmit');
+    	console.log(result);
+
+    	if(result.registerOK === false) {
+    		self.addErrors(result.errors);
+    	}
+    	else {
+    		self.clearErrors();
+//    		ReactDOM.findDOMNode(self.refs.userEmail).value = '';
+//    	    ReactDOM.findDOMNode(self.refs.password).value = '';
+//   	    ReactDOM.findDOMNode(self.refs.passwordConfirm).value = '';
+			// TODO: set some message to be displayed in the next page
+    		window.location = VOICE.linkPrefix(this.props.nextRoute);
+    	}
+    	
+    	return;
+    }		
+	,
+
+	componentDidMount: function() {
+  		var self = this;
+	    ReactDom.findDOMNode(this.refs.userEmail).focus(); 
+  	}
+  	,
+  
+  	reset: function(flag) {
+  		this.refs.orgReg.setState(
+  		{
+			hide: true, 
+			individualOnly: true, 
+			canBeAdmin: false,
+			isOrgInVOICE: false,
+			orgInfo: undefined
+		});
+  		return;
+	}
+	,
+  
+  render: function() {
+	var registerButtonDiv = ( 
+		this.state.showRegButton ?
+	        <div>
+		        <RB.Row>
+		            <center>
+			            <label className="checkbox-inline">
+			            	<input type="checkbox" name="agreeCbx" ref="agreeCbx" defaultChecked={false} />
+       						I agree with the <a href={VOICE.linkPrefix('terms')} target="_blank">Terms</a>&nbsp;
+       		 		    	and <a href={VOICE.linkPrefix('privacy')} target="_blank">Privacy Policy</a> of VOICE
+		            	</label>
+		            </center>
+		        </RB.Row>
+	            <br />
+		        <RB.Row>
+		            <center>
+		                <RB.Button id="registerButton" 
+		                	type="submit"
+		                	bsStyle="success"><i className="glyphicon glyphicon-ok-sign"></i>
+		                	Register
+		                </RB.Button>
+		            </center>
+		        </RB.Row><br/>
+			</div>
+			:
+			null
+	);
+
+	return (
+      <div className="well well-large formInlineStyle">
+
+	      <MessagesBoxComp ref="msgBox"/>
+
+	      <form id="registerForm" className="registerForm" onSubmit={this.handleSubmit}>
+	      <RB.Well>
+	          <RB.Row>
+	            <RB.Col md={6}>
+	            	{/*
+		        	<input type="text" className="form-control" ref="userEmail"  onBlur={this.handleCheckEmail} 
+		        	 autoFocus={true} id="userEmail" placeholder="Your Email..." aria-describedby="basic-addon2"/>
+	            	}
+	            */}
+				<RB.Input
+					type="text"
+					value={this.state.value}
+					autoFocus={true}
+					placeholder="Enter your e-mail for VOICE"
+					label="e-mail"
+					help={this.state.emailData.helpMessage}
+					bsStyle={this.state.emailData.bsStyle}
+					hasFeedback
+					ref="userEmail"
+					groupClassName="group-class"
+					labelClassName="label-class"
+					onBlur={this.handleCheckEmail}
+				/>
+		        </RB.Col>
+		      </RB.Row>
+		    </RB.Well>
+
+	      	<br/>  
+	        
+	       <RB.Well>
+	         <center><h4></h4></center>
+	         <RB.Row>
+	            <RB.Col md={4}>
+			        <OrganisationReg ref="orgReg"/>
+		        </RB.Col>
+		      </RB.Row>
+		    </RB.Well>
+
+	       <RB.Well>
+	         <center><h4>Tell us a bit about yourself</h4></center>
+	         <RB.Row>
+	            <RB.Col md={4}>
+	                <RB.Input type="text" placeholder="Your First Name..." ref="firstName" name="firstName"  />
+	            </RB.Col>
+	            <RB.Col md={4}>
+	                <RB.Input type="text" placeholder="Your Last Name..." ref="lastName" name="lastName"  />
+	            </RB.Col>
+	            <RB.Col md={4}>
+				    <YearInputComp 
+				    	placeholder="Your Year of Birth is" 
+				    	ref="birthYear" name="birthYear" 
+				    	min={this.props.ranges.birthYear[0]} max={this.props.ranges.birthYear[1]} 
+				    ></YearInputComp>
+	            </RB.Col>
+	          </RB.Row>
+	          {/*
+	          <br/>
+	          <RB.Row>
+	            <RB.Col md={4}>
+	                <RB.Input type="radio" label="Male" name="gender" ref="gender"   />
+	                <RB.Input type="radio" label="Female" name="gender" ref="gender" />
+	            </RB.Col>
+	          </RB.Row>
+			  */}
+	        </RB.Well>
+
+	       <RB.Well>
+	         <center><h4>Your desired password</h4></center>
+	         <RB.Row>
+	            <RB.Col md={4}>
+			        <div id="basic-addon-password" className="input-group">
+			        	<input type="password" className="form-control" ref="password" id="userPassword" placeholder="Password..." aria-describedby="basic-addon3"/>
+			        	<span className="input-group-addon" id="basic-addon3">Password</span>
+			        </div>
+			        <br/>
+			        <div id="basic-addon-password-confirm" className="input-group">
+			        	<input type="password" className="form-control" ref="passwordConfirm" id="userPasswordConfirm" placeholder="Retype Password..." aria-describedby="basic-addon4"/>
+			        	<span className="input-group-addon" id="basic-addon4">Confirm Password</span>
+			        </div>
+	            </RB.Col>
+	         </RB.Row>
+	      </RB.Well>
+		        <br/>
+
+
+
+
+	        <br/>
+
+	        {registerButtonDiv}
+	      
+	      </form>
+	      <MessagesBoxComp ref="msgBox"/>
+      </div>
+    );
+  }
+  
+});	// RegisterForm
+
+
+/*----------------------------------------------------------------------------*/
+

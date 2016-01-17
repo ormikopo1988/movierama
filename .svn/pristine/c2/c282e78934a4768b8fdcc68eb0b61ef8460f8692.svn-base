@@ -1,0 +1,176 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import AutoCompleteComp from './AutoCompleteComp';
+import BookmarkComp from './BookmarkComp';
+import GroupActionsComp from './GroupActionsComp';
+import MessagesBoxComp from './MessagesBoxComp';
+var RB = require('react-bootstrap');
+
+export default React.createClass({ //GroupEdit
+
+  render: function() {;
+  	var result = this.props.data;
+  	return (
+      <div classNameName="container">
+		<div className="row">
+        	<Group key={result.id} groupType={this.props.data.groupType} result={result}></Group> :
+	    </div>
+      </div>
+    );
+  } 
+});
+
+var Group = React.createClass({
+
+	getInitialState: function() {
+		return {
+			groupType: this.props.groupType
+		}
+	},
+
+	handleSave: function() {
+	    var title = this.refs.title.getValue().trim() || '';
+	    var description = this.refs.description.getValue().trim() || '';
+	    var comments = this.refs.comments.getValue().trim() || '';
+	    var groupType = this.refs.groupType.getValue() || '';
+
+	    if(!title || !groupType) {
+	      alert('You must fill all the required input fields!');
+	      return;
+	    }
+
+	    var isPrivate;
+	    var isFreeToFollow;
+	    var isOpenForPosts;
+	    if(this.state.groupType === 'DIS') {
+	      isPrivate = this.refs.isPrivate.getValue() || '0';
+	      isFreeToFollow = this.refs.isFreeToFollow.getValue() || '1';
+	      isOpenForPosts = this.refs.isOpenForPosts.getValue() || '1';
+	    }
+	    else if(this.state.groupType === 'TEA') {
+	      isPrivate = '1';
+	      isFreeToFollow = '0';
+	      isOpenForPosts = '0';
+	    }
+	    else {
+	      isPrivate = '0';
+	      isFreeToFollow = '1';
+	      isOpenForPosts = '1';
+	    }
+
+	    var data = {
+	      id: this.props.result.id,
+	      title: title,
+	      description: description,
+	      comments: comments,
+	      groupType: groupType,
+	      isPrivate: isPrivate,
+	      isFreeToFollow: isFreeToFollow,
+	      isOpenForPosts: isOpenForPosts
+	    }
+
+	    var url = VOICE.linkPrefix('api/groups/createGroup');
+	    //data to send to server!
+	    VOICE.ajaxCall(url, 'POST', data, this, this.cbHandleSave);
+	},
+
+	cbHandleSave: function(result) {
+		if(result.groupCreatedOk === true) {
+			this.refs.msgBox.clearErrors();
+			this.refs.msgBox.addSuccess('Your group settings were saved successully!', false);
+			setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+		}
+		else {
+			this.refs.msgBox.addError(result.errors);
+		}
+	},
+
+	handleChange: function() {
+		var groupType = this.refs.groupType.getValue() || '';
+		this.setState({
+			groupType: groupType
+		}); 
+	},
+
+	render: function() {
+		var result = this.props.result;
+		console.log('RESULT: ', result);
+		var avatarImg = result.logoURL || 'profile_none.png';
+		var avatarURL = '';
+		
+		if(avatarImg !== 'profile_none.png') {
+			avatarURL = avatarImg;
+		}
+		else {
+			avatarURL = VOICE.systemImgPrefix(avatarImg);
+		}
+
+		var memberSince = moment(result.fromDate, 'YYYYMMDDhhmmss').fromNow();
+
+		return (
+			<RB.Well>
+	          <center><h3>Edit Group Settings</h3></center><hr/>
+	          <RB.Row>
+	            <RB.Col md={12}>
+	              <RB.Input type="text" defaultValue={result.title} addonBefore="Title (*)" placeholder="Title..." ref="title" name="title" />
+	            </RB.Col>
+	          </RB.Row>
+	          <RB.Row>
+	            <RB.Col md={6}>
+	              <RB.Input rows={4} defaultValue={result.description} type="textarea" addonBefore="Description" placeholder="Description..." ref="description" name="description" />
+	            </RB.Col>
+	            <RB.Col md={6}>
+	              <RB.Input rows={4} defaultValue={result.comments} type="textarea" addonBefore="Comments" placeholder="Comments..." ref="comments" name="comments" />
+	            </RB.Col>
+	          </RB.Row><br/>
+	          <RB.Row>
+	            <RB.Col md={12}>
+	              <RB.Input type="select" defaultValue={result.groupType} addonBefore="Group Type (*)" placeholder="Select Group Type" ref="groupType" name="groupType" onChange={this.handleChange} >
+	                <option value=""> - Select Group Type - </option>
+	                <option value="DIS"> Discussion Group </option>
+	                <option value="TEA"> Team Group </option>
+	              </RB.Input>
+	            </RB.Col>
+	          </RB.Row><br/>
+	          {
+	            this.state.groupType === 'DIS' ?
+	              <span>
+	                <RB.Row>
+	                  <RB.Col md={4}>
+	                    <RB.Input type="select" defaultValue={result.isPrivate}  addonBefore="Visibility" ref="isPrivate" name="isPrivate" >
+	                      <option value="0"> Public </option>
+	                      <option value="1"> Private </option>
+	                    </RB.Input>
+	                  </RB.Col>
+	                  <RB.Col md={4}>
+	                    <RB.Input type="select" defaultValue={result.isFreeToFollow} addonBefore="Is Free to Follow" ref="isFreeToFollow" name="isFreeToFollow" >
+	                      <option value="1"> Yes </option>
+	                      <option value="0"> No </option>
+	                    </RB.Input>
+	                  </RB.Col>
+	                  <RB.Col md={4}>
+	                    <RB.Input type="select" defaultValue={result.isOpenForPosts} addonBefore="Is Open for Posts" ref="isOpenForPosts" name="isOpenForPosts" >
+	                      <option value="1"> Yes </option>
+	                      <option value="0"> No </option>
+	                    </RB.Input>
+	                  </RB.Col>
+	                </RB.Row><br/>
+	              </span>
+	              : null
+	          }
+	          <RB.Row>
+	            <center>
+	              <RB.Button bsStyle="success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save</RB.Button>
+	            </center>
+	          </RB.Row><br/>
+	          <RB.Row>
+	            <RB.Col md={12}>
+	              <MessagesBoxComp ref="msgBox"/>
+	            </RB.Col>
+	          </RB.Row>
+	        </RB.Well>
+		)
+	}
+});

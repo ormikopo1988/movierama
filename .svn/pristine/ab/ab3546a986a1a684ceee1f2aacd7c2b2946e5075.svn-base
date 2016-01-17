@@ -1,0 +1,110 @@
+<?php
+
+class VO_CtrlBadges {
+	const _ECP = 'CBA';	// Error Code Prefix
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function userBadges( WOOOF $wo, $voiceUserId ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE User Badges Gallery Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if( !$wo->hasContent($voiceUserId) ) {
+			$wo->logError(self::_ECP."5432 You must provide a voiceUserId!");
+			return false;
+		}
+		
+		$data = VO_Badges::getVoiceUserBadges($wo, $voiceUserId);
+		if($data === FALSE) { return false; }
+		
+		$data = json_encode($data);
+		
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var data = $data;
+			ReactDOM.render(
+				React.createElement(
+					BadgesGallery,
+					{ data: data }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+		;
+	
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+		
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+		
+	}	//userBadges
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param string $voiceUserId
+	 * @return false | [ 'badgesComputedOk' => bool, 'badgesComputed' => bool ]
+	 */
+	
+	public static function computeBadges( WOOOF $wo, $voiceUserId ) {
+		
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if( !$wo->hasContent($voiceUserId) ) {
+			$wo->logError(self::_ECP."1232 You must provide voice user ID to compute badges!");
+			return false;
+		}
+		
+		$res = VO_Badges::updateVoiceUserBadgesTable($wo, $voiceUserId);
+		
+		if ( $res === FALSE ) {
+			$out = [
+				'badgesComputedOk' => false,
+				'errors' 		 => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'badgesComputedOk'	=> true,
+				'badgesComputed'	=> $res
+			];
+			$wo->db->commit();
+		}
+		
+		return $out;
+
+	}	//computeBadges
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+}	// VO_CtrlBadges

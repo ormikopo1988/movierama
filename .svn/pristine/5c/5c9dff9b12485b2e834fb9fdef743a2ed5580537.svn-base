@@ -1,0 +1,13 @@
+<?php
+/* Class [VO_TblOrganisationTags] for table [organisation_tag] */
+
+class VO_TblOrganisationTags extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'organisation_tag';
+
+    public $id;
+    public $isDeleted;
+    public $organisationId;
+    public $tagId;
+    
+}  // VO_TblOrganisationTags

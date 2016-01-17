@@ -1,0 +1,229 @@
+<?php
+
+
+
+class VO_CtrlRegistration {
+	const _ECP = 'REG';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	public static function register( WOOOF $wo ) {
+		
+		$requestedAction='viewUncontroled';	// register
+		$pageLocation='3';
+		$browserTitle='VOICE Registration Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+
+		if ( $wo->userData['id'] != '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		$content = <<<EOH
+		<div id='content-main'></div>
+
+		<script>
+			ReactDOM.render(
+				React.createElement(
+					RegisterBox, 
+					null
+				), 
+				document.getElementById('content-main')
+			);
+			/*
+			ReactDOM.render(
+				<RegisterBox />,
+				document.getElementById('content-main')
+			);
+			*/
+		</script>
+EOH
+		;
+		
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+		
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+
+	}	//register
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param string $email
+	 * @return false | [ 'isValidEmail' => bool, 'isIndividual' => bool, 'canBeAdmin' => bool, 'isOrgInVOICE' => bool, 'orgInfo' => [ 'name', 'description' ] ]
+	 */
+	public static 
+	function checkOrgByEmail( WOOOF $wo, $email )
+	{
+		return VO_Registration::checkOrgByEmail($wo, $email);
+	}	// checkOrgByEmail
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param array $in	// [ 'email', 'password', 'passwordConfirm', 'asAdmin', 'registerAs' ]
+	 * @return array [ 'registerOK', 'errors' ] 
+	 */
+	public static
+	function saveRegistration( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		//$wo->debug( "$place:  [$in]" );
+
+		if ( $wo->userData['id'] != '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		$res = VO_Registration::registerUser($wo, $in, $errors);
+		
+		if ( $res === FALSE ) {
+			$out = [
+				'registerOK' => false,
+				'errors' => $errors
+			];
+			$wo->db->rollback();
+		}
+		
+		else {
+			$out = [
+				'registerOK'	=> true,
+				'userId'		=> $res
+			];
+			$wo->db->commit();
+		}
+		
+		return $out;
+	
+	}	// saveRegistration
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	public static function registerVerify( WOOOF $wo ) {
+		
+		$requestedAction='viewUncontroled';	// register
+		$pageLocation='3';
+		$browserTitle='VOICE Registration Verification Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+
+		// TODO: remove ?
+		/*
+		if ( $wo->userData['id'] != '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		*/
+		
+		$paramNames = array(
+			'token'
+		);
+		
+		$in = $wo->getMultipleGetPost( $paramNames );
+		
+		if ( !$wo->hasContent($in['token']) ) {
+			$wo->handleShowStopperError('No token was provided for verification.');
+		}
+		
+		$vusRec = $wo->db->getRowByColumn( 'voice_users', 'verificationToken', $in['token'] );
+		if ( $vusRec === FALSE ) { $wo->handleShowStopperError('505'); }
+		if ( $vusRec === NULL ) {
+			$wo->handleShowStopperError('Token not found.');
+		}
+		
+		// We seem to be ok
+		//
+		
+		$data['token'] = $in['token'];
+		$data = json_encode($data);
+		
+		$lookUps = WOOOF_Domains::getMultipleDomains($wo,
+				[
+					'PERSON_TITLE'
+				]
+		);
+		if ( $lookUps === FALSE ) { $wo->handleShowStopperError(); }
+		$lookUps = json_encode($lookUps);
+		
+		
+		$content = <<<EOH
+		<div id='content-main'></div>
+		
+		<script>
+			var data	= $data;
+			var lookUps = $lookUps;
+					
+			ReactDOM.render(
+				React.createElement(
+					RegisterVerifyBox,
+					{ data: data, lookUps: lookUps }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+		;
+		
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+		
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+		
+		
+	}	// registerVerify
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in	// [ 'email', 'password' ]
+	 * @return array [ 'loginOK', 'errors' ]
+	 */
+	public static
+	function loginDo( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		//$wo->debug( "$place:  [$in]" );
+	
+		$requestedAction='logIn';
+		$pageLocation='3';
+		$browserTitle='VOICE User Profile Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+	
+		if ( $wo->userData['id'] != '0123456789' ) {
+			$wo->handleShowStopperError("505 $place: " . $wo->userData['id']);
+		}
+	
+		return VO_Registration::loginDo($wo, $in);
+	}	// loginDo
+	
+	
+	
+	
+}	// VO_CtrlRegistration

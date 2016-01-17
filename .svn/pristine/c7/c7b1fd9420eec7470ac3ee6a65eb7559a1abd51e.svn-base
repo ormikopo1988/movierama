@@ -1,0 +1,46 @@
+//require('../../css/voice.css');
+
+import React from 'react';
+import ReactDOM from 'react-dom';
+import Home from './Home';
+import RegisterBox from './RegisterBox';
+import LoginBox from './LoginBox';
+import ProfileEdit from './ProfileEdit';
+import ProfileView from './ProfileView';
+import OrganizationView from './OrganizationView';
+import OrganizationEdit from './OrganizationEdit';
+import SiteHeaderBox from './SiteHeaderBox';
+import SiteFooterBox from './SiteFooterBox';
+import ObjectsList from './ObjectsList';
+import GroupView from './GroupView';
+import MessagesBoxComp from './MessagesBoxComp';
+import CreateGroupForm from './CreateGroupForm';
+
+import AutoCompleteComp from './AutoCompleteComp';	// for testing only
+
+import VOICE from './voice';
+
+function main() {
+	//const app = document.createElement('div');
+	//document.body.appendChild(app);
+	window.VOICE = VOICE;
+	window.ReactDOM = ReactDOM;
+	window.React = React;
+
+	window.Home = Home;
+	window.LoginBox = LoginBox; 
+	window.RegisterBox = RegisterBox;
+	window.ProfileEdit = ProfileEdit;
+	window.ProfileView = ProfileView;
+	window.OrganizationView = OrganizationView;
+	window.OrganizationEdit = OrganizationEdit;
+	window.SiteHeaderBox = SiteHeaderBox;
+	window.SiteFooterBox = SiteFooterBox;
+	window.ObjectsList = ObjectsList;
+	window.GroupView = GroupView;
+	window.MessagesBoxComp = MessagesBoxComp;
+	window.AutoCompleteComp = AutoCompleteComp;	// 	// for testing only
+	window.CreateGroupForm = CreateGroupForm;
+}
+
+main();

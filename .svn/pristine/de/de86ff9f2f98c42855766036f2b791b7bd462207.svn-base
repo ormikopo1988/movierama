@@ -1,0 +1,110 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import BookmarkComp from './BookmarkComp';
+import GroupActionsComp from './GroupActionsComp';
+import MessagesBoxComp from './MessagesBoxComp';
+import LoadingComp from './LoadingComp';
+import ContentMainComp from './ContentMainComp';
+var RB = require('react-bootstrap');
+
+export default React.createClass({ //GroupEdit
+
+  render: function() {
+  	var result = this.props.data;
+  	return (
+      <div classNameName="container">
+		<div className="row">
+        	<Idea key={result.IDE_id} result={result} lookUps={this.props.lookUps}></Idea> :
+	    </div>
+      </div>
+    );
+  } 
+});
+
+var Idea = React.createClass({
+
+	getInitialState: function() {
+		return {
+			loading: false
+		}
+	},
+
+	handleSave: function() {
+	    //TODO
+	    //var versionName = this.refs.versionName.getValue().trim() || '';
+	    
+	    var ideaTypeDVId = this.refs.ideaTypeDVId.getValue() || '';
+	    
+	    if(!ideaTypeDVId) {
+	      alert('You must fill all the required input fields!');
+	      return;
+	    }
+
+		var data = {
+	      id: this.props.result.IDE_id,
+	      ideaTypeDVId: ideaTypeDVId,
+	    }
+	  
+	    var url = VOICE.linkPrefix('api/ideas/saveIdea');
+	    //data to send to server!
+	    this.setState({
+	      loading: true
+	    });
+	    
+	    VOICE.ajaxCall(url, 'POST', data, this, this.cbHandleSave);
+	},
+
+	cbHandleSave: function(result) {
+		if(result.ideaEditedOk === true) {
+	    	this.setState({
+	    		titleImg: result.CNT_titleImg
+	    	});
+  		
+			this.refs.msgBox.clearErrors();
+			this.refs.msgBox.addSuccess('Your idea settings were saved successully!', false);
+			setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+		}
+		else {
+			this.refs.msgBox.addError(result.errors);
+		}
+		this.setState({
+	      loading: false
+	    });
+	},
+
+	render: function() {
+		var result = this.props.result;
+		console.log('RESULT: ', result);
+		
+		return (
+			<RB.Well>
+	          <center><h3>Edit Idea Settings</h3></center><hr/>
+	          <RB.Row>
+	            <RB.Col md={12}>
+	              <RB.Input defaultValue={result.IDV_ideaTypeDVId} type="select" addonBefore="Idea Type (*)" ref="ideaTypeDVId" name="ideaTypeDVId" >
+	                <option value=""> - Select Idea Type - </option>
+	                {VOICE.renderOptions(this.props.lookUps.IDEA_TYPE)}
+	              </RB.Input>
+	            </RB.Col>
+	          </RB.Row><br/>
+	          <RB.Row>
+	            <center>
+	            	{
+               			this.state.loading === false ?
+                  			<RB.Button bsStyle="success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save Type</RB.Button> :
+                  			<LoadingComp loadingText="Saving Idea..."></LoadingComp>
+             	    }
+	            </center>
+	          </RB.Row><br/>
+	          <ContentMainComp data={result}></ContentMainComp>
+	          <RB.Row>
+	            <RB.Col md={12}>
+	              <MessagesBoxComp ref="msgBox"/>
+	            </RB.Col>
+	          </RB.Row>
+	        </RB.Well>
+		)
+	}
+});

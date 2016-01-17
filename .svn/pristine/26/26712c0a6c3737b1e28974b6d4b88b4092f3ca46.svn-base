@@ -1,0 +1,30 @@
+Code from : http://altorouter.com/
+Modified by antonis (Sep 11, 2015): Added the run method
+
+Steps to integrate in a  WOOOF Application
+-------------------------------------------
+
+(dirs/urls are relative to application/ )
+
+1. The class AltoRouter.php is already in wooof_classes/thirdParty/ (so it will be autoloaded).
+2. Copy the util/AltoRouter/.htaccess file to publicSite/
+3. Edit publicSite/.htaccess
+    --> change the 'RewriteBase' to the appURL/publicSiteURL
+
+3a. Copy the util/AltoRouter/.htaccess file to publicSite/
+3b. Process 6 later on...
+
+4. Edit ./index.php
+    --> redirect to : header( 'Location: publicSite/' );
+
+5. Try http://.../application
+    --> Should see 'Hello!' echoed on the screen
+
+6. The difficult part
+    State the routes (all in publicSite/index.php or in files required from there).
+    For starters you can use simple function closures echoeing the route plus params.
+    Build the controllers (place them in classes/) and
+    call them from the routes.
+
+7. Finished!
+    

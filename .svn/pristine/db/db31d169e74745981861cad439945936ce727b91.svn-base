@@ -1,0 +1,74 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import AutoCompleteComp from './AutoCompleteComp';
+import BookmarkComp from './BookmarkComp';
+import GroupActionsComp from './GroupActionsComp';
+
+export default React.createClass({ //IdeaView
+  
+  render: function() {
+  	var result = this.props.data[0];
+  	console.log(result);
+  	return (
+      <div classNameName="container">
+		<center><h1>{this.props.title}</h1></center>
+		<div className="row">
+	        <Idea key={result.IDE_id} result={result}></Idea>
+	    </div>
+      </div>
+    );
+  } 
+}); //IdeaView
+
+var Idea = React.createClass({ // Idea
+
+	render: function() {
+		var result = this.props.result;
+		var avatarImg = result.IDV_ideaLogoImage || '$no_image_available.jpg';
+		var avatarURL = VOICE.imgPrefix(avatarImg, 'M');
+
+		var memberSince = moment.utc(result.IDE_effectiveDate, 'YYYYMMDDhhmmss').fromNow();
+		var lastEdited = moment.utc(result.IDV_fromDate, 'YYYYMMDDhhmmss').fromNow();
+
+		return (
+			<div className="col-md-12 col-sm-12">
+				<div className="well well-sm well-agency">           
+					<a href={VOICE.linkPrefix('idea/view/'+result.IDE_id)}><img src={avatarURL}/></a>
+					<a className="lead agency-name" href={VOICE.linkPrefix('idea/view/'+result.IDE_id)}>
+						{result.IDV_title}
+					</a>
+					<div className="sub-info">
+						<p><i className="fa fa-lightbulb-o smallFa"></i> {result.DVIDEATYPE_SDOMVAL_description}</p>
+						<p>
+							{ result.IDV_shortDescription }
+						</p>
+						<p><i className="fa fa-clock-o smallFa"> Published: {memberSince}</i></p>
+						<hr/>
+						{
+							result.IDV_longDescription !== '' ?
+								<div>
+									<i className="fa fa-paragraph smallFa"></i> {result.IDV_longDescription}<hr/>
+								</div>
+								: null 
+						}
+						<p><i className="fa fa-code-fork smallFa"></i> {result.IDV_versionString} 
+							{
+								result.IDV_versionName !== '' ?
+									<span> {result.IDV_versionName}</span>
+									:null
+							}
+						</p>
+						<p><i className="fa fa-pencil-square-o smallFa"> Last Edited: {lastEdited}</i></p>
+						<hr/>
+						<a href={VOICE.linkPrefix('group/members/'+result.ONWGR_id)}><i className="fa fa-users"></i> View Owners</a><br/><br/>
+			  			{/*<i className="fa fa-comment"></i> <a href={VOICE.linkPrefix('timeline/'+mainView.postBoxId)}>See Timeline</a>
+						<BookmarkComp targetType={result.isType} connections={result.memberships} userId={result.requestorUserId}></BookmarkComp>
+						<GroupActionsComp targetType={result.isType} memberships={result.memberships} userId={result.requestorId}></GroupActionsComp>*/}
+					</div>
+				</div>
+			</div>
+		)
+	}
+}); // Idea

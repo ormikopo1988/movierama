@@ -1,0 +1,27 @@
+<?php
+/* Class [VO_TblContent] for table [contents] */
+
+class VO_TblContent extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'contents';
+
+    public $id;
+    public $isDeleted;
+    public $createdByUserId;
+    public $updatedByUserId;
+    public $createdDateTime;
+    public $updatedDateTime;
+    public $isTemplate;
+    public $fromTemplateId;
+    public $languageId;
+    public $title;
+    public $subTitle;
+    public $snippet;
+    public $titleImg;
+    public $titleMidImg;
+    public $titleThumbImg;
+    public $isPartOfIdea;
+    public $contentVisibilityDVCode;
+    public $contentTypeDVCode;
+
+}  // VO_TblContent

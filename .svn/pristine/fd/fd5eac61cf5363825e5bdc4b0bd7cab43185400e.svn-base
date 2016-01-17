@@ -1,0 +1,57 @@
+<?php
+
+class VO_CtrlBadges {
+	const _ECP = 'CBA';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param string $voiceUserId
+	 * @return false | [ 'badgesComputedOk' => bool, 'badgesComputed' => bool ]
+	 */
+	
+	public static function computeBadges( WOOOF $wo, $voiceUserId ) {
+		
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if( !$wo->hasContent($voiceUserId) ) {
+			$wo->logError(self::_ECP."1232 You must provide voice user ID to compute badges!");
+			return false;
+		}
+		
+		$res = VO_Badges::updateVoiceUserBadgesTable($wo, $voiceUserId);
+		
+		if ( $res === FALSE ) {
+			$out = [
+				'badgesComputedOk' => false,
+				'errors' 		 => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'badgesComputedOk'	=> true,
+				'badgesComputed'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+
+	}	//computeBadges
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+}	// VO_CtrlBadges

@@ -1,0 +1,280 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import $ from 'jquery';
+
+export default React.createClass({ //ProfileView
+  
+  getInitialState: function() {
+    return {
+    	data: {
+    	   main : {
+    	   	   voiceUserId: 'gMuJmRwJaX',
+    		   firstName  : 'Orestis',
+        	   middleName : 'Michael',
+        	   lastName   : 'Meikopoulos',
+        	   avatar     : 'orestis.png',
+        	   gender     : 'M',
+        	   birthYear  : '1988',
+        	   CVFile     : 'cv.pdf'
+    	   },
+    	   addresses : [
+    		   {
+	    		   id 			 : '454541',
+	    		   addressType     : 'livesIn',
+	    		   area            : {
+	    			   id        : '2',
+	    			   areaText  : 'Volos, Greece'
+	    		   },
+	    		   addressText     : 'Dimarchou Georgiadou 114',
+	    		   fromDate        : '08/09/1988',
+	    		   toDate          : '08/06/2015'
+    		   },
+    		   {
+	    		   id 			 : '7898787',
+	    		   addressType     : 'bornIn',
+	    		   area            : {
+	    			   id        : '3',
+	    			   areaText  : 'Athens, Greece'
+	    		   },
+	    		   addressText     : 'Lavriou 42-44',
+	    		   fromDate        : '08/06/2015',
+	    		   toDate          : '15/10/2015'
+    		   }
+    	   ],
+    	   education : [],
+    	   skills : ['Java', 'C', 'C++', 'HTML5', 'CSS3', 'JavaScript', 'jQuery', 'AJAX', 'PHP', 'Programming', 'Design', 'User Experience'],
+    	   experience : []
+		}
+    };
+  },
+  
+  render: function() { //function that returns a tree of React components that will eventually render to HTML
+    return (
+      <div className="profileBox">
+      	<h1>PROFILE</h1>
+      	<Main data={this.state.data} />
+      </div>
+    );
+  }
+  
+});
+
+var Main = React.createClass({
+  getInitialState: function() {
+    return {
+	  profileView: this.props.data
+    };
+  },
+
+  render: function() {
+	var mainView = this.state.profileView.main;
+	var addressView = this.state.profileView.addresses;
+	var educationView = this.state.profileView.education;
+	var skillsView = this.state.profileView.skills;
+	
+    return (
+<div className="container">
+	<div className="row">
+		<div className="col-sm-1"><a href="#" className=""><img title="profile image" className="img-circle img-responsive" src="http://www.gravatar.com/avatar/28fd20ccec6865e2d5f0e1f4446eb7bf?s=100"/></a></div>
+  		<div className="col-sm-11"><h1>{mainView.firstName + ' ' + mainView.lastName}</h1></div>
+    </div>
+    <hr/>
+    <div className="row">
+  		<SideBar data={mainView}/>
+    	<div className="col-sm-9">
+           <ul className="nav nav-tabs" id="myTab">
+             <li className="active"><a href="#addresses" data-toggle="tab">Addresses</a></li>
+             <li><a href="#education" data-toggle="tab">Education</a></li>
+             <li><a href="#skills" data-toggle="tab">Skills</a></li>
+           </ul>
+           <div className="tab-content">
+              <Addresses data={addressView}/>
+              <Education data={educationView}/>
+              <Skills data={skillsView}/>
+			  <div className="panel panel-default">
+				<div className="panel-heading"><i className="fa fa-rss"></i> Recent Activity</div>
+				<div className="panel-body">
+					<RecentActivity data />
+				</div>
+			  </div>
+           </div>
+	 	 </div>
+	 </div>
+</div>
+    );
+  }
+});
+
+var SideBar = React.createClass({
+	getInitialState: function() {
+		var data = this.props.data;
+		return {
+			data: data
+		}
+	},
+	
+	render: function() {
+		var data = this.state.data;
+		return(
+		<div className="col-sm-3">
+			<div className="panel panel-default">
+				<div className="panel-heading"><i className="fa fa-user"></i> Profile</div>
+				<div className="panel-body">
+					<li className="list-group-item text-right"><span className="pull-left"><strong>Middle Name</strong></span> {data.middleName}</li>
+					<li className="list-group-item text-right"><span className="pull-left"><strong>Gender</strong></span> {data.gender === 'M' ? <i className="fa fa-male"></i> : <i className="fa fa-female"></i> }</li>
+					<li className="list-group-item text-right"><span className="pull-left"><strong>Birth Year</strong></span> {data.birthYear}</li>
+				</div>
+			</div> 
+
+			<div className="panel panel-default">
+				<div className="panel-heading"><i className="fa fa-dashboard fa-1x"></i> Activity</div>
+				<div className="panel-body">
+					<li className="list-group-item text-right"><span className="pull-left"><strong>Shares</strong></span> 125</li>
+					<li className="list-group-item text-right"><span className="pull-left"><strong>Likes</strong></span> 13</li>
+					<li className="list-group-item text-right"><span className="pull-left"><strong>Posts</strong></span> 37</li>
+					<li className="list-group-item text-right"><span className="pull-left"><strong>Followers</strong></span> 78</li>
+				</div>
+			</div> 
+
+			<div className="panel panel-default">
+				<div className="panel-heading"><i className="fa fa-users"></i> Social Media</div>
+				<div className="panel-body">
+					<i className="fa fa-facebook fa-2x"></i> 
+					<i className="fa fa-github fa-2x"></i> 
+					<i className="fa fa-twitter fa-2x"></i> 
+					<i className="fa fa-pinterest fa-2x"></i> 
+					<i className="fa fa-google-plus fa-2x"></i>
+				</div>
+			</div>
+		</div>
+		);
+	}
+});
+
+var Addresses = React.createClass({
+	getInitialState: function() {
+		var addresses = this.props.data;
+		console.log(addresses);
+		return {
+			addresses: addresses
+		}
+	},
+	
+	render: function() {
+		var tds = [];
+		for(var i=0; i < this.state.addresses.length; i++ ) {
+			tds.push(
+				<tr>
+					<td>{this.state.addresses[i].addressType}</td>
+					<td>{this.state.addresses[i].area.areaText}</td>
+					<td>{this.state.addresses[i].addressText}</td>
+					<td>{this.state.addresses[i].fromDate}</td>
+					<td>{this.state.addresses[i].toDate}</td>
+				</tr>
+			);
+		}
+		return(
+			<div className="tab-pane active" id="addresses">
+			  <div className="table-responsive">
+			    <table className="table table-hover">
+			      <thead>
+			        <tr>
+			          <th>Address Type</th>
+			          <th>Area</th>
+			          <th>Address Text</th>
+			          <th>From Date</th>
+			          <th>To Date</th>
+			        </tr>
+			      </thead>
+			      <tbody id="items">
+			        {tds}
+			      </tbody>
+			    </table>
+			    {/*<div className="row">
+			      <div className="col-md-4 col-md-offset-4 text-center">
+			      	<ul className="pagination" id="myPager"></ul>
+			      </div>
+			    </div>*/}
+			  </div>
+			</div>
+		);
+	}
+});
+
+var RecentActivity = React.createClass({
+	getInitialState: function() {
+		var activities = this.props.data.activities;
+		return {
+			activities: activities
+		}
+	},
+	
+	render: function() {
+		return (
+			<div className="table-responsive">
+				<table className="table table-hover"> 
+				    <tbody>
+					    <tr>
+				        	<td><i className="pull-right fa fa-edit"></i> Today, 1:00 - Jeff Manzi liked your post.</td>
+						</tr>
+						<tr>
+					    	<td><i className="pull-right fa fa-edit"></i> Today, 12:23 - Mark Friendo liked and shared your post.</td>
+						</tr>
+						<tr>
+					    	<td><i className="pull-right fa fa-edit"></i> Today, 12:20 - You posted a new blog entry title "Why social media is".</td>
+						</tr>
+			        </tbody>
+			    </table>
+		    </div>
+		);
+	}
+});
+
+var Education = React.createClass({
+	getInitialState: function() {
+		var education = this.props.data;
+		return {
+			education: education
+		}
+	},
+	
+	render: function() {
+		//this.state.education -> take the education data passed
+		return (
+			<div className="tab-pane" id="education">
+			  <ul className="list-group">
+				  <li className="list-group-item text-muted">Education</li>
+				  <li className="list-group-item text-right"><a href="#" className="pull-left">Here is your a link to the latest summary report from the..</a> 2.13.2014</li>
+				  <li className="list-group-item text-right"><a href="#" className="pull-left">Hi Joe, There has been a request on your account since that was..</a> 2.11.2014</li>
+				  <li className="list-group-item text-right"><a href="#" className="pull-left">Nullam sapien massaortor. A lobortis vitae, condimentum justo...</a> 2.11.2014</li>
+			   </ul> 
+			</div>
+		);
+	}
+});
+
+var Skills = React.createClass({
+	getInitialState: function() {
+		var skills = this.props.data;
+		return {
+			skills: skills
+		}
+	},
+	
+	render: function() {
+		console.log(this.state.skills);
+		var spans = [];
+		for(var i=0; i<this.state.skills.length;i++) {
+			spans.push(
+				<span className="endorse-item-name">
+					<span className="endorse-item-name-text">{this.state.skills[i]}</span>
+				</span>
+			);
+		}
+		return (
+			 <div className="tab-pane well col-sm-12" id="skills">
+          	    {spans}
+             </div>
+		);
+	}
+});

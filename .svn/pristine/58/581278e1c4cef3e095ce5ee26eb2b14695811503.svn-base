@@ -1,0 +1,606 @@
+<?php
+
+class VO_Groups {
+	const _ECP = 'GRO';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param VO_TblGroups $obj
+	 * @param bool $fetchBack
+	 * @param string $creatorId
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static 
+	function save( WOOOF $wo, VO_TblGroups &$obj, $creatorId, $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+		
+		if(!$wo->hasContent($creatorId)) {
+			$wo->logError(self::_ECP."0654 No value provided for [creatorId]" );
+			return false;
+		}
+		
+		$tblGroups = new WOOOF_dataBaseTable($wo->db, 'groups');
+		if(!$tblGroups->constructedOk) { return false; }
+		
+		if(!$wo->hasContent($obj->id)) {
+			//insert
+			$obj->fromDate = $wo->getCurrentDateTime();
+			
+			// insert new group in groups table
+			$newId = $tblGroups->insertRowFromArraySimple( $obj->toArray() );
+			if ( $newId === FALSE ) { return false; }
+			$obj->id = $newId;
+			
+			//insert the creator of group as admin in voice_user_groups
+			$tblVoiceUserMembership = new VO_TblVoiceUserGroups();
+			$tblVoiceUserMembership->groupMembershipType = 'isMemberOf';
+			$tblVoiceUserMembership->isAdmin = '1';
+			$tblVoiceUserMembership->isActive = '1';
+			$tblVoiceUserMembership->voiceUserId = $creatorId;
+			$tblVoiceUserMembership->groupId = $obj->id;
+			$tblVoiceUserMembership->isAllowedToPost = '1';
+			$tblVoiceUserMembership->fromDate = $wo->getCurrentDateTime();
+			
+			$tblVoiceUserGroupGeneric = new WOOOF_dataBaseTable($wo->db, 'voice_user_groups');
+			if($tblVoiceUserGroupGeneric === FALSE) { return false; }
+			
+			$newMemberId = $tblVoiceUserGroupGeneric->insertRowFromArraySimple( $tblVoiceUserMembership->toArray() );
+			if ( $newMemberId === FALSE ) { return false; }
+				
+			//create and assign a new post box for the group
+			$tblPostBoxInsert = new VO_TblPostBoxes();
+			$tblPostBoxInsert->ownerId = $obj->id;
+			$tblPostBoxInsert->ownerType = 'GRO';
+			
+			$tblPostBoxGeneric = new WOOOF_dataBaseTable($wo->db, 'post_boxes');
+			if($tblPostBoxGeneric === FALSE) { return false; }
+				
+			$newPostBoxId = $tblPostBoxGeneric->insertRowFromArraySimple( $tblPostBoxInsert->toArray() );
+			if ( $newPostBoxId === FALSE ) { return false; }	
+		}
+		
+		else {
+			//update
+			$updatedId = $tblGroups->updateRowFromArraySimple( $obj->toArray() );
+			if ( $updatedId === FALSE ) { return false; }
+			
+			$imgRes = $tblGroups->handlePictureUpload('avatarImg', $obj->id);
+			if($imgRes === FALSE) { return false; }
+		}
+		
+		if ( $fetchBack ) {
+			// Get back into $obj based on id
+			// TODO:
+		}
+	  	
+		return $obj->id;
+	}	// save
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param VO_TblVoiceUserGroups $obj
+	 * @param bool $fetchBack
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static
+	function saveJoin( WOOOF $wo, VO_TblVoiceUserGroups &$obj, $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  saveJoin" );
+	
+		$tblVoiceUserGroupGeneric = new WOOOF_dataBaseTable($wo->db, 'voice_user_groups');
+		if($tblVoiceUserGroupGeneric === FALSE) { return false; }
+
+		if ( $wo->hasContent($obj->id) ) {
+			// update isActive and reset toDate
+			$obj->isActive = '1';
+			$obj->toDate = '';
+			$res = $tblVoiceUserGroupGeneric->updateRowFromArraySimple( $obj->toArray() );
+			if ( $res === FALSE ) { return FALSE; }
+		}
+		else {
+			//insert new member
+			$obj->fromDate = $wo->getCurrentDateTime();
+			
+			$newMember = $tblVoiceUserGroupGeneric->insertRowFromArraySimple( $obj->toArray() );
+			if ( $newMember === FALSE ) { return false; }
+			
+			$obj->id = $newMember;
+		}
+	
+		if ( $fetchBack ) {
+			// Get back into $obj based on id
+			// TODO:
+		}
+		 
+		return $obj->id;
+	}	// saveJoin
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $deleteId
+	 * @return false | id
+	 */
+	public static
+	function deleteJoin( WOOOF $wo, $deleteId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  deleteJoin" );
+	
+		if ( !$wo->hasContent($deleteId) ) {
+			$wo->logError(self::_ECP."5311 No value provided for [deleteId]" );
+			return false;
+		}
+		
+		$tblVoiceUserGroups = new WOOOF_dataBaseTable($wo->db, 'voice_user_groups');
+		if($tblVoiceUserGroups === FALSE) { return false; }
+		
+		//UPDATE toDate TO CURRENT TIME AND isActive 0
+		$deleteRow = $tblVoiceUserGroups->getRow($deleteId);
+		if($deleteRow === FALSE) { return false; }
+		if($deleteRow === NULL) { return false; }
+		
+		$tblUserLeavesGroup = new VO_TblVoiceUserGroups($deleteRow);
+		$tblUserLeavesGroup->isActive = '0';
+		$tblUserLeavesGroup->toDate = $wo->getCurrentDateTime();
+
+		$res = $tblVoiceUserGroups->updateRowFromArraySimple( $tblUserLeavesGroup->toArray() );
+		if ( $res === FALSE ) { return FALSE; }
+		
+		return $deleteId;
+	}	// deleteJoin
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | id
+	 * Returns actually saved $obj
+	 */
+	public static
+	function saveGroup( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  SaveGroup" );
+		
+		if(!$wo->hasContent($in['id'])) {
+			$tblGroupInsert = new VO_TblGroups();
+			$tblGroupInsert->title = $in['title'];
+			$tblGroupInsert->description = $in['description'];
+			$tblGroupInsert->comments = $in['comments'];
+			$tblGroupInsert->isActive = '1';
+			$tblGroupInsert->isPrivate = $in['isPrivate'];
+			$tblGroupInsert->isFreeToFollow = $in['isFreeToFollow'];
+			$tblGroupInsert->isOpenForPosts = $in['isOpenForPosts'];
+			$tblGroupInsert->groupType = $in['groupType'];
+			
+			$res = self::save($wo, $tblGroupInsert, $wo->app->userId);
+			if($res === FALSE) { return false; }
+			
+			// TODO: Add voice_user_action
+		} 
+		
+		else {
+			$oldGroup = $wo->db->getRow('groups', $in['id']);
+			if($oldGroup === FALSE) { return false; }
+			if($oldGroup === NULL) {
+				$wo->logError(self::_ECP."4441 No group found to update");
+				return false;
+			}
+			
+			$in['isActive'] = 1;
+			$in['fromDate'] = $oldGroup['fromDate'];
+			$tblGroupUpdate = new VO_TblGroups($in);
+			$res = self::save($wo, $tblGroupUpdate, $wo->app->userId);
+			if($res === FALSE) { return false; }
+		}
+		
+		return $res;
+	}	// saveGroup
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $voiceUserId = ''
+	 * @param array $targetIds
+	 * @param string $type (DIS | TEA)
+	 * @return array
+	 */
+	public static
+	function getGroups( WOOOF $wo, $targetIds, $type )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  Get Groups" );
+		
+		$groups = [];
+		$groupElems = ['id', 'title', 'fromDate', 'description', 'comments', 'isPrivate', 'isFreeToFollow', 'isOpenForPosts', 'groupType', 'avatarImg'];
+		
+		$tblGroups = new WOOOF_dataBaseTable($wo->db, 'groups');
+		if(!$tblGroups->constructedOk) { return false; }
+		
+		if(count($targetIds) === 0) {
+			return [];
+		}
+		
+		$ids='';
+		foreach ($targetIds as $tId)
+		{
+			if ($ids!='')
+			{
+				$ids .= ', ';
+			}
+			$ids .= '\''. $wo->db->escape($tId) .'\'';
+		}
+		
+		$result = $wo->db->query('SELECT * FROM groups WHERE id IN ('. $ids .') and groupType=\''. $wo->db->escape($type) .'\'');
+		if ( $result === FALSE ) { return false; }
+		
+		if (!$wo->db->getNumRows($result))
+		{
+			//no error no results
+			return [];
+		}
+		else 
+		{
+			//no error results
+			while($row = $wo->db->fetchAssoc($result))
+			{
+				$tblGroups->resultRows[] = $row;	
+			}
+		}
+		
+		$ids = [];
+		
+		foreach($tblGroups->resultRows as $v_group) {
+			$group = [];
+			$groupId = $v_group['id'];
+			WOOOF_Util::filterOnKeys($group, $groupElems, $v_group);
+			$group['isType'] = $v_group['groupType'];
+			$groups[$groupId] = $group;
+		}
+		
+		//pass the keys from $users to $ids
+		$ids = array_keys($groups);
+		
+		//make the connections array
+		$membershipInfoArray = self::getMembershipInfo($wo, $wo->app->userId, $ids);
+		if($membershipInfoArray === false) { return false; }
+		
+		//merge the users array (with main info) with the connections array
+		foreach($groups as $aKey => &$aGroup) {
+			$aGroup['memberships'] = $membershipInfoArray[$aKey];
+		}
+		
+		//convert the associative array to a simple array to come back to the frontend
+		$groupMemberships = array_values($groups);
+			
+		return $groupMemberships;
+	}	// getGroups
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $groupId
+	 * @return array $targetIds
+	 */
+	public static
+	function getMembers( WOOOF $wo, $groupId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  Get Members" );
+	
+		$targetIds = [];
+		
+		//Find the group member ids based on the $groupId
+		$result = $wo->db->query("SELECT voiceUserId FROM voice_user_groups WHERE groupId='$groupId' and isActive='1'");
+		if ( $result === FALSE ) { return false; }
+			
+		while($row = $wo->db->fetchAssoc($result))
+		{
+			$targetIds[] = $row['voiceUserId']; //made the array with the group members ids
+		}
+			
+		return $targetIds;
+	}	// getMembers
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $userId
+	 * @param id $groupId
+	 * @return false | id
+	 */
+	public static
+	function joinGroup( WOOOF $wo, $userId, $groupId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  joinGroup" );
+		
+		$requestedGroup = $wo->db->getRow('groups', $groupId);
+		if($requestedGroup === FALSE) { return false; }
+		if($requestedGroup === NULL) {
+			$wo->logError(self::_ECP."1369 No row with id [$groupId] found in groups table!");
+			return false;
+		}
+		
+		//check if you some day were a member
+		$tblVoiceUserGroups = new WOOOF_dataBaseTable($wo->db, 'voice_user_groups');
+		if(!$tblVoiceUserGroups->constructedOk) { return false; }
+		
+		$memberRec = $tblVoiceUserGroups->getResult(
+			[
+				'voiceUserId' => $userId,
+				'groupId'	  => $groupId
+			],
+			'fromDate',
+			'', '', '',
+			true, false
+		);
+		if ( $memberRec === FALSE ) { return false; }
+		
+		$wasAlreadyMemberSomeday = $memberRec['totalRows'] != 0;
+		
+		//update here
+		if($wasAlreadyMemberSomeday) {
+			foreach ($tblVoiceUserGroups->resultRows as $aRow) {
+				$tblUserReJoinsGroup = new VO_TblVoiceUserGroups($aRow);
+				$res = self::saveJoin($wo, $tblUserReJoinsGroup);
+				if($res === FALSE) { return false; }
+			}	
+		}
+		//insert here
+		else {
+			$tblUserJoinsGroup = new VO_TblVoiceUserGroups();
+			$tblUserJoinsGroup->groupMembershipType = 'isMemberOf';
+			$tblUserJoinsGroup->isAdmin = '0';
+			$tblUserJoinsGroup->isActive = '1';
+			$tblUserJoinsGroup->voiceUserId = $userId;
+			$tblUserJoinsGroup->groupId = $groupId;
+			$tblUserJoinsGroup->isAllowedToPost = $requestedGroup['isOpenForPosts'];
+			
+			$res = self::saveJoin($wo, $tblUserJoinsGroup);
+			if($res === FALSE) { return false; }	
+		}
+	
+		return $res;
+	
+	}	// joinGroup
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $userId
+	 * @param id $groupId
+	 * @return false | id
+	 */
+	public static
+	function leaveGroup( WOOOF $wo, $userId, $groupId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  leaveGroup" );
+		
+		$requestedGroup = $wo->db->getRow('groups', $groupId);
+		if($requestedGroup === FALSE) { return false; }
+		if($requestedGroup === NULL) {
+			$wo->logError(self::_ECP."1376 No row with id [$groupId] found in groups table!");
+			return false;
+		}
+		
+		$tblVoiceUserGroups = new WOOOF_dataBaseTable($wo->db, 'voice_user_groups');
+		if(!$tblVoiceUserGroups->constructedOk) { return false; }
+		
+		$memberRec = $tblVoiceUserGroups->getResult(
+			[
+				'voiceUserId' => $userId,
+				'groupId'	  => $groupId
+			],
+			'fromDate',
+			'', '', '',
+			true, false
+		);
+		if ( $memberRec === FALSE ) { return false; }
+		
+		foreach ($tblVoiceUserGroups->resultRows as $aRow) {
+			$res = self::deleteJoin($wo, $aRow['id']);
+			if($res === FALSE) { return false; }
+		}
+		
+		return $res;
+	
+	}	// leaveGroup
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $requestorUserId
+	 * @param array $targetIds
+	 * @return false | array[ ]
+	 */
+	public static
+	function getMembershipInfo( WOOOF $wo, $requestorUserId, $targetIds )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  $requestorUserId" );
+	
+		if(!$wo->hasContent($requestorUserId)) {
+			$wo->logError(self::_ECP."2285 You must provide a [requestorUserId]");
+			return false;
+		}
+	
+		if(!$wo->hasContent($targetIds)) {
+			$wo->logError(self::_ECP."2286 You must provide [targetIds]");
+			return false;
+		}
+	
+		$voiceUserGroupStats = new WOOOF_dataBaseTable($wo->db, 'voice_user_groups');
+		if ( !$voiceUserGroupStats->constructedOk ) { return false; }
+	
+		$voiceUserBookmarkStats = new WOOOF_dataBaseTable($wo->db, 'voice_user_bookmarks');
+		if ( !$voiceUserBookmarkStats->constructedOk ) { return false; }
+		
+		$statuses = [];
+	
+		foreach ($targetIds as $aTarget) {
+			$status = [];
+				
+			// BUILD membership status array
+				
+			// Check if the requestor is member of the target group
+			$member = $voiceUserGroupStats->getResult(
+				[
+					'voiceUserId' => $requestorUserId,
+					'groupId'	  => $aTarget,
+					'isActive'	  => '1'
+				],
+				'', '', '', '', false, true
+			);
+				
+			if ( $member === FALSE ) { return false; }
+				
+			$requestorIsMemberOfTarget = $member['totalRows'] != 0;
+			
+			if($requestorIsMemberOfTarget) {
+				// Then check if the member is admin
+				foreach( $voiceUserGroupStats->resultRows as &$aRow ) {
+					if($aRow['isAdmin'] === '1') {
+						$requestorIsAdmin = 1;
+					}
+					else {
+						$requestorIsAdmin = 0;
+					}
+				}
+			}
+				
+			//requestor is not a member of the group
+			if(!$requestorIsMemberOfTarget) {
+				$status['memberStatus'] = 'N';
+				$status['membershipLink'] = 'api/groups/joinGroup/'.$requestorUserId.'/'.$aTarget;
+			}
+				
+			//requestor is a member but not the admin
+			else if($requestorIsMemberOfTarget && !$requestorIsAdmin) {
+				$status['memberStatus'] = 'Y';
+				$status['membershipLink'] = 'api/groups/leaveGroup/'.$requestorUserId.'/'.$aTarget;
+			}
+				
+			//target is a member and the admin
+			else if($requestorIsMemberOfTarget && $requestorIsAdmin) {
+				$status['memberStatus'] = 'A';
+				$status['membershipLink'] = 'api/groups/leaveGroup/'.$requestorUserId.'/'.$aTarget;
+			}
+			
+			// BUILD bookmarkStatus array
+			
+			// First check if the requestor has already bookmarked the target group
+			$bookmarker = $voiceUserBookmarkStats->getResult(
+				[
+					'voiceUserId' => $requestorUserId,
+					'thisId'	=> $aTarget
+				],
+				'', '', '', '', false, true
+			);
+			
+			if ( $bookmarker === FALSE ) { return false; }
+			
+			$requestorBookmarksTarget = $bookmarker['totalRows'] != 0;
+			
+			//no bookmark
+			if(!$requestorBookmarksTarget) {
+				$status['bookmarkStatus'] = 'N';
+				$status['bookmarkLink'] = 'api/social/bookmarkUser/'.$aTarget;
+			}
+			
+			//bookmarked group already
+			else {
+				$status['bookmarkStatus'] = 'Y';
+				$status['bookmarkLink'] = 'api/social/unBookmarkUser/'.$aTarget;
+			}
+				
+			$status['targetId'] = $aTarget;
+			$statuses[$aTarget] = $status;
+		}
+	
+		return $statuses;
+	} //getMembershipInfo
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static
+	function search( WOOOF $wo, $input, $type, $matchMode='STD', $data='FULL', $maxRows=300 )
+	{
+		$maxRows = (int) $maxRows;
+	
+		$delimiters =  ' .,-';
+		$tok = strtok($input, $delimiters);
+		$searchFT = '';
+		while ($tok !== false) {
+			$searchFT .= '+'.$tok.'* ';
+			$tok = strtok($delimiters);
+		}
+	
+		$sql =  "select id, title, avatarImg ";
+		$sql .=	"from groups ";
+		$sql .= "where match(title) against('{$searchFT}' IN BOOLEAN MODE) and groupType='$type' and isDeleted='0' and isActive='1' ";
+		$sql .= "order by title ";
+		$sql .= "limit $maxRows";
+	
+		$res = $wo->db->getResultByQuery($sql, true, false);
+		if ( $res === FALSE ) { return FALSE; }
+	
+		$res = $wo->db->resultRows;
+	
+		$out = [];
+		foreach( $res as $aRes ) {
+			$out[] = [
+				'value' => $aRes['id'],
+				'label' => $aRes['title'],
+				'avatarImg' => $aRes['avatarImg']
+			];
+		}
+	
+		return $out;
+	}	// search
+	
+}	// VO_Groups

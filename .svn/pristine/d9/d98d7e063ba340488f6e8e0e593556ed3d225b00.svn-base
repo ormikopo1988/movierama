@@ -1,0 +1,36 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+
+import DashboardComp from './DashboardComp';
+var RB = require('react-bootstrap');
+
+export default React.createClass({ //DashboardModalComp
+
+	getInitialState() {
+		return { showModal: false };
+	},
+
+	close() {
+		this.setState({ showModal: false });
+	},
+
+	open() {
+		this.setState({ showModal: true });
+	},
+
+	render() {
+		//let popover = <Popover title="popover">very popover. such engagement</Popover>;
+		//let tooltip = <Tooltip>wow.</Tooltip>;
+
+		return (
+			<span>
+				<a href="#" onClick={this.open}>Dashboard</a>
+			    <RB.Modal show={this.state.showModal} onHide={this.close} bsSize="lg" >
+			    	<RB.Modal.Body>
+						<DashboardComp userData={this.props.userData} />
+			    	</RB.Modal.Body>
+		    	</RB.Modal>
+		    </span>
+		);
+	}
+});

@@ -1,0 +1,1356 @@
+<?php
+
+class VO_CtrlSocial {
+	const _ECP = 'CSO';	// Error Code Prefix
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in 
+	 * @return false | [ 'flagItemOk' => bool, 'flagItemRecType' => string, 'errors' => array ]
+	 */
+	public static
+	function flagItem( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if( !$wo->hasContent($in['whatId']) ) {
+			$wo->logError(self::_ECP."4196 You must provide an object ID to report!");
+			return false;
+		}
+	
+		if( !$wo->hasContent($in['whatType']) ) {
+			$wo->logError(self::_ECP."4197 You must provide an target type to report!");
+			return false;
+		}
+		
+		if( !$wo->hasContent($in['flagText']) ) {
+			$wo->logError(self::_ECP."4198 You must provide flag text!");
+			return false;
+		}
+	
+		$res = VO_FlagItem::saveFlagItem($wo, $wo->app->userId, $in);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'flagItemOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'flagItemOk'	  => true,
+				'flagItemRecType' => $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	
+	}	// flagItem
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $objectId (object id to bookmark)
+	 * @return false | [ 'bookmarkOk' => bool, 'bookmarkingRecId' => id, 'errors' => array ]
+	 */
+	public static
+	function bookmark( WOOOF $wo, $targetType, $objectId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if( !$wo->hasContent($objectId) ) {
+			$wo->logError(self::_ECP."4102 You must provide an object ID to bookmark!");
+			return false;
+		}
+	
+		if( !$wo->hasContent($targetType) ) {
+			$wo->logError(self::_ECP."4103 You must provide an targetType ID to bookmark!");
+			return false;
+		}
+	
+		$res =  VO_Social::userBookmarks($wo, $wo->app->userId, $objectId, $targetType);
+		
+		if ( $res === FALSE ) {
+			$out = [
+					'bookmarkOk' => false,
+					'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+		
+		else {
+			$out = [
+					'bookmarkOk'			=> true,
+					'bookmarkingRecType'	=> $res
+			];
+			$wo->db->commit();
+		}
+		
+		return $out;
+		
+	}	// bookmark
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $objectId (object id to bookmark)
+	 * @return false | [ 'bookmarkOk' => bool, 'bookmarkingRecId' => id, 'errors' => array ]
+	 */
+	public static
+	function unBookmark( WOOOF $wo, $bookmarkId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if( !$wo->hasContent($bookmarkId) ) {
+			$wo->logError(self::_ECP."4112 You must provide an [bookmarkId] to remove!");
+			return false;
+		}
+		
+		$res = VO_Social::deleteUserBookmark($wo, $bookmarkId);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'unBookmarkOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'unBookmarkOk'			=> true,
+				'unBookmarkingRecType'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	
+	}	// unBookmark
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $objectId (object id to bookmark)
+	 * @return false | [ 'bookmarkOk' => bool, 'bookmarkingRecId' => id, 'errors' => array ]
+	 */
+	/*
+	public static
+	function bookmarkUser( WOOOF $wo, $objectId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if( !$wo->hasContent($objectId) ) {
+			$wo->logError(self::_ECP."4102 You must provide an object ID to bookmark!");
+			return false;
+		}
+	
+		$targetType='';
+		$voiceUser = $wo->db->getRow('voice_users', $objectId); //fernei olo to row
+		if($voiceUser === FALSE) { return false; }
+		if($voiceUser !== NULL) {
+			$targetType = 'PRS';
+		}
+	
+		$voiceOrg = $wo->db->getRow('organisations', $objectId); //fernei olo to row
+		if($voiceOrg === FALSE) { return false; }
+		if($voiceOrg !== NULL) {
+			$targetType = 'ORG';
+		}
+		
+		$voiceIdea = $wo->db->getRow('ideas', $objectId); //fernei olo to row
+		if($voiceIdea === FALSE) { return false; }
+		if($voiceIdea !== NULL) {
+			$targetType = 'IDE';
+		}
+		
+		$voiceGroup = $wo->db->getRow('groups', $objectId); //fernei olo to row
+		if($voiceGroup === FALSE) { return false; }
+		if($voiceGroup !== NULL) {
+			$targetType = $voiceGroup['groupType'];
+		}
+	
+		$res =  VO_Social::userBookmarks($wo, $wo->app->userId, $objectId, $targetType);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'bookmarkOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'bookmarkOk'			=> true,
+				'bookmarkingRecType'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// bookmarkUser
+	*/
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $objectId (object Id to unbookmark)
+	 * @return [ 'unBookmarkOk' => bool, 'unBookmarkingRecId' => id, 'errors' => array ]
+	 */
+	/*
+	public static
+	function unBookmarkUser( WOOOF $wo, $objectId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if( !$wo->hasContent($objectId) ) {
+			$wo->logError(self::_ECP."4103 You must provide an object ID to unbookmark!");
+			return false;
+		}
+	
+		$res =  VO_Social::userUnBookmarks($wo, $wo->app->userId, $objectId);
+		
+		if ( $res === FALSE ) {
+			$out = [
+				'unBookmarkOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'unBookmarkOk'			=> true,
+				'unBookmarkingRecType'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// unBookmarkUser
+	*/
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param id $userId (userId to follow)
+	 * @return false | [ 'followOk' => bool, 'followingRecId' => id, 'errors' => array ]
+	 */
+	public static 
+	function followUser( WOOOF $wo, $userId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if( !$wo->hasContent($userId) ) {
+			$wo->logError(self::_ECP."2102 You must provide a user ID to follow!");
+			return false;
+		}
+		
+		$targetType='';
+		$voiceUser = $wo->db->getRow('voice_users', $userId); //fernei olo to row
+		if($voiceUser === FALSE) { return false; }
+		if($voiceUser !== NULL) {
+			$targetType = 'PRS';
+		}
+		
+		$voiceOrg = $wo->db->getRow('organisations', $userId); //fernei olo to row
+		if($voiceOrg === FALSE) { return false; }
+		if($voiceOrg !== NULL) {
+			$targetType = 'ORG';
+		}
+		
+		$voiceIdea = $wo->db->getRow('ideas', $userId); //fernei olo to row
+		if($voiceIdea === FALSE) { return false; }
+		if($voiceIdea !== NULL) {
+			$targetType = 'IDE';
+		}
+		
+		$res =  VO_Social::userFollows($wo, $wo->app->userId, $userId, $targetType);
+		
+		if ( $res === FALSE ) {
+			$out = [
+				'followOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+		
+		else {
+			$out = [
+				'followOk'			=> true,
+				'followingRecId'	=> $res
+			];
+			$wo->db->commit();
+		}
+		
+		return $out;
+	}	// followUser
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $userId (userId to unfollow)
+	 * @return [ 'unFollowOk' => bool, 'unFollowingRecId' => id, 'errors' => array ]
+	 */
+	public static
+	function unFollowUser( WOOOF $wo, $userId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if( !$wo->hasContent($userId) ) {
+			$wo->logError(self::_ECP."2103 You must provide a user ID to unfollow!");
+			return false;
+		}
+	
+		$res =  VO_Social::userUnFollows($wo, $wo->app->userId, $userId);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'unFollowOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'unFollowOk'			=> true,
+				'unFollowingRecId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// unFollowUser
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $userId (userId to request friendship)
+	 * @return [ 'requestOk' => bool, 'requestId' => id, 'errors' => array ]
+	 */
+	public static
+	function requestFriendship( WOOOF $wo, $userId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if( !$wo->hasContent($userId) ) {
+			$wo->logError(self::_ECP."2104 You must provide a user ID to request friendship from!");
+			return false;
+		}
+	
+		$res =  VO_Social::userRequestFriendShip($wo, $wo->app->userId, $userId);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'requestOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'requestOk'			=> true,
+				'requestId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// requestFriendship
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $in ($in['requestId'] -> id of friend request, $in['status'] -> reply to the request)
+	 * @return [ 'requestAnsweredOk' => bool, 'requestAnsweredId' => id, 'errors' => array ]
+	 */
+	public static
+	function answerFriendship( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if( !$wo->hasContentArrayEntry($in, 'requestId' ) ) {
+			$wo->logError(self::_ECP."2105 You must provide a request ID to answer!");
+			return false;
+		}
+		
+		if( !$wo->hasContentArrayEntry($in, 'status' ) ) {
+			$wo->logError(self::_ECP."2106 You must provide an answer to the friend request!");
+			return false;
+		}
+	
+		$res =  VO_Social::userAnswerFriendShip($wo, $in['requestId'], $in['status']);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'requestAnsweredOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'requestAnsweredOk'	=> true,
+				'requestAnsweredId'	=> $res
+			];
+			$wo->db->commit();
+		}
+		
+		return $out;
+	}	// answerFriendship
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $userId (id of user to delete the friendship you have with)
+	 * @return [ 'friendshipDeletedOk' => bool, 'friendshipDeletedId' => id, 'errors' => array ]
+	 */
+	public static
+	function deleteFriendship( WOOOF $wo, $userId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if( !$wo->hasContent($userId) ) {
+			$wo->logError(self::_ECP."2107 You must provide a user ID to delete friendship with!");
+			return false;
+		}
+	
+		$res =  VO_Social::userDeleteFriendShip($wo, $wo->app->userId, $userId);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'friendshipDeletedOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'friendshipDeletedOk'	=> true,
+				'friendshipDeletedId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// deleteFriendship
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $requestorUserId (id of user that requested to see his/her connections with others)
+	 * @param array $targetIds (ids of users to see the connection status)
+	 * @return [ 'getConnectionsOk' => bool, 'errors' => array ]
+	 */
+	public static
+	function connectionInfo( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$res =  VO_Social::getConnectionInfo($wo, $in['requestorId'], $in['targetIds']);
+		
+		if ( $res === FALSE ) {
+			$out = [
+				'getConnectionsOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'getConnectionsOk'	=> true,
+				'getConnections'	=> array_values($res)
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// connectionInfo
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $requestId (id of request to reset)
+	 * @param array $targetIds (ids of users to see the connection status)
+	 * @return [ 'getConnectionsOk' => bool, 'errors' => array ]
+	 */
+	public static
+	function deleteUserFriendRequests( WOOOF $wo, $requestId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$res =  VO_Social::deleteUserFriendRequests($wo, $requestId);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'resetFriendRequestOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'resetFriendRequestOk'	=> true,
+				'resetFriendRequestId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// deleteUserFriendRequests
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function userBookmarks( WOOOF $wo, $userId ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE User Bookmarks Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$bookmarks = VO_Social::getBookmarks($wo);
+		if($bookmarks === FALSE) { die('Failed to get Bookmarks List'); }
+		
+		$targetIds = [];
+		
+		foreach ($bookmarks as $bookmark) {
+			$targetIds[] = $bookmark['thisId'].'_'.$bookmark['targetType'];
+		}
+		
+		$targetUserIds = [];
+		$targetOrgIds  = [];
+		$targetDisGroupIds = [];
+		$targetTeaGroupIds = [];
+		$targetOwnGroupIds = [];
+		$targetIdeaIds = [];
+		$targetContentIds = [];
+		
+		foreach ($targetIds as $aId) {
+			$target = explode('_', $aId);
+			if($target[1] === 'PRS') {
+				$targetUserIds[] = $target[0];
+			}
+			else if($target[1] === 'ORG') {
+				$targetOrgIds[] = $target[0];
+			}
+			else if($target[1] === 'DIS') {
+				$targetDisGroupIds[] = $target[0];
+			}
+			else if($target[1] === 'TEA') {
+				$targetTeaGroupIds[] = $target[0];
+			}
+			else if($target[1] === 'IDE') {
+				$targetIdeaIds[] = $target[0];
+			}
+			else if($target[1] === 'CNT') {
+				$targetContentIds[] = $target[0];
+			}
+		}
+		
+		$userList = [];
+		$orgList = [];
+		$discGroupList = [];
+		$teamGroupList = [];
+		$ideaList = [];
+		$contentList = [];
+		
+		if(count($targetUserIds) !== 0) {
+			$userList = VO_Users::getUsers($wo, $wo->app->userId, $targetUserIds);
+			if($userList === FALSE) { die('Failed to get User List'); }
+				
+			if($userList === 0) {
+					
+			}
+		}
+		
+		if(count($targetOrgIds) !== 0) {
+			$orgList = VO_Organisations::getOrgs($wo, $wo->app->userId, $targetOrgIds);
+			if($orgList === FALSE) { die('Failed to get Org List'); }
+		
+			if($orgList === 0) {
+					
+			}
+		}
+		
+		if(count($targetDisGroupIds) !== 0) {
+			$discGroupList = VO_Groups::getGroups($wo, $targetDisGroupIds, 'DIS');
+			if($discGroupList === FALSE) { die('Failed to get Discussion Group List'); }
+		
+			if($discGroupList === 0) {
+					
+			}
+		}
+		
+		if(count($targetTeaGroupIds) !== 0) {
+			$teamGroupList = VO_Groups::getGroups($wo, $targetTeaGroupIds, 'TEA');
+			if($teamGroupList === FALSE) { die('Failed to get Team Group List'); }
+		
+			if($teamGroupList === 0) {
+					
+			}
+		}
+		
+		if(count($targetIdeaIds) !== 0) {
+			$ideaList = VO_Ideas::getIdeas($wo, $targetIdeaIds, $userId);
+			if($ideaList === FALSE) { die('Failed to get Idea List'); }
+		
+			if($ideaList === 0) {
+					
+			}
+		}
+		
+		$list = array_merge($userList, $orgList, $discGroupList, $teamGroupList, $ideaList);
+		if($userList === 0 && $orgList === 0 && $discGroupList === 0 && $teamGroupList === 0 && $ideaList === 0) {
+			return [];
+		}
+		
+		$list = json_encode( $list );
+	
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var list = $list;
+			ReactDOM.render(
+				React.createElement(
+					ObjectsList,
+					{ data: list, title: 'Bookmarks List' }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+	;
+	
+	$tpl = array(
+			'browserTitle'	=> $browserTitle,
+			'content' 		=> $content,
+			'errorMessage'	=> '',
+			'message'		=> '',
+	);
+	
+	
+	$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//userBookmarks
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function userFollowers( WOOOF $wo, $userId ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE User Followers Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$followers = VO_Social::getFollowers($wo, $userId);
+		if($followers === FALSE) { die('Failed to get Followers List'); }
+
+		if($followers === NULL) {
+			$targetIds = [];
+		}
+		
+		foreach ($followers as $follower) {
+			$targetIds[] = $follower['followsId'];
+		}
+	
+		$list = VO_Users::getUsers($wo, $wo->app->userId, $targetIds);
+		if($list === FALSE) { die('Failed to get User List'); }
+		
+		if($list === 0) {
+			
+		}
+	
+		else {
+			$list = json_encode( $list );
+		}
+	
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var list = $list;
+			ReactDOM.render(
+				React.createElement(
+					ObjectsList,
+					{ data: list, title: 'Followers List', isType: 'PRS',
+					autocompleteUrl: 'users', viewUrl: 'profile/view' }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+	;
+	
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+	
+	
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//userFollowers
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function userFollowings( WOOOF $wo, $userId ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE User Followings Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$followings = VO_Social::getFollowings($wo, $userId);
+		if($followings === FALSE) { die('Failed to get Followings List'); }
+	
+		$targetIds = [];
+	
+		foreach ($followings as $following) {
+			$targetIds[] = $following['thisId'].'_'.$following['targetType'];
+		}
+		
+		$targetUserIds = [];
+		$targetOrgIds  = [];
+		$targetIdeaIds = [];
+		
+		foreach ($targetIds as $aId) {
+			$target = explode('_', $aId);
+			if($target[1] === 'PRS') {
+				$targetUserIds[] = $target[0];
+			}
+			else if($target[1] === 'ORG') {
+				$targetOrgIds[] = $target[0];
+			}
+			else if($target[1] === 'IDE') {
+				$targetIdeaIds[] = $target[0];
+			}
+		}
+	
+		$userList = [];
+		$orgList = [];
+		$ideaList = [];
+		
+		if(count($targetUserIds) !== 0) {
+			$userList = VO_Users::getUsers($wo, $wo->app->userId, $targetUserIds);
+			if($userList === FALSE) { die('Failed to get User List'); }
+			
+			if($userList === 0) {
+					
+			}
+		}
+		
+		if(count($targetOrgIds) !== 0) {
+			$orgList = VO_Organisations::getOrgs($wo, $wo->app->userId, $targetOrgIds);
+			if($orgList === FALSE) { die('Failed to get Org List'); }
+				
+			if($orgList === 0) {
+					
+			}
+		}
+		
+		if(count($targetIdeaIds) !== 0) {
+			$ideaList = VO_Ideas::getIdeas($wo, $targetIdeaIds, $wo->app->userId);
+			if($ideaList === FALSE) { die('Failed to get Org List'); }
+		
+			if($ideaList === 0) {
+					
+			}
+		}
+		
+		$list = array_merge($userList, $orgList, $ideaList);
+		if($userList === 0 && $orgList === 0 && $ideaList === 0) {
+			return [];
+		}
+		
+		$list = json_encode( $list );
+		
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var list = $list;
+			ReactDOM.render(
+				React.createElement(
+					ObjectsList,
+					{ data: list, title: 'Followings List', isType: 'PRS',
+					autocompleteUrl: 'users', viewUrl: 'profile/view' }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+	;
+		
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+	
+	
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//userFollowings
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function userPeers( WOOOF $wo, $userId ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE User Peers Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$peers = VO_Social::getPeers($wo, $userId);
+		if($peers === FALSE) { die('Failed to get Peers List'); }
+		
+		if($peers === NULL) {
+			$targetIds = [];
+		}
+	
+		foreach ($peers as $peer) {
+			$targetIds[] = $peer['thisId'];
+		}
+	
+		$list = VO_Users::getUsers($wo, $wo->app->userId, $targetIds);
+		if($list === FALSE) { die('Failed to get User List'); }
+	
+		if($list === 0) {
+			
+		}
+	
+		else {
+			$list = json_encode( $list );
+		}
+	
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var list = $list;
+			ReactDOM.render(
+				React.createElement(
+					ObjectsList,
+					{ data: list, title: 'Peers List', isType: 'PRS',
+					autocompleteUrl: 'users', viewUrl: 'profile/view' }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+	;
+	
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+	
+	
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//userPeers
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function userFriends( WOOOF $wo, $userId ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE User Friends Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$friends = VO_Social::getFriends($wo, $userId);
+		if($friends === FALSE) { die('Failed to get Friends List'); }
+		
+		$targetIds = [];
+	
+		foreach ($friends as $friend) {
+			if($friend['thisId'] === $userId) 
+				$targetIds[] = $friend['isFriendsWithId'];
+			else if($friend['thisId'] !== $userId) {
+				$targetIds[] = $friend['thisId'];
+			}
+		}
+	
+		$list = VO_Users::getUsers($wo, $wo->app->userId, $targetIds);
+		if($list === FALSE) { die('Failed to get User List'); }
+	
+		if($list === 0) {
+			
+		}
+	
+		else {
+			$list = json_encode( $list );
+		}
+	
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var list = $list;
+			ReactDOM.render(
+				React.createElement(
+					ObjectsList,
+					{ data: list, title: 'Friends List', isType: 'PRS',
+					autocompleteUrl: 'users', viewUrl: 'profile/view' }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+	;
+	
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+	
+	
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//userFriends
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function userFriendRequests( WOOOF $wo, $userId ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE User Friend Requests Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		$targetIds = [];
+		
+		$friendRequests = VO_Social::getFriendRequests($wo, $userId);
+		
+		if($friendRequests === FALSE) { die('Failed to get Friend Requests List'); }
+	
+		if($friendRequests === NULL) {
+			$targetIds = [];
+		}
+	
+		foreach ($friendRequests as $request) {
+			if($request['toUserId'] === $userId)
+				$targetIds[] = $request['fromUserId'];
+				else if($request['toUserId'] !== $userId) {
+					$targetIds[] = $request['toUserId'];
+				}
+		}
+	
+		$list = VO_Users::getUsers($wo, $wo->app->userId, $targetIds);
+		if($list === FALSE) { die('Failed to get User List'); }
+	
+		if($list === 0) {
+				
+		}
+	
+		else {
+			$list = json_encode( $list );
+		}
+	
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var list = $list;
+			ReactDOM.render(
+				React.createElement(
+					ObjectsList,
+					{ data: list, title: 'Friend Requests List', isType: 'PRS',
+					autocompleteUrl: 'users', viewUrl: 'profile/view' }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+	;
+	
+	$tpl = array(
+			'browserTitle'	=> $browserTitle,
+			'content' 		=> $content,
+			'errorMessage'	=> '',
+			'message'		=> '',
+	);
+	
+	
+	$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}
+
+	//getTimeline
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function getTimeline( WOOOF $wo, $postBoxId, $isApiCall, $limitFrom=0) 
+	{
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		//TBD ->
+		$browserTitle='VOICE Timeline Page';
+
+		//TODO: Check security !!
+	
+		$lookUps['POST_PRIVACY_CHOICES'] = WOOOF_Domains::getDomainValues($wo,'POST_PRIVACY_CHOICES','VIS');
+		if ($lookUps===FALSE) {	return FALSE; }
+
+		$data = VO_PostBox::getBoxPosts($wo, $postBoxId, 'POS_entryDate desc', $limitFrom);
+		if ($data===FALSE) { return FALSE; }
+
+		if ($isApiCall)
+		{
+			return ['data' => $data, 'lookUps' => $lookUps];
+		}else
+		{
+			$data = json_encode($data);
+			$lookUps = json_encode($lookUps);
+			$content = "
+			<div id='content-main'></div>
+
+			<script>
+	        	var data = $data;
+	        	var lookUps = $lookUps; 
+	        	
+	        	ReactDOM.render(
+	        		React.createElement(
+	        			PostBox, 
+	        			{ data: { postBoxId: '$postBoxId' }, lookUps: lookUps }
+	        		), 
+	        		document.getElementById('content-main')
+	        	);
+			</script>
+			";
+
+			$tpl = array(
+					'browserTitle'	=> $browserTitle,
+					'content' 		=> $content,
+					'errorMessage'	=> '',
+					'message'		=> '',
+			);
+			
+			$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+		}
+	
+	}//getTimeline
+
+	//getPost
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function getPost(WOOOF $wo, $postId)
+	{
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$data = VO_PostBox::fetchPostData($wo, $postId);
+		if ($data===FALSE)
+		{
+			return FALSE;
+		}
+
+		$browserTitle=$data['POS_title'];
+		$data = json_encode($data);
+
+		$content = "
+			<div id='content-main'></div>
+
+			<script>
+	        	var data = $data;
+	
+	        	ReactDOM.render(
+	        		React.createElement(
+	        			Post, 
+	        			{ 'data': data }
+	        		), 
+	        		document.getElementById('content-main')
+	        	);
+			</script>
+			";
+
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	}
+
+	//getPrivateConversations
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function getPrivateConversations(WOOOF $wo)
+	{
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$data = VO_PostBox::getPrivateConversations($wo);
+		if ($data===FALSE)
+		{
+			return FALSE;
+		}
+
+		$browserTitle='Personal Messages';
+		$data = json_encode($data);
+
+		$content = "
+			<div id='content-main'></div>
+
+			<script>
+	        	var data = $data;
+	
+	        	ReactDOM.render(
+	        		React.createElement(
+	        			PersonalMessageExchanges, 
+	        			{ 'data': data }
+	        		), 
+	        		document.getElementById('content-main')
+	        	);
+			</script>
+			";
+
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	}
+
+	//getMessages
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function getPrivateMessages(WOOOF $wo, $recipientId)
+	{
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$data = VO_PostBox::getPrivateMessages($wo, $recipientId);
+		if ($data===FALSE)
+		{
+			return FALSE;
+		}
+
+		$browserTitle='Private Conversation';
+		$data = json_encode($data);
+
+		$content = "
+			<div id='content-main'></div>
+
+			<script>
+	        	var data = $data;
+	
+	        	ReactDOM.render(
+	        		React.createElement(
+	        			PersonalExchangeView, 
+	        			{ 'data': data }
+	        		), 
+	        		document.getElementById('content-main')
+	        	);
+			</script>
+			";
+
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	}
+
+}	// VO_CtrlSocial

@@ -1,0 +1,589 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import $ from 'jquery';
+var moment = require('moment');
+var RB = require('react-bootstrap');
+
+import SocialActionsComp from './SocialActionsComp';
+import BookmarkComp from './BookmarkComp';
+import ProfileCompletenessComp from './ProfileCompletenessComp';
+
+import InvitationComp from './InvitationComp';
+
+export default React.createClass({ //ProfileView
+  componentWillMount: function() {
+  	VOICE.ajaxCall(VOICE.linkPrefix('api/badges/computeBadges/'+this.props.data.main.voiceUserId), 'GET', {}, this, this.cbHandleComputeBadges);
+  },
+
+  cbHandleComputeBadges: function(result) {
+  	VOICE.ajaxCall(VOICE.linkPrefix('api/badges/getUserBadges/'+this.props.data.main.voiceUserId), 'GET', {}, this, this.cbHandleGetBadges);
+  },
+
+  cbHandleGetBadges: function(result) {
+  	console.log('GET USER BADGES RESULT: ', result);
+  	this.setState({
+		badges: result
+	});
+  },
+
+  getInitialState: function() {
+  	console.log('PROFILE VIEW DATA: ',this.props.data);
+  	
+    return {
+		data: {
+    	   main : {
+    	   	'main'    				  : this.props.data.main,
+    	   	'org'     				  : this.props.data.ORG_shortName,
+    	   	'orgName' 				  : this.props.data.ORG_name,
+    	   	'orgId'   				  : this.props.data.ORG_id,
+    	   	'profileCompleteness'	  : this.props.data.profileCompleteness,
+    	   	'stats'				 	  : this.props.data.stats
+    	   },
+    	   badges: this.props.data.badges,
+    	   addresses : this.props.data.addresses,
+    	   education: this.props.data.educations,
+    	   skills: this.props.data.skills,
+    	   experience : this.props.data.experiences,
+    	   socialAccounts: this.props.data.socialAccounts,
+    	   connections: this.props.data.connections[0]
+		}
+    };
+  },
+  
+  render: function() { //function that returns a tree of React components that will eventually render to HTML
+  	console.log('THIS STATE BADGES: ', this.state.badges);
+    return (
+      <div className="profileBox">
+      	<Badges data={this.props.data.badges} />
+      	<Main data={this.state.data} />
+      </div>
+    );
+  }
+  
+});
+
+var Badges = React.createClass({
+	getInitialState: function() {
+		console.log('BADGES VIEW: ', this.props.data);
+		return {
+			badgeView: this.props.data
+		};
+	},
+
+	render: function() {
+		var badgeView = this.state.badgeView;
+		
+		if(this.state.badgeView) {
+			var badges=[];
+			for(var i=0; i<badgeView.length; i++) {
+
+				var badgeStyle;
+				switch(badgeView[i].badgeLevel) {
+					case '3': // bronze
+						badgeStyle = {
+							backgroundColor: '#CD7F32'
+						}
+						break;
+					case '2': // silver
+						badgeStyle = {
+							backgroundColor: '#C0C0C0'
+						}
+						break;
+					case '1': // gold
+						badgeStyle = {
+							backgroundColor: '#ffd700'
+						}
+						break;
+				}
+
+				badges.push(
+					<div className="col-sm-4 col-md-3 col-lg-3">
+						<div style={badgeStyle} className="badge_container">
+						    <strong>{badgeView[i].badgeName.toUpperCase()}</strong>
+						    <div><small>for {badgeView[i].badgeStatisticType}</small></div>
+						</div>
+					</div>
+				);
+			}
+		}
+		
+		return (
+			<div className="container">
+				<div className="panel panel-default">
+					<div className="panel-heading">
+						<i className="fa fa-certificate"></i> Badges
+					</div>
+					<div className="panel-body">	
+						<div className="row">
+							{badges}
+						</div>
+					</div>
+				</div>
+			</div>
+		);
+	}
+});
+
+var Main = React.createClass({
+  getInitialState: function() {
+  	console.log(this.props.data.main)
+    return {
+	  profileView: this.props.data
+    };
+  },
+
+  render: function() {
+	var mainView = this.state.profileView.main['main'];
+	var statsView = this.state.profileView.main['stats'];
+	var addressView = this.state.profileView.addresses;
+	var educationView = this.state.profileView.education;
+	var skillsView = this.state.profileView.skills;
+	var experienceView = this.state.profileView.experience;
+	var accountView = this.state.profileView.socialAccounts;
+	var connectionView = this.state.profileView.connections;
+
+	var word;
+	if(this.state.profileView.main['org'] !== 'Individual') {
+		word = 'for: ';
+	}
+	else {
+		word = 'As: ';
+	}
+
+	var avatarImg = mainView.avatarImgObject || '$profile_none.png';
+	var avatarURL = VOICE.imgPrefix(avatarImg);
+	var avatarDivStyle = {
+		backgroundImage: 'url(' + VOICE.imgPrefix(avatarImg, 'M') + ')'
+	};
+	
+	if(mainView.srvDesc) {
+		console.log('asasasa', mainView.srvDesc);
+		var services=[];
+		for(var i=0; i<mainView.srvDesc.length; i++) {
+			services.push(
+				<div className="endorse-item-name"><strong>{mainView.srvDesc[i]}</strong></div>
+			);
+		}
+	}
+	
+	return (
+		<div className="container">
+			<div className="well">	
+				<div className="row">
+					<div className="col-sm-3 col-md-3 col-lg-2">
+						<a href={avatarURL} target="_blank">
+							<div className="circle" style={avatarDivStyle}></div>
+						</a>
+					</div>
+			  		<div className="col-sm-6 col-md-6 col-lg-7 profile-name">
+			  			<h1>{mainView.firstName + ' ' + mainView.lastName}</h1>
+			  			<h3><i className="fa fa-registered smallFa"></i> Registered {word} { 
+								this.state.profileView.main['org'] !== 'Individual' ?
+								<a href={VOICE.linkPrefix('organisation/view/'+this.state.profileView.main['orgId'])}>{this.state.profileView.main['orgName']}</a> :
+								<span>{this.state.profileView.main['orgName']}</span>
+							}
+			  			</h3>
+			  			{
+			  				! mainView.isSelf  ? 
+			  					<span>
+			  						<SocialActionsComp targetType="PRS" connections={connectionView} userId={connectionView.targetId}></SocialActionsComp>
+			  						<BookmarkComp targetType="PRS" connections={connectionView} userId={connectionView.targetId}></BookmarkComp>
+			  					</span>
+								: null
+						}
+			  			{
+			  				mainView.isSelf ? 
+			  					<h4>
+			  						<br/>
+			  						<i className="fa fa-pencil"></i> <a href={VOICE.linkPrefix('profile/edit')}>Edit Profile</a><br/><br/>
+			  						<i className="fa fa-bookmark"></i> <a href={VOICE.linkPrefix('user/bookmarks')}>See Bookmarks</a>
+		  						</h4> 
+			  					: null
+			  			}
+		  			</div>
+		  			{	
+		  				mainView.isSelf  ?
+				  			<div className="col-sm-3 col-md-3 col-lg-3">
+				  				<h3>Profile Completeness</h3>
+				  				<ProfileCompletenessComp data={this.state.profileView.main['profileCompleteness']}></ProfileCompletenessComp><br/>
+				  				<i className="fa fa-chevron-right smallFa"></i> <a href={VOICE.linkPrefix('user/activityLog/'+mainView.voiceUserId)}>See Activity Log</a><br/><br/>
+				  				<i className="fa fa-bell smallFa"></i> <a href={VOICE.linkPrefix('user/notifications/'+mainView.voiceUserId)}>See Notifications</a>
+				  			</div> : null
+		  			}
+			  	</div>
+			  	<div className="row">
+			  		<br/>
+			  		<div className="col-sm-12 col-md-5 col-lg-6">
+				  		<div className="panel panel-default">
+		  					<div className="panel-heading"><i className="fa fa-server"></i> Services</div>
+		  					<div className="panel-body">
+		  						{services}
+							</div>
+						</div>
+						{
+							mainView.isSelf ?
+								<div className="col-sm-12 col-md-12 col-lg-12">
+									<div className="panel-default">
+					  					<div className="panel-heading"><i className="fa fa-envelope"></i> Invite People to Voice</div>
+					  					<div className="panel-body">
+					  						<InvitationComp textPlaceholder="Fill in emails..."></InvitationComp> 
+										</div>
+									</div>
+								</div>: null
+						}
+					</div>		
+		  			<div className="col-sm-12 col-md-6 col-lg-5 col-md-offset-1 col-lg-offset-1">
+		  				<i className="fa fa-share-alt"></i> <a href={VOICE.linkPrefix('users/followers/'+mainView.voiceUserId)}>Followers ({statsView.length !== 0 ? statsView[0].noOfFollowers : '0'})</a> | <a href={VOICE.linkPrefix('users/followings/'+mainView.voiceUserId)}>Followings ({statsView.length !== 0 ? statsView[0].noOfFollowings : '0'})</a> |  <a href={VOICE.linkPrefix('users/peers/'+mainView.voiceUserId)}>Peers</a> | <a href={VOICE.linkPrefix('users/friends/'+mainView.voiceUserId)}>Friends ({statsView.length !== 0 ? statsView[0].noOfFriends : '0'})</a><br/><br/>
+			  			<i className="fa fa-users"></i> <a href={VOICE.linkPrefix('user/discussionGroups/'+mainView.voiceUserId)}>Discussion Groups ({statsView.length !== 0 ? statsView[0].noOfDGs : '0'})</a> | <a href={VOICE.linkPrefix('user/teamGroups/'+mainView.voiceUserId)}>Team Groups ({statsView.length !== 0 ? statsView[0].noOfTeams : '0'})</a><br/><br/>
+			  			<i className="fa fa-comment"></i> <a href={VOICE.linkPrefix('timeline/'+mainView.postBoxId)}>See Timeline </a><br/><br/>
+			  			{	
+			  				mainView.isSelf  ?
+			  					<span>
+			  						<i className="fa fa-user-plus"></i> <a href={VOICE.linkPrefix('users/friendRequests/'+mainView.voiceUserId)}>Friend Requests</a><br/><br/>
+			  						<i className="fa fa-object-group"></i> <a href={VOICE.linkPrefix('group/createForm')}>Create Group</a><br/><br/>
+			  						<i className="fa fa-lightbulb-o"></i> <a href={VOICE.linkPrefix('idea/createForm')}>Create Idea</a>
+			  					</span>: null
+		  				}
+		  			</div>
+			  	</div>
+		    </div>
+		    <hr/>
+		    <div className="row">
+		  		<SideBar data={mainView} stats={statsView} account={accountView}/>
+		    	<div className="col-sm-12 col-md-9 col-lg-8">
+		           <div className="row">
+			            <div className="panel panel-default">
+							<div className="panel-heading"><i className="fa fa-info-circle"></i> About</div>
+							<div className="panel-body">
+								<AboutMe data={mainView.shortDescription} />
+							</div>
+					    </div>
+				    </div>
+				    <div className="panel panel-default">
+				   		<div className="panel-heading">
+						    <ul className="nav nav-tabs" id="myTab">
+					             <li className="active"><a href="#addresses" data-toggle="tab">Addresses</a></li>
+					             <li><a href="#education" data-toggle="tab">Education</a></li>
+					             <li><a href="#skills" data-toggle="tab">Skills</a></li>
+					             <li><a href="#experience" data-toggle="tab">Experience</a></li>
+				            </ul>
+		            	</div>
+					    <div className="tab-content panel-body">
+				             <Addresses data={addressView}/>
+				             <Education data={educationView}/>
+				             <Skills data={skillsView}/>
+				             <Experience data={experienceView}/><br/>
+			            </div>
+		            </div>
+			 	 </div>
+			 </div>
+		</div>
+    );
+  }
+});
+
+var SideBar = React.createClass({
+	getInitialState: function() {
+		var data = this.props.data;
+		var account = this.props.account;
+		var stats = this.props.stats;
+		return {
+			data: data,
+			account: account,
+			stats: stats
+		}
+	},
+	
+	render: function() {
+		var data = this.state.data;
+		var account = this.state.account;
+
+		var stats = this.state.stats;
+		var lastLoginDateTime;
+		if(stats.length !== 0) {
+			lastLoginDateTime = moment.utc(stats[0].lastLoginDateTime, 'YYYYMMDDhhmmss').fromNow();
+		}
+
+		var cvFileURL = VOICE.filePrefix(data.cvFileObject.externalFileId);
+		console.log('STATS: ', stats)
+		var accounts = [];
+		for(var i=0; i<account.length; i++) {
+			var title = account[i].socialAccountDesc + ': ' + account[i].url;
+			{
+				(account[i].socialAccountDesc === 'Twitter' || account[i].socialAccountDesc === 'Facebook' || account[i].socialAccountDesc === 'LinkedIn') ? 
+					accounts.push(
+						<span>
+							<a title={title} href={account[i].url} target="_blank"><i className={account[i].socialAccountIcon}></i></a>
+						</span>
+					) : 
+				account[i].socialAccountDesc === 'GMail' ?
+					accounts.push(
+						<span>
+							<a title={title} href={'mailTo:'+account[i].url} target="_blank"><i className={account[i].socialAccountIcon}></i></a>
+						</span>
+					) :
+				account[i].socialAccountDesc === 'Mobile' ?
+					accounts.push(
+						<span>
+							<a title={title} href={'tel:'+account[i].url} target="_blank"><i className={account[i].socialAccountIcon}></i></a>
+						</span>
+					) :
+					accounts.push(
+						<span>
+							<a title={title} href={'tel:'+account[i].url} target="_blank"><i className={account[i].socialAccountIcon}></i></a>
+						</span>
+					)
+			}
+		}
+
+		return(
+		<div className="col-sm-12 col-md-3 col-lg-4">
+			<div className="panel panel-default">
+				<div className="panel-heading"><i className="fa fa-user"></i> Profile</div>
+				<div className="panel-body">
+					{(data.middleName !== '' && data.middleName !== undefined) ? <li className="list-group-item text-right"><span className="pull-left"><strong>Middle Name</strong></span> {data.middleName}</li> : null}
+					{(data.gender !== '' && data.gender !== '?') ? <li className="list-group-item text-right"><span className="pull-left"><strong>Gender</strong></span> {data.gender === 'M' ? <i className="fa fa-male"></i> : <i className="fa fa-female"></i> }</li> : null}
+					{data.birthYear > 0 ? <li className="list-group-item text-right"><span className="pull-left"><strong>Birth Year</strong></span> {data.birthYear}</li> : null}
+					{(data.title !== '' && data.title !== undefined) ? <li className="list-group-item text-right"><span className="pull-left"><strong>Title</strong></span> {data.personTitleDesc}</li> : null}
+					{data.cvFileObject.externalFileId ? <li className="list-group-item text-right"><span className="pull-left"><strong>CV File</strong></span> <a href={cvFileURL} target="_blank">{data.cvFileObject.originalFileName}</a></li> : null}
+				</div>
+			</div> 
+			<div className="panel panel-default">
+				<div className="panel-heading"><i className="fa fa-users"></i> Social Media - Contact</div>
+				<div className="panel-body">
+					<h3>{accounts}</h3>
+				</div>
+			</div>
+			<div className="panel panel-default">
+				<div className="panel-heading"><i className="fa fa-dashboard fa-1x"></i> User Statistics</div>
+				<div className="panel-body">
+					{
+						stats.length !== 0 ? 
+							<span><li className="list-group-item text-right">
+								<span className="pull-left">
+									<strong>Shares</strong>
+								</span> {stats[0].noOfShares}
+							</li>
+							<li className="list-group-item text-right">
+								<span className="pull-left">
+									<strong>Posts</strong>
+								</span> {stats[0].noOfPosts}
+							</li>
+							<li className="list-group-item text-right">
+								<span className="pull-left">
+									<strong>Last Login</strong>
+								</span> {lastLoginDateTime}
+							</li></span> : null
+					} 
+				</div>
+			</div> 
+		</div>
+		);
+	}
+});
+
+var Addresses = React.createClass({
+	getInitialState: function() {
+		var addresses = this.props.data.list;
+		//console.log(addresses);
+		return {
+			addresses: addresses
+		}
+	},
+	
+	render: function() {
+		var tds = [];
+		var addresses = this.state.addresses;
+		for(var i=0; i < addresses.length; i++ ) {
+			var fromYear = addresses[i].fromYear !== '0' ? addresses[i].fromYear : '';
+			var toYear = addresses[i].toYear !== '0' ? addresses[i].toYear : '';
+			tds.push(
+				<tr>
+					<td>{addresses[i].addressTypeDesc}</td>
+					<td>{addresses[i].addressText}</td>
+					<td>{addresses[i].areaText}</td>
+					<td>{fromYear}</td>
+					<td>{toYear}</td>
+				</tr>
+			);
+		}
+		return(
+			<div className="tab-pane active" id="addresses">
+			  <div className="table-responsive">
+			    <table className="table table-hover">
+			      <thead>
+			        <tr>
+			          <th>Address Type</th>
+			          <th>Address Text</th>
+			          <th>Area</th>
+			          <th>From Date</th>
+			          <th>To Date</th>
+			        </tr>
+			      </thead>
+			      <tbody id="items">
+			        {tds}
+			      </tbody>
+			    </table>
+			    {/*<div className="row">
+			      <div className="col-md-4 col-md-offset-4 text-center">
+			      	<ul className="pagination" id="myPager"></ul>
+			      </div>
+			    </div>*/}
+			  </div>
+			</div>
+		);
+	}
+});
+
+var AboutMe = React.createClass({
+	render: function() {
+		return (
+			<p><i>{this.props.data}</i></p> 
+		);
+	}
+});
+
+var Education = React.createClass({
+	getInitialState: function() {
+		var education = this.props.data;
+		return {
+			education: education
+		}
+	},
+	
+	render: function() {
+		//this.state.education -> take the education data passed
+		var tds = [];
+		var educations = this.state.education;
+		//console.log('Educations: ', educations);
+		for(var i=0; i < educations.length; i++ ) {
+			var fromYear = educations[i].fromYear !== '0' ? educations[i].fromYear : '';
+			var toYear = educations[i].toYear !== '0' ? educations[i].toYear : '';
+			tds.push(
+				<tr>
+					<td>{educations[i].degreeTypeDesc}</td>
+					<td>{educations[i].organisation}</td>
+					<td>{educations[i].title}</td>
+					<td>{fromYear}</td>
+					<td>{toYear}</td>
+				</tr>
+			);
+		}
+		return(
+			<div className="tab-pane" id="education">
+			  <div className="table-responsive">
+			    <table className="table table-hover">
+			      <thead>
+			        <tr>
+			          <th>Degree Type</th>
+			          <th>Organisation</th>
+			          <th>Title</th>
+			          <th>From Year</th>
+			          <th>To Year</th>
+			        </tr>
+			      </thead>
+			      <tbody id="items">
+			        {tds}
+			      </tbody>
+			    </table>
+			  </div>
+			</div>
+		);
+	}
+});
+
+var Skills = React.createClass({
+	getInitialState: function() {
+		var skills = this.props.data;
+		return {
+			skills: skills
+		}
+	},
+	
+	render: function() {
+		//console.log(this.state.skills);
+		var spans = [];
+		var styleClass = '';
+		for(var i=0; i<this.state.skills.length;i++) {
+			//console.log(this.state.skills[i].proficiency);
+			if(this.state.skills[i].proficiency === 'junior') {
+				styleClass = 'fa fa-battery-empty relFa';
+			}
+			else if(this.state.skills[i].proficiency === 'intermediate') {
+				styleClass = 'fa fa-battery-quarter relFa';
+			}
+			else if(this.state.skills[i].proficiency === 'midSenior') {
+				styleClass = 'fa fa-battery-half relFa';
+			}
+			else if(this.state.skills[i].proficiency === 'senior') {
+				styleClass = 'fa fa-battery-three-quarters relFa';
+			}
+			else if(this.state.skills[i].proficiency === 'Expert') {
+				styleClass = 'fa fa-battery-full relFa';
+			}
+			//console.log(styleClass);
+			spans.push(
+				<span className="endorse-item-name">
+					<i className={styleClass}></i> <span className="endorse-item-name-text"> {this.state.skills[i].name}</span>
+				</span>
+			);
+		}
+		return (
+			 <div className="tab-pane col-sm-12" id="skills">
+          	    {spans}
+             </div>
+		);
+	}
+});
+
+var Experience = React.createClass({
+	getInitialState: function() {
+		var experience = this.props.data;
+		return {
+			experience: experience
+		}
+	},
+	
+	render: function() {
+		var tds = [];
+		var experiences = this.state.experience;
+		//console.log('experiences: ', experiences);
+		for(var i=0; i < experiences.length; i++ ) {
+			var fromYear = experiences[i].fromYear !== '0' ? experiences[i].fromYear : '';
+			var toYear = experiences[i].toYear !== '0' ? experiences[i].toYear : '';
+			tds.push(
+				<tr>
+					<td>{experiences[i].relation}</td>
+					<td>{experiences[i].position}</td>
+					<td>{fromYear}</td>
+					<td>{toYear}</td>
+					<td>{experiences[i].organisation}</td>
+					<td>{experiences[i].comments}</td>
+				</tr>
+			);
+		}
+		return(
+			<div className="tab-pane" id="experience">
+			  <div className="table-responsive">
+			    <table className="table table-hover">
+			      <thead>
+			        <tr>
+			          <th>Relation Type</th>
+			          <th>Position</th>
+			          <th>From Year</th>
+			          <th>To Year</th>
+			          <th>Organisation</th>
+			          <th>Comments</th>
+			        </tr>
+			      </thead>
+			      <tbody id="items">
+			        {tds}
+			      </tbody>
+			    </table>
+			  </div>
+			</div>
+		);
+	}
+});
+
+/*************************************************************************************************************/

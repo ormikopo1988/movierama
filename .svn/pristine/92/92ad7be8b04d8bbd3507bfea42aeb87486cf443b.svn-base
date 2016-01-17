@@ -1,0 +1,90 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import $ from 'jquery';
+
+import LoadingComp from './LoadingComp';
+var RB = require('react-bootstrap');
+
+//PROPERTIES
+//targetId -> id of the group / organisation / conversation you want to take the member list of
+//targetType -> the type ('GRO' | 'CON' | 'ORG') of the targetId
+
+export default React.createClass({ //DynamicUserPresentComp
+	getInitialState: function() {
+		return {
+			loading: true
+		};
+	},
+
+	componentWillMount: function() {
+		VOICE.ajaxCall(VOICE.linkPrefix('api/group/members/'+this.props.targetType+'/'+this.props.targetId), 'GET', {}, this, this.handleGetUserData);
+	},
+
+	handleGetUserData: function(result) {
+		console.log('DynamicUserPresentComp.handleGetUserData: ', result);
+		if(result.getOk) {
+			this.setState({
+				data: result.usersData,
+				loading: false
+			});
+		}
+	},
+  
+	render: function() {
+		var data = this.state.data || null;
+		console.log('Dynamic User Present Comp RENDER: ', data);
+		
+		return (
+			<span>
+				{
+					this.state.loading === false ? 
+						<span>
+							{
+					        	data !== null ? 
+						        	data.map(function(user) {
+						        		var avatarImg = user.avatarImg || '$profile_none.png';
+										var avatarURL = '';
+
+										avatarURL = VOICE.imgPrefix(avatarImg, 'M');
+						          		return (
+						          			<div className="col-md-6 col-sm-6 col-xs-12">
+												<div className="panel panel-default well-agency">  
+													<a href={VOICE.linkPrefix('profile/view/'+user.userId)}>
+														<img src={avatarURL} />
+													</a>
+													<a href={VOICE.linkPrefix('profile/view/'+user.userId)}>
+														<h3 className="panel-title"><strong>{user.slug}</strong></h3>
+													</a>
+													<div className="panel-body">
+														{
+															user.oneLiner !== '' ?
+																<span>
+																	{user.oneLiner}<br/>
+																</span> : null
+														}
+														{
+															user.participationRatio ? 
+																<span>
+																	<i className="fa fa-pie-chart smallFa"></i> Participation Ratio: {100 / user.participationRatio}%
+																	<br/>
+																</span> : null
+														}
+														{
+															user.isAdmin === '1' ?
+																<span>
+																	<i className="fa fa-adn smallFa"></i> <strong>Admin</strong> 
+																</span> : null
+														}
+													</div>
+												</div>
+											</div>
+						          		); 
+						          	}) : null
+					        }
+						</span> : 
+						<LoadingComp loadingText="Loading Users..."></LoadingComp>
+				}
+			</span>	
+		);
+	}
+}); 

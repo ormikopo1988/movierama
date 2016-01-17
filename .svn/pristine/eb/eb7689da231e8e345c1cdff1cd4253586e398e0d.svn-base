@@ -1,0 +1,61 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import VOICE from './voice.js';
+import PersonDisplay from './SmallPersonPresentationComp.jsx';
+
+var RB = require('react-bootstrap');
+
+export default React.createClass(
+	{ //PersonalMessages
+		getInitialState: function()
+		{
+			return {title: '', message:'', recipientsList: [this.props.data.userId], exchanges: this.props.data, newEntryVisible: false};
+		},
+
+		render: function()
+		{
+			return (
+			<div>
+				<RB.Panel header="New Message">
+					<RB.Panel header="Recipient">
+						<PersonDisplay data={{'VUS_slug': this.props.data.slug, 'VUS_avatarImg': this.props.data.avatarImage , 'POS_entryDate': null }}/>
+					</RB.Panel>
+					<RB.Panel header="Subject">
+						<RB.Input type="text" placeholder="Enter your message subject..." name="title" ref="title" onChange={this.handleChange} value={this.state.title}/> 
+    				</RB.Panel>
+					<RB.Panel header="Message">
+						<RB.Input type="textarea" bsSize="medium" rows="6" placeholder="Enter your message text..." name="message" ref="message" onChange={this.handleChange} value={this.state.message}/>
+    				</RB.Panel>
+					<RB.Button bsStyle="primary" bsSize="small" onClick={this.submitClicked}>Post Message</RB.Button>
+    			</RB.Panel> 
+    		</div>
+				);
+		},
+
+		submitClicked: function() 
+		{
+			var url = VOICE.linkPrefix('api/postBox/insertPersonalMessage');
+			var data = {};
+
+			data.recipientsList = this.state.recipientsList ;
+			data.title = this.state.title ;
+			data.content = this.state.message ;
+			
+			VOICE.ajaxCall(url, 'POST', data, this, this.handleSubmitionResults);
+		},
+
+		handleChange: function(event) 
+		{
+	  		var tmp = this.state;
+
+	  		tmp[event.target.name] = event.target.value;
+	  
+	  		this.setState(tmp);
+	  	},
+
+	  	handleSubmitionResults: function(data)
+	  	{
+	  		document.location.href = VOICE.linkPrefix('messages/'+ data.recipientGroupId);
+	  	},
+
+	});

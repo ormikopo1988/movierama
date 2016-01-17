@@ -1,0 +1,125 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import AutoCompleteComp from './AutoCompleteComp';
+import BookmarkComp from './BookmarkComp';
+import SocialActionsComp from './SocialActionsComp';
+import ContentComp from './ContentComp';
+var RB = require('react-bootstrap');
+
+export default React.createClass({ //IdeaView
+  
+  render: function() {
+  	var result = this.props.data[0];
+  	console.log(this.props.data);
+  	return (
+      <div classNameName="container">
+		<center><h1>{this.props.title}</h1></center>
+		<div className="row">
+	        <Idea key={result.IDE_id} result={result} preVersions={this.props.preVersions}></Idea>
+	    </div>
+      </div>
+    );
+  } 
+}); //IdeaView
+
+var Idea = React.createClass({ // Idea
+
+	getInitialState: function() {
+		return {
+			ideaView: this.props.data,
+			preVersions: this.props.preVersions
+	    };
+	},
+
+	handleChange: function(event) {
+		if(event.target.value === 'current') {
+			window.location.href = VOICE.linkPrefix('idea/view/'+this.props.result.IDE_id);	
+		}
+		else {
+			window.location.href = VOICE.linkPrefix('idea/view/'+this.props.result.IDE_id+'/'+event.target.value);
+		}
+	},
+
+	render: function() {
+		var result = this.props.result;
+		var avatarImg = result.CNT_titleImg || '$no_image_available.jpg';
+		var avatarURL = VOICE.imgPrefix(avatarImg, 'M');
+
+		var createdDT = moment.utc(result.CNT_createdDateTime, 'YYYYMMDDhhmmss').fromNow();
+		var lastEdited = moment.utc(result.IDV_fromDate, 'YYYYMMDDhhmmss').fromNow();
+
+		var connectionView = this.props.result.connections[0];
+
+		return (
+			<div className="col-md-12 col-sm-12">
+				<div className="panel panel-default well-agency">           
+					<a href={VOICE.linkPrefix('idea/view/'+result.IDE_id)}><img src={avatarURL}/></a>
+					<a className="lead agency-name" href={VOICE.linkPrefix('idea/view/'+result.IDE_id)}>
+						{result.CNT_title}
+					</a>
+					<a href={VOICE.linkPrefix('group/view/'+result.SUBTEAM_id)}>
+						Submitted By Team Group: {result.SUBTEAM_title}
+					</a>
+					<div className="sub-info">
+						<p><i className="fa fa-lightbulb-o smallFa"></i> {result.DVIDEATYPE_SDOMVAL_description}</p>
+						<p>
+							{ result.CNT_snippet }
+						</p>
+						<p><i className="fa fa-clock-o smallFa"> Created: {createdDT}</i></p>
+						<hr/>
+						{
+							result.CNT_subTitle !== '' ?
+								<div>
+									<i className="fa fa-paragraph smallFa"></i> {result.CNT_subTitle}<hr/>
+								</div>
+								: null 
+						}
+						<p><i className="fa fa-code-fork smallFa"></i> {result.IDV_versionString} 
+							{
+								result.IDV_versionName !== '' ?
+									<span> {result.IDV_versionName}</span>
+									:null
+							}
+						</p>
+						<p><i className="fa fa-pencil-square-o smallFa"> Last Edited: {lastEdited}</i></p>
+						<p><i className="fa fa-bolt smallFa"> Status: {result.DVIDEASTATUS_SDOMVAL_description}</i></p>
+						<hr/>
+						{
+							result.isSelfOwner ? 
+								<span>
+									<a href={VOICE.linkPrefix('idea/edit/'+result.IDE_id)}><i className="fa fa-pencil"></i> Edit Idea</a><br/><br/>
+								</span> : null
+						}
+						<a href={VOICE.linkPrefix('group/view/'+result.OWNGR_id)}><i className="fa fa-users"></i> View Ownership Group</a><br/><br/>
+			  			<a href={VOICE.linkPrefix('timeline/'+result.postBox.id)}><i className="fa fa-comment"></i> See Timeline </a><br/><br/>
+			  			<BookmarkComp targetType="IDE" connections={connectionView} userId={connectionView.targetId}></BookmarkComp>
+						<SocialActionsComp targetType="IDE" followOnly={true} connections={connectionView} userId={connectionView.targetId}></SocialActionsComp>
+					</div>
+				</div>
+				<div className="panel panel-default well-agency">  
+					{
+						result.isSelfOwner ? 
+							<span>
+								<RB.Input defaultValue={result.IDV_ideaTypeDVId} onChange={this.handleChange} type="select" addonBefore="Previous Idea Versions (*)" ref="ideaTypeDVId" name="ideaTypeDVId" >
+									<option value=""> - Select To See Previous Idea Version - </option>
+									<option value="current">Current Version</option>
+									{
+										this.state.preVersions.map(function(version) {
+											return (
+												<option value={version.versionId}>
+													{version.versionString} - {version.versionName}
+												</option>
+											);
+										})
+									}
+				              	</RB.Input>
+							</span> : null
+					}         
+					<ContentComp editable={false} lookUps={this.props.lookUps} contentId={result.CNT_id}></ContentComp>
+				</div>
+			</div>
+		)
+	}
+}); // Idea

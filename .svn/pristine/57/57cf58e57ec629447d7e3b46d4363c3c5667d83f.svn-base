@@ -1,0 +1,87 @@
+<?php 
+
+	
+	/********************************************************************/
+	// Post Box
+
+	/********************************************************************/
+	// Post Box
+	
+	$router->map(
+			'GET',
+			'/timeline/[a:postBoxId]',
+			function($postBoxId) use($wo) {
+				VO_CtrlSocial::getTimeline($wo, $postBoxId, FALSE);
+			}
+			, 'timeline'
+					);
+	
+	$router->map(
+			'GET',
+			'/feed',
+			function() use($wo) {
+				VO_CtrlSocial::getFeed($wo);
+			}
+			, 'feed'
+	);
+	
+	/**************************** API calls ****************************************/
+	
+	// /api/postBox/saveNewPost -> [postBoxId]
+	$router->map('POST', '/api/postBox/saveNewPost', function() use($wo) {
+		try {
+			$res = VO_PostBox::handlePostInsert($wo, $_REQUEST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/postBox/thumbsUp -> [postId]
+	$router->map('POST', '/api/postBox/thumbsUp', function() use($wo) {
+		try {
+			$res = VO_PostBox::handleReputationChange($wo, $_REQUEST['postId']);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/postBox/thumbsDown -> [postId]
+	$router->map('POST', '/api/postBox/thumbsDown', function() use($wo) {
+		try {
+			$res = VO_PostBox::handleReputationChange($wo, $_REQUEST['postId'], TRUE);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/postBox/saveNewComment -> [parentPostId]
+	$router->map('POST', '/api/postBox/saveNewComment', function() use($wo) {
+		try {
+			$res = VO_PostBox::handleCommentInsert($wo, $_REQUEST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/timeline/[a:postBoxId] -> [postBoxId]
+	$router->map('GET', '/api/timeline/[a:postBoxId]', function($postBoxId) use($wo) {
+		try {
+			$res = VO_CtrlSocial::getTimeline($wo, $postBoxId, TRUE);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/timelinePart/[a:postBoxId]/[a:currentPostsNumber] -> [postBoxId]-> [currentPostsNumber]
+	$router->map('GET', '/api/timelinePart/[a:postBoxId]/[a:currentPostsNumber]', function($postBoxId,$currentPostsNumber) use($wo) {
+		try {
+			$res = VO_CtrlSocial::getTimeline($wo, $postBoxId, TRUE, $currentPostsNumber);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	
+
+/* End of file posts.php */
+

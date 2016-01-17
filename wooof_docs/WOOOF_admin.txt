@@ -1,0 +1,167 @@
+Init a db for WOOOF
+    Script:
+        wooof_dbManager/initDB.php
+    Prereqs:
+        DB manually created (empty or not).
+        config file set properly for this DB.
+        Use latest copy of wooof_dbManager.
+        CAUTION: Obviously no users or security can be enforced. Remove/Hide script after running it.
+    Params:
+        recreate=1 (optional. CAUTION: forces drop and recreate of WOOOF tables)
+        Override default users to be created by modifying the script: 
+            Set $usersArray to a WOOOF_Users::createMultipleUsers compatible value.
+    Results:
+        The WOOOF objects are created in the DB. System data (rows) are inserted.
+        These users are created by default:
+            sysOp (use for wooof_dbManager)
+            admin (use for wooof_administration)
+            notLoggedIn (hardcoded for not loggein users)
+            user1 (a normal user) 
+    Internals:
+        Calls WOOOF_MetaData::initDatabase();
+    TODO:
+        Remove old 'initializeDatabase.php' script.
+
+Error Codes
+    Calls to WOOOF::log (and its shortcuts like logError, debug, etc)
+    pass as the $message parameter a string. To pass an Error Code, put at the
+    start of this string a code consisting of three letters and four digits
+    (e.g. WDB0001) followed by a space.
+    'W' as first letter is reserved for WOOOF framework classes.
+    
+    Existing Error Code Prefixes of the WOOOF framework are:
+        WOO for the WOOOF class
+        WDB for the WOOOF_dataBase class
+        WDT for the WOOOF_dataBaseTable class
+        WDC for the WOOOF_dataBaseColumn class
+        WUS for the WOOOF_User class
+        WEF for the WOOOF_ExternalFiles class
+        WMD for the WOOOF_MetaData class
+
+    Suggestion for Application classes:
+        1. define a constant at the start of your class.
+        2. use this constant in each logXXX call.
+        
+        Example:
+            class MyAppClass {
+	           const _ECP = 'MAC';	// Error Code Prefix
+               ...
+                 $wo->logError(self::_ECP."0010 Your error message here");
+               ...
+            }
+            
+
+User Management
+    Prereqs:
+        Logged-in already as sysOp or admin.
+        Properly assign/change the relevant config values:
+        	'minimumPasswordLength'     =>   8,				// Specify passwords' security level
+        	'minimumCapitalsInPassword' =>   1,
+        	'minimumNumbersInPassword'  =>   1,
+        	'minimumSymbolsInPassword'  =>   0,
+        
+    Create user(s)
+        Script:
+            wooof_dbManager/usersCreateNew.php
+        Params:
+            Modify the script by setting the $newUsers array.
+            Set $newUsers to a WOOOF_Users::createMultipleUsers compatible value.
+            The Roles must already exist. The 'Normal User' role should be used in most cases.
+            The Passwords are checked (normally) according to the relevant config params. 
+        Results:
+            The users (and their assigned roles) are created.
+            Each user is commited individually. So, if one fails the others will be saved.
+        Internals:
+            Calls WOOOF_User::createMultipleUsers();
+
+    Change users' passwords
+        Script
+            wooof_dbManager/usersChangePassword.php
+        Params:
+            Modify the script by setting the $users array.
+            Set $users as associative array: 
+                key is the loginName
+                value is the new password. It will be checked for validity by default.
+        Results:
+            The passwords of the users are changed
+            Each user is commited individually.
+      Internals:
+          Calls WOOOF_User::changePassword();
+
+External Files
+    Check files
+        Description
+            Check files defined in __externalFiles.
+            Files in the DB but not in the FileSystem
+                WOOOF_Util::checkFilesMissingFromFS
+            Files in the FileSystem but not referenced by the DB
+                WOOOF_Util::checkFilesMissingFromDB
+                The relevant file delete commands are produced
+            Both results
+                checkFiles( WOOOF $wo, &$missingFromFS, &$missingFromDB, $doDelete=false, $viewName='__v_files' )
+        Internals
+            A view (__v_files) is created on the fly (and can be consulted for other reasons as well).                
+    Create Empty File
+        TBC
+
+Meta Data Handling
+    Bring/Update a (new) table or view into the metaData tables
+        Description
+            Updates changed existing objects and creates new ones.
+            Works also for the metaData tables themselves!
+            Main use is for making views fully accessible to the WOOOF framework.
+            WOOOF_MetaData::reverseEngineerObjects() does the same for all tables/views.
+        Internals:
+            WOOOF_MetaData::reverseEngineerObject($wo, $database, $objName, 'refresh'); 
+
+    Upgrade metaData stuctures
+        Description
+            Produces the necessary ddl (alter table) statetements for
+            bringing the structure of the current metaData tables
+            the same as the one defined in the class.
+        Internals:
+            WOOOF_MetaData::selfUpgradeMetaData($wo, $database); 
+
+    Create Indeces scripts for all tables
+        Description
+            For each column ending in 'Id' create a corresponding index
+        Internals:
+            WOOOF_MetaData::reverseEngineerObjects( $wo, $database, 'indexes' )
+
+    Change collation to ascii for all 'char' columns 
+        Description
+            For each 'char' column: alter table stories modify column `id` char(10) COLLATE 'ascii_general_ci' NOT NULL;
+        Internals:
+            WOOOF_MetaData::reverseEngineerObjects( $wo, $database, 'ascii' )
+
+    Export MetaData
+        Description
+            The metaData tables are reverse-engineered.
+            A file with all relevant table and column metadata is produced.
+            Default dir is the 'debugLogPath' config option.
+            Name is of the form 'mdExp_YYYYMMDDHHMISS.json'.
+            Format is JSON.
+        Internals:
+            exportMetaData( WOOOF $wo, $justTheMetaData=false )
+            
+    Import MetaData
+        Description
+            Load the specified file in the (newly created) table/columnMetaDataNew tables.
+            Necessary step for synchronising current db with the the origin db.
+        Results:
+            The table/columnMetaDataNew are recreated and populated with the file's contents.
+        Internals:
+            WOOOF_MetaData::importMetaData( $wo, 'mdExp_20150620182605.json' )
+
+    Update MetaData
+        Description
+            Produce necessary SQL (Data Definition for the objects themlseves 
+            and Data Manipulation for the metaData tables) based on the differences
+            between the metaData and (imported) metaDataNew tables.
+        Results:
+            Currently the produced SQL is to be copied and executed manually.
+        Internals:
+            updateMetaDataFromOtherMetaData( WOOOF $wo, &$po_ddl, &$po_dml, &$po_sqlPerTable, $dropTables=false, $dropColumns=false )
+
+    Build Indexes from MetaData
+        .....

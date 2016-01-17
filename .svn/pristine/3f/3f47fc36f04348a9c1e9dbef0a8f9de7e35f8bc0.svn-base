@@ -1,0 +1,167 @@
+<?php
+
+class VO_Educations {
+	const _ECP = 'EDU';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param VO_TblEducationGeneric $obj
+	 * @param bool $fetchBack
+	 * @param array $education
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static 
+	function save( WOOOF $wo, VO_TblEducationGeneric &$obj, $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	    
+		if ( !$wo->hasContent($obj->degreeTypeDVId) ) {
+			$wo->logError(self::_ECP."0455 No value provided for [degreeTypeDVId]" );
+			return false;
+		}
+		
+		$tblEducationGeneric = new WOOOF_dataBaseTable($wo->db, 'person_profile_educations');
+		if($tblEducationGeneric === FALSE) { return false; }
+		
+		if ( $wo->hasContent($obj->id) ) {
+			// update
+			
+			$res = $tblEducationGeneric->updateRowFromArraySimple( $obj->toArray() );
+			if ( $res === FALSE ) { return FALSE; }
+		}
+		else {
+			// insert
+			
+			$newId = $tblEducationGeneric->insertRowFromArraySimple( $obj->toArray() );
+			if ( $newId === FALSE ) { return false; }
+			$obj->id = $newId;
+		}
+
+		if ( $fetchBack ) {
+			// Get back into $obj based on id
+			// TODO:
+		}
+	  
+		return $obj->id;
+	}	// save
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $id
+	 * @return bool
+	 */
+	public static
+	function delete( WOOOF $wo, $id )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+			
+		if ( !$wo->hasContent($id) ) {
+			$wo->logError(self::_ECP."0579 No value provided for [id]" );
+			return false;
+		}
+	
+		$tblEducationGeneric = new WOOOF_dataBaseTable($wo->db, 'person_profile_educations');
+		if($tblEducationGeneric === FALSE) { return false; }
+	
+		$res = $tblEducationGeneric->deleteRow($id);
+		if($res === FALSE) { return false; }
+			
+		return true;
+	}	// delete
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | id
+	 * Returns actually saved $obj
+	 */
+	public static
+	function saveEducations( WOOOF $wo, $in, $personProfileId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	
+		if(!$wo->hasContent($in)) {
+			$wo->logError(self::_ECP."0032 No value provided for educations");
+			return false;
+		}
+		
+		foreach ($in as $education) {
+			$status = $education['_status'];
+		
+			//find specific row for cases 'U' and 'D'
+			if($status === 'U') {
+				$oldEducation = $wo->db->getRow('person_profile_educations', $education['id']);
+				if($oldEducation === FALSE) { return false; }
+				if($oldEducation === NULL) {
+					$wo->logError(self::_ECP."0566 No row with id [$education] found!");
+					return false;
+				}
+			}
+		
+			//if status === 'R'
+			if($status === 'R') {
+				continue;
+			}
+		
+			//if status !== 'R'
+			//case 'I'
+			if($status === 'I') {
+				$tblEducationInsert = new VO_TblEducationGeneric($education);
+				$tblEducationInsert->id = '';
+				$tblEducationInsert->personProfileId = $personProfileId;
+		
+				$res = VO_Educations::save($wo, $tblEducationInsert);
+				if($res === FALSE) { return false; }
+			}
+		
+			//case 'U'
+			elseif($status === 'U') {
+				$tblEducationUpdate = new VO_TblEducationGeneric($oldEducation);
+		
+				$tblEducationUpdate->degreeTypeDVId = $education['degreeTypeDVId'];
+				$tblEducationUpdate->title = $education['title'];
+				$tblEducationUpdate->fromYear = $education['fromYear'];
+				$tblEducationUpdate->toYear = $education['toYear'];
+				$tblEducationUpdate->organisationId = $education['organisationId'];
+		
+				$res = VO_Educations::save($wo, $tblEducationUpdate);
+				if($res === FALSE) { return false; }
+			}
+		
+			//case 'D'
+			elseif($status === 'D') {
+				$res = self::delete($wo, $education['id']);
+				if($res === FALSE) { return false; }
+			}
+		
+			else {
+				$wo->logError(self::_ECP."0560 Wrong status [$status]");
+				return false;
+			}
+		
+		}
+		
+		return $res;
+	}	// saveEducations
+	
+}	// VO_Educations

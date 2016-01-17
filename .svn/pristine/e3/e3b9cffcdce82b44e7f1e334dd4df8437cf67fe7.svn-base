@@ -1,0 +1,271 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import AutoCompleteComp from './AutoCompleteComp';
+import SocialActionsComp from './SocialActionsComp';
+import BookmarkComp from './BookmarkComp';
+import GroupActionsComp from './GroupActionsComp';
+
+export default React.createClass({ //ObjectsList
+  
+  /*
+	properties
+	autocompleteUrl: last part of api/autoComplete/
+	viewUrl: where to go e.g. profile/view | organisation/view etc.
+  */
+
+  getInitialState: function() {
+  	return {};
+  },
+
+  handleSearch: function() {
+  	var val = this.refs.userId.getValue();
+  	window.location.href = VOICE.linkPrefix(this.props.viewUrl+'/'+val);
+  },
+
+  render: function() {
+  	var results = this.props.data;
+
+  	console.log(this.props.isType);
+  	return (
+      <div classNameName="container">
+		<center><h1>{this.props.title}</h1></center>
+		<AutoCompleteComp isType={this.props.isType} ref="userId" placeholder="Search..." url={VOICE.linkPrefix('api/autoComplete/'+this.props.autocompleteUrl)} customCallBackOnChange={this.handleSearch} />
+		<div className="row">
+	        {results.map(function(result) {
+	          console.log('RESULT: ', result);
+	          switch(result.isType) {
+	          	case 'PRS': 
+	          		return (
+	          			<Person key={result.VUS_id} result={result}></Person>
+	          		);
+	          		break;
+	          	case 'ORG':
+	          		return (
+	          			<Organisation key={result.ORG_id} result={result}></Organisation>
+	          		);
+	          		break;
+	          	case 'DIS':
+	          		return (
+	          			<DiscussionGroup key={result.id} result={result}></DiscussionGroup>
+	          		);
+	          		break;
+	          	case 'TEA':
+	          		return (
+	          			<TeamGroup key={result.id} result={result}></TeamGroup>
+	          		);
+	          		break; 
+	          }
+	        })}
+	    </div>
+      </div>
+    );
+  } 
+});
+
+var Person = React.createClass({
+
+	render: function() {
+		var result = this.props.result;
+		console.log(result);
+		var avatarImg = result.VUS_avatarImg || 'profile_none.png';
+		var avatarURL = '';
+
+		if(avatarImg !== 'profile_none.png') {
+			avatarURL = VOICE.imgPrefix(avatarImg);
+		}
+		else {
+			avatarURL = VOICE.systemImgPrefix(avatarImg);
+		}
+
+		var memberSince = moment(result.VUS_createdDateTime, 'YYYYMMDDhhmmss').fromNow();
+
+		return (
+			<div className="col-md-12 col-sm-12">
+				<div className="well well-sm well-agency">           
+					<a href={VOICE.linkPrefix('profile/view/'+result.VUS_id)}><img src={avatarURL}/></a>
+					<a className="lead agency-name" href={VOICE.linkPrefix('profile/view/'+result.VUS_id)}>
+						{ result.PROF_gender === 'M' ? <i className="fa fa-mars"></i> : 
+						  result.PROF_gender === 'F' ? <i className="fa fa-venus"></i> : null} {result.PROF_firstName} {result.PROF_lastName}
+					</a><br/>
+					<div className="sub-info">
+						<p>
+							<i className="fa fa-registered smallFa"></i> { 
+								result.ORG_shortName !== 'Individual' ?
+									<a href={VOICE.linkPrefix('organisation/view/'+result.ORG_id)}>{result.ORG_name}</a> :
+									<span>{result.ORG_name}</span>
+							}
+						</p>
+						<p>
+							{ result.PROF_birthYear !== '0' ? <i className="fa fa-birthday-cake smallFa"> {result.PROF_birthYear}</i> : null}
+						</p>
+						<p><i className="fa fa-clock-o smallFa"> Member Since: {memberSince}</i></p>
+						<hr/>
+						<SocialActionsComp connections={result.connections} userId={result.VUS_id}></SocialActionsComp>
+						<BookmarkComp connections={result.connections} userId={result.requestorUserId}></BookmarkComp>
+					</div>
+				</div>
+			</div>
+		)
+	}
+});
+
+var Organisation = React.createClass({
+
+	render: function() {
+		var result = this.props.result;
+		console.log(result);
+		var avatarImg = result.logoURL || 'no_image_available.jpg';
+		var avatarURL = '';
+		
+		if(avatarImg !== 'no_image_available.jpg') {
+			avatarURL = avatarImg;
+		}
+		else {
+			avatarURL = VOICE.systemImgPrefix(avatarImg);
+		}
+
+		var memberSince = moment(result.createdDateTime, 'YYYYMMDDhhmmss').fromNow();
+
+		return (
+			<div className="col-md-12 col-sm-12">
+				<div className="well well-sm well-agency">           
+					<a href={VOICE.linkPrefix('organisation/view/'+result.id)}><img src={avatarURL}/></a>
+					<a className="lead agency-name" href={VOICE.linkPrefix('organisation/view/'+result.id)}>
+						{result.name} {result.PROF_lastName}
+					</a><br/>
+					<div className="sub-info">
+						<p>
+							{ result.description }
+						</p>
+						<p><i className="fa fa-clock-o smallFa"> Member Since: {memberSince}</i></p>
+						<hr/>
+						<SocialActionsComp followOnly={true} connections={result.connections} userId={result.requestorUserId}></SocialActionsComp>
+						{
+							result.requestorIsAdmin && result.requestorIsAdmin === '1' ?
+								<div>
+									<a href={VOICE.linkPrefix('organisation/edit/'+result.id)}>
+										<i className="fa fa-pencil"></i> Edit Organisation
+									</a><br/><br/>
+								</div> : null
+						}
+						<BookmarkComp connections={result.connections} userId={result.requestorUserId}></BookmarkComp>
+					</div>
+				</div>
+			</div>
+		)
+	}
+});
+
+var DiscussionGroup = React.createClass({
+
+	render: function() {
+		var result = this.props.result;
+		console.log(result);
+		var avatarImg = result.avatarImg || 'no_image_available.jpg';
+		var avatarURL = '';
+		
+		if(avatarImg !== 'no_image_available.jpg') {
+			avatarURL = VOICE.imgPrefix(avatarImg);
+		}
+		else {
+			avatarURL = VOICE.systemImgPrefix(avatarImg);
+		}
+
+		var memberSince = moment(result.fromDate, 'YYYYMMDDhhmmss').fromNow();
+
+		var tags = [];
+		if(result.tags.length !== 0) {
+			for(var i=0; i<result.tagDesc.length; i++) {
+				tags.push(
+					<span className="endorse-item-name">
+						<span className="endorse-item-name-text"><i className="fa fa-tag"></i> {result.tagDesc[i]}</span>
+					</span>
+				);
+			}
+		} 
+
+		return (
+			<div className="col-md-12 col-sm-12">
+				<div className="well well-sm well-agency">           
+					<a href={VOICE.linkPrefix('group/view/'+result.id)}><img src={avatarURL}/></a>
+					<a className="lead agency-name" href={VOICE.linkPrefix('group/view/'+result.id)}>
+						{result.title}
+					</a><br/>
+					<div className="sub-info">
+						<p>
+							{ result.description }
+						</p>
+						<p><i className="fa fa-clock-o smallFa"> Created: {memberSince}</i></p>
+						{
+							tags.length !== 0 ?
+								<p>
+									{tags}
+								</p> : null
+						}
+						<hr/>
+						<GroupActionsComp memberships={result.memberships} userId={result.requestorUserId}></GroupActionsComp>
+						<BookmarkComp connections={result.memberships} userId={result.requestorUserId}></BookmarkComp>
+					</div>
+				</div>
+			</div>
+		)
+	}
+});
+
+var TeamGroup = React.createClass({
+
+	render: function() {
+		var result = this.props.result;
+		console.log(result);
+		var avatarImg = result.avatarImg || 'no_image_available.jpg';
+		var avatarURL = '';
+		
+		if(avatarImg !== 'no_image_available.jpg') {
+			avatarURL = VOICE.imgPrefix(avatarImg);
+		}
+		else {
+			avatarURL = VOICE.systemImgPrefix(avatarImg);
+		}
+
+		var memberSince = moment(result.fromDate, 'YYYYMMDDhhmmss').fromNow();
+
+		var tags = [];
+		if(result.tags.length !== 0) {
+			for(var i=0; i<result.tagDesc.length; i++) {
+				tags.push(
+					<span className="endorse-item-name">
+						<span className="endorse-item-name-text"><i className="fa fa-tag"></i> {result.tagDesc[i]}</span>
+					</span>
+				);
+			}
+		} 
+
+		return (
+			<div className="col-md-12 col-sm-12">
+				<div className="well well-sm well-agency">           
+					<a href={VOICE.linkPrefix('group/view/'+result.id)}><img src={avatarURL}/></a>
+					<a className="lead agency-name" href={VOICE.linkPrefix('group/view/'+result.id)}>
+						{result.title}
+					</a><br/>
+					<div className="sub-info">
+						<p>
+							{ result.description }
+						</p>
+						<p><i className="fa fa-clock-o smallFa"> Created: {memberSince}</i></p>
+						{
+							tags.length !== 0 ?
+								<p>
+									{tags}
+								</p> : null
+						}
+						<hr/>
+						<GroupActionsComp memberships={result.memberships} userId={result.requestorUserId}></GroupActionsComp>
+						<BookmarkComp connections={result.memberships} userId={result.requestorUserId}></BookmarkComp>
+					</div>
+				</div>
+			</div>
+		)
+	}
+});

@@ -1,0 +1,82 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import ReactBootstrap from 'react-bootstrap';
+import MessagesBoxComp from './MessagesBoxComp';
+
+export default React.createClass({ //LoginBox
+  // props: nextRoute
+
+  getInitialState: function() {
+    return {data: []};
+  },
+  
+  render: function() {
+    return (
+      <div className="loginBox">
+          <h1>Login</h1>
+          <LoginForm {...this.props} />
+      </div>
+    );
+  }
+  
+});
+
+var LoginForm = React.createClass({
+  
+  handleSubmit: function(e) {
+      e.preventDefault();
+
+      var email     = ReactDOM.findDOMNode(this.refs.email).value.trim();
+      var password  = ReactDOM.findDOMNode(this.refs.password).value.trim();
+
+      var data = {
+        email: email,
+        password: password,
+      };
+
+      var self = this;
+
+      VOICE.ajaxCall('api/login/do', 'POST', data, self, this.cbHandleSubmit);
+
+      return;
+  },
+  
+  cbHandleSubmit: function(result) {
+        if(result.loginOk === false) {
+            this.refs.msgBox.addError(result.errors, true);
+        }
+        else {
+            this.refs.msgBox.clearAll();
+            window.location = VOICE.linkPrefix(this.props.nextRoute);
+        }
+        
+        return;
+  }
+  ,
+
+  componentDidMount: function() {
+  },
+  
+  render: function() {
+    return (
+      <div className="well well-large formInlineStyle">
+	      <form id="loginForm" className="loginForm" onSubmit={this.handleSubmit}>
+	      	<div id="basic-addon" className="input-group">
+	        	<input type="text" className="form-control" ref="email" 
+              autoFocus={true} id="userEmail" placeholder="My Email..." aria-describedby="basic-addon2"/>
+	        	<span className="input-group-addon" id="basic-addon2">@example.com</span>
+	        </div>
+	        <br/>
+	        <div id="basic-addon-password" className="input-group">
+	        	<input type="password" className="form-control" ref="password" id="userPassword" placeholder="Password..." aria-describedby="basic-addon3"/>
+	        	<span className="input-group-addon" id="basic-addon3">Password</span>
+	        </div>
+	        <br/><br/>
+	        <center><input id="loginButton" className="btn btn-default" type="submit" value="Login" /></center>
+	      </form>
+        <MessagesBoxComp ref="msgBox"/>
+      </div>
+    );
+  }
+});
+

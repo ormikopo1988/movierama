@@ -1,0 +1,206 @@
+<?php 
+
+extract( $parametersArray, EXTR_PREFIX_ALL, '_param' );	//  an underscore is added at the end of prefix :-(
+
+// 		<b>$_param_someParam</b>
+
+// CAUTION: The corresponding $_param_ values must be one of the keys of the following array
+$_preFragmentsArray =
+	array(
+		'studentCertification' => 
+			'Student Certification file: @@@studentCertificationFile@@@',
+		'studentCertificationEmpty' => 
+			'',
+		'companyPosition' => 
+			'(@@@companyPosition@@@)',
+		'companyPositionEmpty' => 
+			'',
+		'approvedDate' => 
+			'<h4>Approved: @@@approvedDate@@@</h4>',
+		'approvedDateEmpty' => 
+			'',
+		'paymentDate' => 
+			'<h4>Paid: @@@paymentDate@@@</h4>',
+		'paymentDateEmpty' => 
+			'',
+	);
+		
+		
+$_fragmentsArray = 
+	array(
+	'topAppPart' => <<<EOH
+		<h1>Application #@@@id@@@ for @@@appTypeId@@@</h1>
+		<h3>Status: @@@statusId@@@</h2>
+		<h3>Amount: @@@amount@@@ Euros for @@@noOfApplicants@@@ Applicant(s)</h3>
+		<h4>Submitted: @@@submittedDate@@@</h4>
+		$_preFragmentsArray[$_param_approvedDate]
+		$_preFragmentsArray[$_param_paymentDate]
+EOH
+	,
+	'receiptLink' => <<<EOH
+		<a href="viewReceipt.php?appId=$_param_appId">View Purchase Transaction Receipt</a> 
+EOH
+	,
+	'appStudent' => <<<EOH
+		<b>Educational Organisation:</b> @@@studentOrganisation@@@
+EOH
+	,
+	'appCompany' => <<<EOH
+		<b>Company:</b> @@@companyName@@@
+EOH
+	,
+	'applicant' => <<<EOH
+		@@@nameSalutationId@@@ @@@nameLast@@@ @@@nameFirst@@@ $_preFragmentsArray[$_param_companyPosition]
+		<br>
+		@@@email@@@
+		<br>
+		Address: @@@address@@@. Telephone(s): @@@telephone1@@@ @@@telephone2@@@
+		<br>
+		CV file: @@@cvFile@@@
+		$_preFragmentsArray[$_param_studentCertification]
+		<hr>
+EOH
+	,
+	'invoice' => <<<EOH
+		<h4>Invoice Info</h4>
+		Invoice Name:
+		@@@invoiceName@@@ <br>
+		VAT Registration:
+		@@@invoiceVAT@@@ <br>
+		Profession:
+		@@@invoiceProfesssion@@@ <br>
+		Tax Office:
+		@@@invoiceDOY@@@ <br>
+		Address:
+		@@@invoiceAddress@@@ <br>
+EOH
+	,	
+	'contact' => <<<EOH
+		<h4>Contact Info</h4>
+		@@@contactSalutationId@@@ 	@@@contactName@@@
+		<br>		
+		@@@contactEmail@@@
+		<br>
+		Telephone(s): @@@contactTelephone1@@@ @@@contactTelephone2@@@
+EOH
+	,	
+	'justSaved' => <<<EOH
+		<div id="justSavedDiv" class="infoDiv">
+			Thank you! Your application has been saved successfully. 
+			We will notify you by e-mail as soon as your application is evaluated.
+		</div>
+EOH
+	,	
+	'approve' => <<<EOH
+		<div id="justApprovedDiv" class="infoDiv">
+			Your application has been approved. Check your e-mail for further instructions.
+		</div>
+EOH
+	,	
+	'reject' => <<<EOH
+		<div id="justRejectedDiv" class="errorDiv">
+			Your application has been rejected. Check your e-mail for further information.
+		</div>
+EOH
+	,	
+	'paymentOk' => <<<EOH
+		<div id="paymentOkDiv" class="infoDiv">
+			Thank you! Your payment was received successfully.
+			Check your e-mail for further information.
+		</div>
+EOH
+	,	
+	'paymentFailed' => <<<EOH
+		<div id="paymentFailed" class="errorDiv">
+			We are sorry but your payment was <b>NOT received successfully</b>.
+		</div>
+EOH
+	,
+	'paymentZombie' => <<<EOH
+		<div id="paymentZombieDiv" class="errorDiv">
+			<p>
+			We are sorry but something went wrong while processing your payment.
+			We will contact you shortly to resolve the issue, or you 
+			may contact us at 210 668 2727.</p>
+			
+		</div>
+EOH
+	);
+	
+return $_fragmentsArray;
+
+/*
+ * 
+ Status
+@@@statusId@@@
+submittedDate
+@@@submittedDate@@@
+Type of Application
+@@@appTypeId@@@
+Amout
+@@@amount@@@
+Organisation
+@@@studentOrganisation@@@
+Company
+@@@companyName@@@
+# of Applicants
+@@@noOfApplicants@@@
+Invoice Name
+@@@invoiceName@@@
+VAT Registration
+@@@invoiceVAT@@@
+Profession
+@@@invoiceProfesssion@@@
+Issue Invoice
+@@@isIssueInvoice@@@
+Tax Office
+@@@invoiceDOY@@@
+Address
+@@@invoiceAddress@@@
+Date of Payment
+@@@paymentDate@@@
+Payment Ref Number
+@@@paymentRefNumber@@@
+Payment Data
+@@@paymentData@@@
+Contact First and Last Name
+@@@contactName@@@
+Contact email
+@@@contactEmail@@@
+Contact tel 1
+@@@contactTelephone1@@@
+Contact tel 2
+@@@contactTelephone2@@@
+Contact Title
+@@@contactSalutationId@@@
+Amount is manual
+@@@doNotRecalcAmount@@@
+
+
+
+
+Application
+@@@applicationId@@@
+Last Name
+@@@nameLast@@@
+First Name
+@@@nameFirst@@@
+Title
+@@@nameSalutationId@@@
+Address
+@@@address@@@
+Telephone 1
+@@@telephone1@@@
+Telephone 2
+@@@telephone2@@@
+CV File
+@@@cvFile@@@
+Position in Company
+@@@companyPosition@@@
+Student Certification
+@@@studentCertificationFile@@@
+Email
+@@@email@@@
+
+
+ */

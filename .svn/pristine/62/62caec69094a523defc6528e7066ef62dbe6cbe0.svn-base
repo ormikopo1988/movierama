@@ -1,0 +1,5 @@
+person_profiles
+	address_generic
+		genericType: PRS
+		addressType: BIRTH, WORKS, LIVES
+

@@ -1,0 +1,128 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import BookmarkComp from './BookmarkComp';
+import GroupActionsComp from './GroupActionsComp';
+import MessagesBoxComp from './MessagesBoxComp';
+import LoadingComp from './LoadingComp';
+var RB = require('react-bootstrap');
+
+export default React.createClass({ //ContentMain
+
+/**
+	Properties
+	contentId
+	data v_ideas record
+**/
+	getInitialState: function() {
+		return {
+			loading: false
+		}
+	},
+
+	handleSave: function() {
+	    var title = this.refs.title.getValue().trim() || '';
+	    var snippet = this.refs.snippet.getValue().trim() || '';
+	    
+	    if(!title || !snippet) {
+	      alert('You must fill all the required input fields!');
+	      return;
+	    }
+
+		var data = {
+	      id: this.props.result.IDE_id,
+	      title: title,
+	      snippet: snippet,
+	    }
+
+	    var fd = new FormData(); //api ths javascript
+
+     	if(ReactDOM.findDOMNode(this.refs.titleImg).value !== '') {
+     		fd.append('titleImg', ReactDOM.findDOMNode(this.refs.titleImg).files[0]);
+	    }
+	  	
+	    fd.append('data', JSON.stringify(data));
+	  
+	    var url = VOICE.linkPrefix('api/ideas/saveIdea');
+	    //data to send to server!
+	    this.setState({
+	      loading: true
+	    });
+	    
+	    VOICE.ajaxCallWithFiles(url, 'POST', fd, this, this.cbHandleSave);
+	},
+
+	cbHandleSave: function(result) {
+		if(result.ideaEditedOk === true) {
+	    	this.setState({
+	    		titleImg: result.CNT_titleImg
+	    	});
+  		
+			this.refs.msgBox.clearErrors();
+			this.refs.msgBox.addSuccess('Your idea was edited successully!', false);
+			setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+		}
+		else {
+			this.refs.msgBox.addError(result.errors);
+		}
+		this.setState({
+	      loading: false
+	    });
+	},
+
+    render: function() {
+	  	var result = this.props.data;
+	  	//var titleImg = this.state.titleImg || result.CNT_titleImg || '$no_image_available.jpg';
+	  	var titleImg = result.CNT_titleImg || '$no_image_available.jpg';
+		var avatarURL = VOICE.imgPrefix(titleImg, '');
+		var avatarDivStyle = {
+			backgroundImage: 'url(' + VOICE.imgPrefix(titleImg, 'M') + ')'
+		};
+
+		var memberSince = moment.utc(result.IDE_effectiveDate, 'YYYYMMDDhhmmss').fromNow();
+	  	return (
+	      <div classNameName="container">
+			<RB.Row>
+				<RB.Col md={12}>
+					<center>
+						<a href={avatarURL} target="_blank">
+							<div className="circle" style={avatarDivStyle}></div>
+						</a>
+					</center><br/>
+					<center>
+						<label>
+							<i className="fa fa-camera"></i>
+						</label>
+							<input type="file" id="input-1" ref="titleImg" name="titleImg" />
+					</center>
+				</RB.Col>
+			</RB.Row><br/>
+			<RB.Row>
+				<RB.Col md={12}>
+				  <RB.Input type="text" defaultValue={result.CNT_title} addonBefore="Title (*)" placeholder="Title..." ref="title" name="title" />
+				</RB.Col>
+			</RB.Row>
+			<RB.Row>
+				<RB.Col md={12}>
+				  <RB.Input rows={3} defaultValue={result.CNT_snippet} type="textarea" addonBefore="Short Description (*)" placeholder="Short Description..." ref="snippet" name="snippet" />
+				</RB.Col>
+			</RB.Row><br/>
+			<RB.Row>
+	            <center>
+	            	{
+	           			this.state.loading === false ?
+	              			<RB.Button bsStyle="success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save Main Info</RB.Button> :
+	              			<LoadingComp loadingText="Saving Idea..."></LoadingComp>
+	         	    }
+	            </center>
+	          </RB.Row><br/>
+	          <RB.Row>
+	            <RB.Col md={12}>
+	              <MessagesBoxComp ref="msgBox"/>
+	            </RB.Col>
+	          </RB.Row>
+	      </div>
+	    );
+    }
+});

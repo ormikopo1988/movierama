@@ -1,0 +1,119 @@
+<?php
+
+class VO_Groups {
+	const _ECP = 'GRO';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param VO_TblGroups $obj
+	 * @param bool $fetchBack
+	 * @param string $creatorId
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static 
+	function save( WOOOF $wo, VO_TblGroups &$obj, $creatorId, $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+		
+		if(!$wo->hasContent($creatorId)) {
+			$wo->logError(self::_ECP."0654 No value provided for [creatorId]" );
+			return false;
+		}
+		
+		//TODO - INSERT THE CREATOR IN THE GROUP MEMBERS TABLE AS ADMIN
+		
+		$tblGroupGeneric = new WOOOF_dataBaseTable($wo->db, 'groups');
+		if($tblGroupGeneric === FALSE) { return false; }
+		
+		if ( $wo->hasContent($obj->id) ) {
+			// update
+			$res = $tblGroupGeneric->updateRowFromArraySimple( $obj->toArray() );
+			if ( $res === FALSE ) { return FALSE; }
+		}
+		else {
+			// insert
+			$newId = $tblGroupGeneric->insertRowFromArraySimple( $obj->toArray() );
+			if ( $newId === FALSE ) { return false; }
+			$obj->id = $newId;
+		}
+
+		if ( $fetchBack ) {
+			// Get back into $obj based on id
+			// TODO:
+		}
+	  
+		return $obj->id;
+	}	// save
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $id
+	 * @return bool
+	 */
+	public static
+	function delete( WOOOF $wo, $id )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+			
+		if ( !$wo->hasContent($id) ) {
+			$wo->logError(self::_ECP."0499 No value provided for [id]" );
+			return false;
+		}
+	
+		$tblAccountGeneric = new WOOOF_dataBaseTable($wo->db, 'person_profile_social_accounts');
+		if($tblAccountGeneric === FALSE) { return false; }
+	
+		$res = $tblAccountGeneric->deleteRow($id);
+		if($res === FALSE) { return false; }
+			
+		return true;
+	}	// delete
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | id
+	 * Returns actually saved $obj
+	 */
+	public static
+	function saveGroup( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  SaveGroup" );
+		
+		$tblGroupInsert = new VO_TblGroups();
+		$tblGroupInsert->title = $in['title'];
+		$tblGroupInsert->fromDate = $in['fromDate'];
+		$tblGroupInsert->description = $in['description'];
+		$tblGroupInsert->comments = $in['comments'];
+		$tblGroupInsert->isPrivate = $in['isPrivate'];
+		$tblGroupInsert->isFreeToFollow = $in['isFreeToFollow'];
+		$tblGroupInsert->isOpenForPosts = $in['isOpenForPosts'];
+		$tblGroupInsert->groupType = $in['groupType'];
+		
+		$res = self::save($wo, $tblGroupInsert, $wo->app->userId);
+		if($res === FALSE) { return false; }
+		
+		return $res;
+	}	// saveGroup
+	
+}	// VO_Groups

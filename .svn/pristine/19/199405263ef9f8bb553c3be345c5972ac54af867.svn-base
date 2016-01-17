@@ -1,0 +1,94 @@
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var React = require('react');
+var ReactDOM = require('react-dom');
+var Formsy = require('formsy-react');
+var FRC = require('formsy-react-components');
+var RB = require('react-bootstrap');
+var MessagesBoxComp = require('./MessagesBoxComp');
+
+//var Checkbox = FRC.Checkbox;
+//var CheckboxGroup = FRC.CheckboxGroup;
+var Input = FRC.Input;
+//var RadioGroup = FRC.RadioGroup;
+//var Row = FRC.Row;
+//var Select = FRC.Select;
+//var File = FRC.File;
+//var Textarea = FRC.Textarea;
+
+// RegisterVerifyBox
+
+export default React.createClass({ 
+    displayName: 'Registration Verification',
+
+    getInitialState: function getInitialState() {
+        return {
+            birthYear: '',
+            layout: 'horizontal',
+            validatePristine: false,
+            disabled: false,
+			data: {
+				name: 'Athens Information Technology',
+				shortName: 'AIT',
+				logoImage: 'ait.jpg',
+				description: 'Athens Information Technology (AIT) is an internationally-renowned nonprofit education and research center in the fields of information technology, telecommunications, and innovation management',
+				orgTypeDVId: 'a'
+			}
+        };
+    },
+
+    submitForm: function submitForm(data) {
+        console.log(data);
+    },
+
+    chBirthYear: function (e) {
+        var y = e.target.value;
+        var l = y.length;
+        if ( l > 0 ) {
+            if ( /^\d+$/.test(y) === false ) { return; }
+        }
+        this.setState( {birthYear: y} );
+    },
+
+    
+    render: function render() {
+        var genderOptions = [{ value: 'M', label: 'Male' }, { value: 'F', label: 'Female' }];
+		
+        //var selectOptions = radioOptions.slice(0);
+        //selectOptions.unshift({ value: '', label: 'Organization Type' });
+
+
+        return (
+      <RB.Well>
+        <center><h4>Registration Verification</h4></center>
+        <RB.Row>
+            <RB.Col md={4}>
+                <RB.Input type="text" placeholder="Your First Name..." ref="firstName" name="firstName"  />
+            </RB.Col>
+            <RB.Col md={4}>
+                <RB.Input type="text" placeholder="Your Last Name..." ref="lastName" name="lastName"  />
+            </RB.Col>
+            <RB.Col md={4}>
+                <RB.Input type="text" maxLength="4"  value={this.state.birthYear} placeholder="Birth Year..." ref="birthYear2" name="birthYear2" onChange={this.chBirthYear}  />
+            </RB.Col>
+        </RB.Row><br/>
+        <RB.Row>
+            <RB.Col md={4}>
+                <RB.Input type="radio" label="Male" name="gender" ref="gender"   />
+                <RB.Input type="radio" label="Female" name="gender" ref="gender" />
+            </RB.Col>
+        </RB.Row>
+        <RB.Row>
+            <RB.Col md={1} mdOffset={5}>
+                <RB.Button bsStyle="success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save</RB.Button>
+            </RB.Col>
+        </RB.Row><br/>
+        <RB.Row>
+            <RB.Col md={12}>
+                <MessagesBoxComp ref="msgBox"/>
+            </RB.Col>
+        </RB.Row>
+      </RB.Well>
+        );
+    }
+});

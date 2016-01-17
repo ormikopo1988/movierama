@@ -1,0 +1,53 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import ReactBootstrap from 'react-bootstrap';
+
+export default React.createClass({
+  
+  render: function() { 
+  	var isType = this.props.isType;
+
+  	switch(isType) {
+		case 'PRS': 
+			return (
+				<span><i className="fa fa-user smallFa isType"></i><i>User</i></span>
+			);
+			break;
+		case 'ORG': 
+			return (
+				<span><i className="fa fa-sitemap smallFa isType"></i><i>Organisation</i></span>
+			);
+			break;
+		case 'DIS':
+      		return (
+      			<span><i className="fa fa-bullhorn smallFa isType"></i><i>Discussion Group</i></span>
+      		);
+      		break;
+      	case 'TEA':
+          	return (
+      			<span><i className="fa fa-users smallFa isType"></i><i>Team</i></span>
+      		);
+      		break;
+      	case 'OWN':
+      		return (
+      			<span><i className="fa fa-share-alt smallFa isType"></i><i>**Idea Ownership Group**</i></span>
+      		);
+      		break;
+      	case 'IDE':
+      		return (
+      			<span><i className="fa fa-lightbulb-o smallFa isType"></i><i>Idea</i></span>
+      		);
+      		break;
+      	case 'CNT':
+      		return (
+      			<span><i className="fa fa-book smallFa isType"></i><i>Content</i></span>
+      		);
+      		break;
+      	default:
+      		return (
+      			<p> unknown 'isType' [{isType}] </p>
+      		);
+	}
+  }
+  
+});

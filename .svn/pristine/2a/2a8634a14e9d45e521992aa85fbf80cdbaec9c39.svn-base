@@ -1,0 +1,131 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var RB = require('react-bootstrap');
+import $ from 'jquery';
+
+import MessagesBoxComp from './MessagesBoxComp';
+import LoadingComp from './LoadingComp';
+
+export default React.createClass({ //ContentCreateForm
+
+  getInitialState: function() {
+    
+    console.log(this.props);
+    
+    return {
+      loading: false
+  	};
+  },
+
+  handleSave: function() {
+    var title = this.refs.title.getValue().trim() || '';
+    var subTitle = this.refs.subTitle.getValue().trim() || '';
+    var snippet = this.refs.snippet.getValue().trim() || '';
+    var contentType = this.refs.contentType.getValue().trim() || '';
+    var template = this.refs.template.getValue().trim() || '';
+    
+    if(!title || !contentType ) {
+      alert('You must fill all the required input fields!');
+      return;
+    }
+
+    var data = {
+      title: title,
+      subTitle: subTitle,
+      snippet: snippet,
+      contentTypeDVCode: contentType,
+      fromTemplateId: template
+    }
+
+    var url = VOICE.linkPrefix('api/content/create');
+    //data to send to server!
+    this.setState({
+      loading: true
+    });
+    VOICE.ajaxCall(url, 'POST', data, this, this.cbHandleSave);
+  },
+
+  cbHandleSave: function(result) {
+    if(result.contentCreatedOk === true) {
+      this.refs.msgBox.clearErrors();
+      this.refs.msgBox.addSuccess('Your Content was created successully!', false);
+      setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+
+      window.location = VOICE.linkPrefix('content/edit/'+result.contentCreatedId);
+    }
+    else {
+      this.refs.msgBox.addError(result.errors);
+    }
+    this.setState({
+      loading: false
+    });
+  },
+
+  render: function() {
+/*
+      var options = [];
+      var groups = this.props.groups;
+
+      for(var i=0; i<groups.length; i++) {
+        options.push(
+          <option value={groups[i].id} key={groups[i].id}> {groups[i].title} </option>
+        );
+      }
+ */     
+      return (
+        <RB.Well>
+          <center><h3>Create Content</h3></center><hr/>
+
+          <RB.Row>
+            <RB.Col md={6}>
+              <RB.Input type="select" addonBefore="Content Type (*)" ref="contentType" name="contentType" >
+                <option value="" > - Select Content Type - </option>
+                {VOICE.renderOptions(this.props.lookUps.CNT_TYPE, 'code')}
+              </RB.Input>
+            </RB.Col>
+
+          </RB.Row><br/>
+
+          <RB.Row>
+            <RB.Col md={12}>
+              <RB.Input type="text" addonBefore="Title (*)" placeholder="Title..." ref="title" name="title" />
+            </RB.Col>
+          </RB.Row>
+          <RB.Row>
+            <RB.Col md={12}>
+              <RB.Input type="text" addonBefore="Sub Title" placeholder="Sub Title..." ref="subTitle" name="subTitle" />
+            </RB.Col>
+          </RB.Row>
+          <RB.Row>
+            <RB.Col md={12}>
+              <RB.Input rows={4} type="textarea" addonBefore="Snippet" placeholder="Snippet..." ref="snippet" name="snippet" />
+            </RB.Col>
+          </RB.Row><br/>
+
+          <RB.Row>
+            <RB.Col md={6}>
+              <RB.Input type="select" addonBefore="Template" ref="template" name="template" >
+                <option value=""> - Select Template for your Content - </option>
+                {VOICE.renderOptions(this.props.lookUps._TEMPLATES)}
+                <option value="isTemplate"> ** Create as Template ** </option>
+              </RB.Input>
+            </RB.Col>
+          </RB.Row><br/>
+          <RB.Row>
+            <center>
+              {
+                this.state.loading === false ?
+                  <RB.Button bsStyle="success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save</RB.Button> :
+                  <LoadingComp loadingText="Saving your Content..."></LoadingComp>
+              }
+            </center>
+          </RB.Row><br/>
+          <RB.Row>
+            <RB.Col md={12}>
+              <MessagesBoxComp ref="msgBox"/>
+            </RB.Col>
+          </RB.Row>
+        </RB.Well>
+      );
+  }
+}); //CreateContentForm

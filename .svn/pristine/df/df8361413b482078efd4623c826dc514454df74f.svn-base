@@ -1,0 +1,64 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import $ from 'jquery';
+var Select = require('react-select');
+
+// AutoCompleteCompMulti
+
+export default React.createClass({
+	// Properties:
+	// url: for fetching options
+	// autoLoad
+	// multi
+	// minCharsForSearching
+	// optionStyle
+	
+	// Functions:
+	// getValue()
+	// getLabel()
+
+	getInitialState: function() {
+		console.log('props initivalues: ', this.props)
+		return {
+			value: this.props.startValues
+		}
+	},
+
+	getValue: function() {
+		return this.state.value;
+	},
+
+	getDefaultProps: function() {
+    	return {
+    		multi: true,
+      		minCharsForSearching: 3,
+      		optionStyle: {
+      			color: 'black'
+      		},
+      		customCallBackOnChange: function() {}
+    	};
+  	},
+
+	handleOnChange: function(value) {
+		this.setState({
+			value: value
+		});
+
+		var self = this;
+		setTimeout(function(){
+			self.props.customCallBackOnChange(self.state.value);
+		}, 0);
+	},
+
+	render: function() {
+		return (
+			<Select
+				{...this.props}
+				value={this.state.value}
+				options={this.props.options}
+			    multi
+			    delimiter={','}
+			    onChange={this.handleOnChange} />
+		);
+	}
+});

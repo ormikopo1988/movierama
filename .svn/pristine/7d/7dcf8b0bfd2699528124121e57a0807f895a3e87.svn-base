@@ -1,0 +1,73 @@
+body { 
+	padding-bottom: 70px;
+	font-size: 17px; 
+}
+
+.formInlineStyle {
+	/*width: 600px;
+    padding: 10px;*/
+}
+
+#selectBox {
+	padding: 0.2em 0.6em 0.3em;
+}
+
+#basic-addon {
+	padding-bottom: 5px;
+}
+
+.table-responsive
+{
+    overflow-x: auto;
+}
+
+#addAddress {
+	float: right !important;
+}
+
+.fa {
+	font: x-large/1 FontAwesome !important;
+}
+
+.endorse-item-name {
+    border-radius: 0 3px 3px 0;
+}
+
+.endorse-item-name {
+    float: left;
+    line-height: 24px;
+}
+
+.endorse-item-name {
+    background-color: GrayText;
+    padding-right: 10px;
+    border-bottom: 1px solid #ddd;
+    border-radius: 3px;
+    border-right: 1px solid #ddd;
+    color: white;
+    font-size: 13px;
+    font-weight: normal;
+    line-height: 20px;
+    padding: 0 20px;
+    position: relative;
+    margin: 15px 10px;
+}
+
+.endorse-item-name-text {
+	font-weight: bold;
+}
+
+.circle {
+  display: block;
+  width: 200px;
+  height: 200px;
+  margin: 1em auto;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center center;
+  -webkit-border-radius: 99em;
+  -moz-border-radius: 99em;
+  border-radius: 99em;
+  border: 5px solid #eee;
+  box-shadow: 0 3px 2px rgba(0, 0, 0, 0.3);  
+}

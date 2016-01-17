@@ -1,0 +1,408 @@
+<?php
+
+class VO_CtrlGroup {
+	const _ECP = 'CGR';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param string $userId
+	 * @return false | [ 'groupCreatedOk' => bool, 'groupCreatedId' => string ]
+	 */
+	
+	public static function createGroup( WOOOF $wo, $in ) {
+		
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if( !$wo->hasContent($in) ) {
+			$wo->logError(self::_ECP."2292 You must provide data in order to create a new group!");
+			return false;
+		}
+	
+		//TODO Validation for $in e.g title must be unique
+	
+		$res =  VO_Groups::saveGroup($wo, $in);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'groupCreatedOk' => false,
+				'errors' 		 => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'groupCreatedOk'	=> true,
+				'groupCreatedId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+
+	}	//createGroup
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function createGroupViewForm( WOOOF $wo ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE Group Creation Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+	
+		$userId = $wo->app->userId;
+		
+		$content = <<<EOH
+		<div id='content-main'></div>
+				
+		<script>
+			ReactDOM.render(
+				React.createElement(
+					CreateGroupForm,
+					{ data: '$userId' }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+	;
+	
+	$tpl = array(
+			'browserTitle'	=> $browserTitle,
+			'content' 		=> $content,
+			'errorMessage'	=> '',
+			'message'		=> '',
+	);
+	
+	
+	$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//createGroupViewForm
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function userGroups( WOOOF $wo, $voiceUserId = '', $type ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE User Groups Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		$targetIds = [];
+		if(!$wo->hasContent($voiceUserId)) {
+			//return all groups
+			$result = $wo->db->query("SELECT id FROM groups WHERE groupType='$type'");
+			if ( $result === FALSE ) { return false; }
+				
+			while($row = $wo->db->fetchAssoc($result))
+			{
+				$targetIds[] = $row['id'];
+			}
+		}
+		
+		else {
+			//Find the groups based on the voiceUserId
+			$result = $wo->db->query("SELECT groupId FROM voice_user_groups WHERE voiceUserId='$voiceUserId'");
+			if ( $result === FALSE ) { return false; }
+				
+			while($row = $wo->db->fetchAssoc($result))
+			{
+				$targetIds[] = $row['groupId']; //made the array with the target group ids
+			}
+		}
+		
+		$list = VO_Groups::getGroups($wo, $targetIds, $type);
+		if($list === FALSE) { return false; }
+		$list = json_encode($list);
+		
+		if($type === 'DIS') {
+			$title = 'Discussion Groups';
+		}
+		else if($type === 'TEA') {
+			$title = 'Team Groups';
+		}
+		
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var list = $list;
+			ReactDOM.render(
+				React.createElement(
+					ObjectsList,
+					{ data: list, title: '$title' }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+	;
+	
+	$tpl = array(
+			'browserTitle'	=> $browserTitle,
+			'content' 		=> $content,
+			'errorMessage'	=> '',
+			'message'		=> '',
+	);
+	
+	
+	$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//userGroups
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $userId
+	 * @param string $groupId
+	 * @return false | [ 'joinOk' => bool, 'joinedRecId' => id, 'errors' => array ]
+	 */
+	public static
+	function userJoinsGroup( WOOOF $wo, $userId, $groupId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if($userId !== $wo->app->userId) {
+			$wo->logError(self::_ECP."4420 You are not the authorized user");
+			return false;
+		}
+		
+		if( !$wo->hasContent($userId) ) {
+			$wo->logError(self::_ECP."4432 You must provide a userId!");
+			return false;
+		}
+		
+		if( !$wo->hasContent($groupId) ) {
+			$wo->logError(self::_ECP."4433 You must provide a groupId!");
+			return false;
+		}
+		
+		$res =  VO_Groups::joinGroup($wo, $userId, $groupId);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'joinOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'joinOk'			=> true,
+				'joinedRecId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// userJoinsGroup
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $userId
+	 * @param string $groupId
+	 * @return false | [ 'leaveOk' => bool, 'leavedRecId' => id, 'errors' => array ]
+	 */
+	public static
+	function userLeavesGroup( WOOOF $wo, $userId, $groupId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if($userId !== $wo->app->userId) {
+			$wo->logError(self::_ECP."4421 You are not the authorized user");
+			return false;
+		}
+	
+		if( !$wo->hasContent($userId) ) {
+			$wo->logError(self::_ECP."4435 You must provide a userId!");
+			return false;
+		}
+	
+		if( !$wo->hasContent($groupId) ) {
+			$wo->logError(self::_ECP."4436 You must provide a groupId!");
+			return false;
+		}
+	
+		$res =  VO_Groups::leaveGroup($wo, $userId, $groupId);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'leaveOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'leaveOk'			=> true,
+				'leavedRecId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// userLeavesGroup
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $groupId
+	 * @return false | [] | [] list of members
+	 */
+	public static function groupMembers( WOOOF $wo, $groupId ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE Group Members Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		$requestedGroup = $wo->db->getRow('groups', $groupId);
+		if($requestedGroup === FALSE) { return false; }
+		if($requestedGroup === NULL) {
+			$wo->logError(self::_ECP."5044 No row with id [$groupId] found in groups table!");
+			return false;
+		}
+		
+		$targetIds = VO_Groups::getMembers($wo, $groupId);
+		if($targetIds === FALSE) { return false; }
+		
+		$list = VO_Users::getUsers($wo, $wo->app->userId, $targetIds);
+		if($list === FALSE) { return false; }
+		$list = json_encode($list);
+		
+		$groupName = json_encode($requestedGroup['title']);
+		
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var list = $list;
+			var groupName = $groupName + '\' s Members List';
+					
+			ReactDOM.render(
+				React.createElement(
+					ObjectsList,
+					{ data: list, title: groupName }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+	;
+	
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+		
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//userGroups
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $groupId
+	 * @return false | [] | [] ta
+	 */
+	public static function viewGroup( WOOOF $wo, $groupId ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE Group View Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+	
+		$requestedGroup = $wo->db->getRow('groups', $groupId);
+		if($requestedGroup === FALSE) { return false; }
+		if($requestedGroup === NULL) {
+			$wo->logError(self::_ECP."5074 No row with id [$groupId] found in groups table!");
+			return false;
+		}
+	
+		$list = json_encode($requestedGroup);
+	
+		$groupName = json_encode($requestedGroup['title']);
+	
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var list = $list;
+			var groupName = $groupName;
+			ReactDOM.render(
+				React.createElement(
+					GroupView,
+					{ data: list, title: groupName }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+	;
+	
+	$tpl = array(
+			'browserTitle'	=> $browserTitle,
+			'content' 		=> $content,
+			'errorMessage'	=> '',
+			'message'		=> '',
+	);
+	
+	
+	$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//viewGroup
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+}	// VO_CtrlGroup

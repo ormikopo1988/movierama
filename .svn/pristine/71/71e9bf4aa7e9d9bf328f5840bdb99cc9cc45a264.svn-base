@@ -1,0 +1,49 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import PostInput from './PostInputComp.jsx';
+import Post from './PostComp.jsx';
+import $ from 'jquery';
+
+var RB = require('react-bootstrap');
+
+
+export default React.createClass({ //ProfileEdit	  
+	getInitialState: function()
+	{
+		return {
+					posts: this.props.data.posts,
+				}
+	},
+
+	render: function() 
+	{
+		var inputData = {
+							parentPostId: null,
+							postBoxId: this.props.data.postBoxId,
+							showPrivacy: true,
+						};
+		var inputLookUps = 	{ 
+								POST_PRIVACY_CHOICES: this.props.lookUps.POST_PRIVACY_CHOICES, 
+							};
+		var posts = [];
+		for(var q =0; q<this.state.posts.length; q++)
+		{
+			posts.push(
+			<Post data = {this.state.posts[q]} />
+			);
+		}
+
+		return(<div>
+			<PostInput data={inputData} lookUps = {inputLookUps} newInsertCallBack = {this.handlePostInsert}/>
+			{posts}
+			</div>
+		);
+	},
+
+	handlePostInsert: function(newPostData)
+	{
+		var tmp = this.state;
+		tmp.posts.unshift(newPostData);
+		this.setState(tmp);
+	}
+});

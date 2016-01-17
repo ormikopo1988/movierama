@@ -1,0 +1,423 @@
+<?php
+
+
+
+class VO_Registration {
+	const _ECP = 'REG';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @return bool
+	 */
+	public static 
+	function checkDomainForIndividuals( WOOOF $wo, $domain )
+	{
+		if ( in_array($domain, VO_Constants::c_emailDomainsForIndividuals) ) {
+			return true;
+		}
+		
+		foreach( VO_Constants::c_emailSubDomainsForIndividuals as $aSubDomain ) {
+			$pos = strpos($domain, $aSubDomain . '.' );
+			// if ( $pos !== FALSE ) {	// found anywhere
+			if ( $pos === 0 ) {
+				return true;
+			}
+		}
+		
+		return false;
+	}	// checkDomainForIndividuals
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @return bool
+	 */
+	public static 
+	function checkEmaiForOrgAdmin( WOOOF $wo, $emailUserName, $orgAdminEmails='' )
+	{
+		if ( in_array($emailUserName, VO_Constants::c_emailsForOrgAdmins) ) {
+			return true;
+		}
+		
+		if ( $wo->hasContent($orgAdminEmails) ) {
+			if ( in_array($emailUserName, explode(',', $orgAdminEmails) ) ) {
+				return true;
+			}
+		}
+		
+		return false;
+	}	// checkEmaiForOrgAdmin
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param string $email
+	 * @return false | [ 'isValidEmail' => bool, 'isIndividual' => bool, 'canBeAdmin' => bool, 'isOrgInVOICE' => bool, 'orgInfo' => [ 'name', 'description', 'orgDomain', 'logoURL', 'id', ... ] ]
+	 */
+	public static 
+	function checkOrgByEmail( WOOOF $wo, $email )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$email = trim($email);
+		$wo->debug( "$place:  [$email]" );
+		
+		$out = [
+			'isValidEmail' 	=> true,
+			'isIndividual'	=> false,
+			'canBeAdmin'	=> false,
+			'isOrgInVOICE'	=> false,
+			'orgInfo'		=> [ 'name' => '', 'description' => '', 'id' => '', 'acceptEmailsforAdmin' => '', 'logoURL' ],
+			'errors'		=> []
+		];
+		
+		$email = filter_var($email, FILTER_VALIDATE_EMAIL);
+		if ( $email === FALSE ) {
+			$out ['isValidEmail'] = false;
+			$out['errors'] 		  = [ 'email is not valid.'];
+			return $out;
+		}
+		
+		// Checks also for actual existence of email address.
+		// TODO: Check if it is trusty.
+		$emailErrors = [];
+		$res = WOOOF::isValidEmail($email, $errorsArray);
+		if ( $res === FALSE ) {
+			$out['isValidEmail'] 	= false;
+			$out['errors']			= $errorsArray;
+			return $out;
+		}
+
+		$domain		= substr($email, strrpos($email, '@') + 1);
+		$userName	= explode("@",$email)[0];
+		
+		// Check that user is not already registered
+		$t1 = new WOOOF_dataBaseTable($wo->db, 'voice_users' );
+		if ( !$t1->constructedOk ) { return false; }
+		
+		$res = $t1->getResult(['username' => $email]);
+		if ( $res === FALSE ) { return false; }
+		
+		if ( $res['totalRows'] != 0 ) {
+			$out['emailAlreadyIn'] = true;
+			return $out;
+		}
+		
+		// $shortDomain: only the last three parts of the domain 
+		$domainParts = explode('.', $domain );
+		for( $i=1; $i<count($domainParts) - 3; $i++ ) {
+			array_shift($domainParts);
+		}
+		$shortDomain = implode( '.', $domainParts );
+		
+		// Check whether should be an individual
+		//
+		if ( self::checkDomainForIndividuals($wo, $domain) ) {
+			$out['isIndividual'] = true;
+		}
+		else {
+			$out['isIndividual'] = false;
+			
+			$out2 = VO_Organisations::checkOrgByDomain($wo, $shortDomain);
+			if ( $out2 === FALSE ) { return false; }
+			
+			$out = array_merge( $out, $out2 );
+			
+			if ( $out['isOrgInVOICE'] ) {
+				// Check whether org in VOICE has already an admin
+				$t1 = new WOOOF_dataBaseTable($wo->db, 'voice_users' );
+				$res = $t1->getResult( 
+					[
+						'organisationId' 		=> $out['orgInfo']['id'],
+						'isOrganisationAdmin' 	=> 1,
+						'isDeleted'				=> 0
+					]
+				);
+				if ( $res === FALSE ) { return false; }
+			
+				$out['orgInfo']['hasAdmin'] = ( $res['totalRows'] != 0 );
+				
+			}	// org is in VOICE
+
+			$out['orgInfo']['orgDomain'] = $domain;
+			
+			// Check whether can be an admin
+			//
+			if ( self::checkEmaiForOrgAdmin($wo, $userName, $out['orgInfo']['acceptEmailsforAdmin']) ) {
+				$out['canBeAdmin'] = true;
+			}
+			else {
+				$out['canBeAdmin'] = false;
+			}
+			
+		}	// may be in an org
+		
+		$out['isValidEmail'] = true;
+		
+		
+		return $out;
+	}	// checkOrgByEmail
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param array $in	// [ 'email', 'password', 'passwordConfirm', 'asAdmin', 'registerAs' ]
+	 * @return false | new user id 
+	 * Creates a voice_user complete with relevant records in
+	 * __users, person_profiles, post_boxes
+	 * and organisations (if organisation is new to VOICE).
+	 */
+	public static 
+	function registerUser( WOOOF $wo, $in, &$errors )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+		
+		// (Re)check everything here
+		//
+		
+		$errors = [];
+		
+		if( !$wo->hasContentArrayEntry($in, 'password' )  || !$wo->hasContentArrayEntry($in, 'passwordConfirm') ) {
+			array_push($errors, "You must provide a password and a password confirmation!");
+		}
+		else {
+			if($in['password'] !== $in['passwordConfirm']) {
+				array_push($errors, "The passwords you provided do not match.");
+			}
+		}
+		
+		// Check organisation based on the email domain
+		//
+		$checkData = self::checkOrgByEmail( $wo, $in['email'] );
+		if ( $checkData === FALSE ) { return FALSE; }
+		
+		if ( !$checkData['isValidEmail'] ) {
+			$errors = [ "email [{$in['email']}] is not valid." ];
+			return false;
+		}		
+
+			if ( !$wo->hasContentArrayEntry($in, 'registerAs') ) {
+			array_push($errors, "Please choose whether you want to register as an Individual or as a User of the Organisation.");
+		}
+		
+		if ( !$wo->hasContentArrayEntry($in, 'firstName') ) {
+			array_push($errors, "Please fill-in your First Name.");
+		}
+		
+		if ( !$wo->hasContentArrayEntry($in, 'lastName') ) {
+			array_push($errors, "Please fill-in your Last Name.");
+		}
+		
+		if ( !$wo->hasContentArrayEntry($in, 'birthYear') ) {
+			array_push($errors, "Please fill-in the Year of your Birth.");
+		}
+		
+		if ( !empty($errors) ) {
+			return false;
+		}
+		
+		
+		// Prepare for saving
+		//
+		$asOrgAdmin = false;
+		
+		if ( $in['registerAs'] == 'ind'   ) {
+			$orgId = VO_Constants::c_organisationForIndividuals;
+		}
+		else {
+			$asOrgAdmin = ( $checkData['canBeAdmin'] );
+		
+			$orgInfo = $checkData['orgInfo'];
+			
+			// Add organisation if needed
+			//if ( $checkData['isOrgInVOICE'] ) {
+			//	$orgId = $orgInfo['id'];
+			//}
+			//else {
+				// Add to organisation
+				$orgId = VO_Organisations::registerOrganisation($wo, $orgInfo);
+				IF ( $orgId === FALSE ) { return FALSE; }
+			//}
+		}
+
+		// Add to __users
+		// (also makes the final check on password)
+		//
+		$userId = WOOOF_User::createUser($wo, $in['email'], $in['password'], 'Normal User' );
+		if ( $userId === FALSE ) { $errors = [$wo->getErrorsAsStringAndClear(['WOO9999'])]; return false; }
+		
+
+		// Add to person_profiles
+		$ppr = new VO_TblPersonProfile();
+		$ppr->email		= $in['email'];
+		$ppr->firstName	= $in['firstName'];
+		$ppr->lastName	= $in['lastName'];
+		$ppr->birthYear = $in['birthYear'];
+		$ppr->gender	= '?';
+
+		$pprId = VO_PersonProfiles::save($wo, $ppr);
+		if ( $pprId === FALSE ) { return FALSE; }
+		
+		// Add to voice_users
+		$us = new VO_TblUser();
+		// we leave 'id' empty
+		$us->userId					= $userId;
+		$us->username				= $in['email'];
+		$us->organisationId 		= $orgId;
+		$us->isOrganisationAdmin 	= ( $asOrgAdmin ? '1' : '0' );
+		$us->personProfileId		= $pprId;
+		
+		$voiceUserId = VO_Users::save($wo, $us);
+		if ( $voiceUserId === FALSE ) { return FALSE; }
+		
+		// Add to post_boxes
+		$pb = new VO_TblPostBoxes();
+		$pb->ownerType	= 'PRS';
+		$pb->ownerId	= $voiceUserId;
+		$pb->noOfPosts	= 0;
+		$pb->lastPostDateTime = NULL;
+
+		$pbTable = new WOOOF_dataBaseTable($wo->db, 'post_boxes');
+		$pbId = $pbTable->insertRowFromArraySimple( $pb->toArray() );
+		if ( $pbId === FALSE ) { return false; }
+
+		return $voiceUserId;
+	}	// registerUser
+
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in	// [ 'email', 'password' ]
+	 * @return array [ 'loginOK', 'errors' ]
+	 */
+	public static
+	function loginDo( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		//$wo->debug( "$place:  [$in]" );
+	
+		$_POST = [];
+		$_POST['username'] = $in['email'];
+		$_POST['password'] = $in['password'];
+	
+		$loginResult = $wo->handleLoginFromPost();
+	
+		if ($loginResult === FALSE || !isset($loginResult['id']))
+		{
+			return [ 
+				'loginOk' => false, 
+				'errors' => ['The credentials you provided are not correct.'] 
+			];
+		}
+	
+		// Credentials are valid here.
+		
+		// Make sure this is valid VOICE User
+		//
+		$voicePersonRec = $wo->db->getRowByColumn('v_voice_persons', 'VUS_userId', $loginResult['id'] );
+		if ( $voicePersonRec === FALSE ) { return FALSE; }
+		
+		if ( $voicePersonRec === NULL ) {
+			// e.g. a sysOp 
+			return [
+				'loginOk' => false,
+				// intentionally return the same message as above	
+				'errors' => ['The credentials you provided are not correct.']
+			];
+		}
+		
+		if ( $voicePersonRec['VUS_isDeleted'] == '1' or 
+			 $voicePersonRec['VUS_isActive'] == '0' or 
+			 $voicePersonRec['ORG_isDeleted'] == '1' or
+			 $voicePersonRec['ORG_active'] == '0'
+		) {
+			return [
+				'loginOk' => false,
+				'errors' => ['Sorry, but you are not allowed access to the platform.']
+			];
+		}
+		
+		if ( $wo->hasContent($voicePersonRec['VUS_verificationToken']) ) {
+			return [
+				'loginOk' => false,
+				'errors' => ['Sorry, but you need to verify your email before accessing the platform. <p>Check your e-mail for a relevant message sent by VOICE and just follow the link in it.</p>']
+			];
+		}
+		
+		// Safe here.
+		
+		$wo->invalidateSession();
+		$wo->newSession($loginResult['id']);
+		
+		// Re-init WOOOF with new user values (hackish...)
+		global $userData;
+		$wo->userData = $userData;
+		initAppVOICE($wo);
+		
+		VO_SessionMessages::addMessage($wo, 'Welcome back ' . $wo->app->userSlug, 'I' );
+		
+		//TODO: finish!!!
+		//VO_Users::saveAction($wo, $obj)
+		$wo->db->commit();
+			
+		return [ 
+			'loginOk'	=> true, 
+			'errors'	=> [] 
+		];
+	}	// loginDo
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $what	// BIRTH, LAST_CENTURY
+	 * @return int[]		// Two integers: 1st is the 'From year', 2nd is the 'To Year'
+	 */
+	public static
+	function getYearRangeFor( WOOOF $wo, $what )
+	{
+		$currYear = date('Y');
+		
+		switch ( $what ) {
+			case 'BIRTH':
+				return [ 1920, $currYear-VO_Constants::c_minAgeForRegistration ];
+				break;
+				
+			case 'LAST_CENTURY':
+				return [ $currYear-100, $currYear ];
+				break;
+				
+			default:
+				return [ $currYear, $currYear-1];	// impossible
+		}
+		
+		return false;
+	}	// getYearRangeFor
+	
+	
+}	// VO_Registration

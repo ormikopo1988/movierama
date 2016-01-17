@@ -1,0 +1,348 @@
+<?php
+
+class VO_Badges {
+	const _ECP = 'BAD';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param VO_TblVoiceUserBadges $obj
+	 * @param bool $fetchBack
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static 
+	function save( WOOOF $wo, VO_TblVoiceUserBadges &$obj, $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	    
+		if ( !$wo->hasContent($obj->voiceUserId) ) {
+			$wo->logError(self::_ECP."3295 No value provided for [voiceUserId]" );
+			return false;
+		}
+		
+		if ( !$wo->hasContent($obj->badgeId) ) {
+			$wo->logError(self::_ECP."3296 No value provided for [badgeId]" );
+			return false;
+		}
+		
+		$tblVoiceUserBadges = new WOOOF_dataBaseTable($wo->db, 'voice_user_badges');
+		if($tblVoiceUserBadges === FALSE) { return false; }
+			
+		if ( $wo->hasContent($obj->id) ) {
+			// update
+			$obj->effectiveDate = WOOOF::getCurrentDateTime();
+			
+			$res = $tblVoiceUserBadges->updateRowFromArraySimple( $obj->toArray() );
+			
+			if ( $res === FALSE ) { return FALSE; }
+		}
+		else {
+			// insert
+			$obj->effectiveDate = WOOOF::getCurrentDateTime();
+			
+			$newId = $tblVoiceUserBadges->insertRowFromArraySimple( $obj->toArray() );
+			if ( $newId === FALSE ) { return false; }
+			$obj->id = $newId;
+		}
+
+		if ( $fetchBack ) {
+			// Get back into $obj based on id
+			// TODO:
+		}
+	  
+		return $obj->id;
+	}	// save
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $voiceUserId
+	 * @return false | [] user badges array
+	 */
+	public static
+	function getVoiceUserBadges( WOOOF $wo, $voiceUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+		 
+		if ( !$wo->hasContent($voiceUserId) ) {
+			$wo->logError(self::_ECP."3299 No value provided for [voiceUserId]" );
+			return false;
+		}
+	
+		$badges = []; //array to be sent to react element
+		$badgesElems = ['id', 'effectiveDate', 'voiceUserId', 'badgeId', 'points', 'badgeLevel'];
+		
+		$tblVoiceUserBadges = new WOOOF_dataBaseTable($wo->db, 'voice_user_badges');
+		if($tblVoiceUserBadges === FALSE) { return false; }
+			
+		//take registration badge
+		$res = $tblVoiceUserBadges->getResult(
+			[
+				'voiceUserId' => $voiceUserId,
+				'isDeleted' => '0'
+			],
+			'badgeLevel', '', '', '', false, true
+		);
+			
+		if ( $res === FALSE ) { return false; }
+		
+		foreach( $tblVoiceUserBadges->resultRows as $aBadge ) {
+			$badge = [];
+			WOOOF_Util::filterOnKeys($badge, $badgesElems, $aBadge);
+			
+			$badgeInfo = $wo->db->getRow('badges', $aBadge['badgeId']); //fernei olo to row
+			$badge['badgeName'] 		 		= $badgeInfo['name'];
+			$badge['badgeStatisticType'] 		= $badgeInfo['badgeType'];
+			$badge['badgeValueNeededForBronze'] = $badgeInfo['valueNeededForBronze'];
+			$badge['badgeValueNeededForSilver'] = $badgeInfo['valueNeededForSilver'];
+			$badge['badgeValueNeededForGold']   = $badgeInfo['valueNeededForGold'];
+			
+			array_push($badges, $badge);
+		}
+		 
+		return $badges;
+	}	// getVoiceUserBadges
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $voiceUserId
+	 * @return false | true
+	 */
+	public static
+	function updateVoiceUserBadgesTable( WOOOF $wo, $voiceUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+			
+		if ( !$wo->hasContent($voiceUserId) ) {
+			$wo->logError(self::_ECP."3499 No value provided for [voiceUserId]" );
+			return false;
+		}
+	
+		//GET ALL AVAILABLE BADGES
+		$tblBadges = new WOOOF_dataBaseTable($wo->db, 'badges');
+		if($tblBadges === FALSE) { return false; }
+			
+		//TODO - WHEN READY MAKE IT SEARCH FOR ALL BADGES AND NOT THE FIRE ONE FOR TEST HERE
+		$res = $tblBadges->getResult(
+			[
+				'id'		=> '1122334457',
+				'isDeleted' => '0'
+			],
+			'', '', '', '', false, true
+		);
+			
+		if ( $res === FALSE ) { return false; }
+		
+		foreach( $tblBadges->resultRows as $aBadge ) {
+			$points = self::computeVoiceUserBadges($wo, $voiceUserId, $aBadge['id']);
+			if ( $points === FALSE ) { return false; }
+		}
+			
+		return true;
+	}	// updateVoiceUserBadgesTable
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $voiceUserId
+	 * @param string $badgeId
+	 * @return false | points
+	 */
+	public static
+	function computeVoiceUserBadges( WOOOF $wo, $voiceUserId, $badgeId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+			
+		if ( !$wo->hasContent($voiceUserId) ) {
+			$wo->logError(self::_ECP."3129 No value provided for [voiceUserId]" );
+			return false;
+		}
+		
+		if ( !$wo->hasContent($badgeId) ) {
+			$wo->logError(self::_ECP."3138 No value provided for [badgeId]" );
+			return false;
+		}
+	
+		//Get the badge info
+		$badge = $wo->db->getRow('badges', $badgeId);
+		if($badge === FALSE) { return false; }
+		
+		/////////////////////////////////////////////
+		
+		//check if the user has or not the badge already
+		$tblVoiceUserBadges = new WOOOF_dataBaseTable($wo->db, 'voice_user_badges');
+		if($tblVoiceUserBadges === FALSE) { return false; }
+			
+		$res = $tblVoiceUserBadges->getResult(
+			[
+				'voiceUserId' => $voiceUserId,
+				'badgeId'	  => $badgeId,
+				'isDeleted'   => '0'
+			],
+			'', '', '', '', false, true
+		);
+		if ( $res === FALSE ) { return false; }
+		
+		$points = 0;
+		$completePercentage = 0;
+		
+		//already I am at least in the 3 (bronze) level - it means I have the badge
+		if($res['totalRows'] !== 0) {
+			foreach( $tblVoiceUserBadges->resultRows as $aUserBadge ) {
+				$points = self::computePoints($wo, $voiceUserId, $badge['badgeType'], $aUserBadge['effectiveDate']);
+				
+				$completePercentageSilver = ($points / $badge['valueNeededForSilver']) * 100;
+				$completePercentageGold = ($points / $badge['valueNeededForGold']) * 100;
+				
+				//Now I have $completePercentage, $points,
+				//$aUserBadge['badgeLevel'] available
+				//UPDATE user_badges points and badgeLevel if needed
+				$voiceUserBadge = new VO_TblVoiceUserBadges($aUserBadge);
+				$voiceUserBadge->voiceUserId = $voiceUserId;
+				$voiceUserBadge->points = $points;
+				
+				if( $completePercentageGold >= 100 ) {
+					$voiceUserBadge->badgeLevel = '1';
+				}
+				else if( $completePercentageSilver >= 100 ) {
+					$voiceUserBadge->badgeLevel = '2';
+				}
+				
+				$updatedBadgeId = self::save($wo, $voiceUserBadge);
+				if ( $updatedBadgeId === FALSE ) { return false; }
+			}
+		}
+		
+		//no badge already found for user
+		else {
+			//NO BADGE FOUND THEN INSERT USER BUDGE IN TABLE IF NEEDED
+			//I have the badge row in $badge
+			$points = self::computePoints($wo, $voiceUserId, $badge['badgeType'], '19700101000000');
+			$completePercentageBronze = ($points / $badge['valueNeededForBronze']) * 100;
+			$completePercentageSilver = ($points / $badge['valueNeededForSilver']) * 100;
+			$completePercentageGold = ($points / $badge['valueNeededForGold']) * 100;
+			
+			$voiceUserBadge = new VO_TblVoiceUserBadges();
+			$voiceUserBadge->voiceUserId = $voiceUserId;
+			$voiceUserBadge->points = $points;
+			$voiceUserBadge->badgeId = $badgeId;
+			
+			if( $completePercentageBronze >= 100 ) {
+				if( $completePercentageGold >= 100 ) {
+					$voiceUserBadge->badgeLevel = '1';
+				}
+				else if( $completePercentageSilver >= 100 ) {
+					$voiceUserBadge->badgeLevel = '2';
+				}
+				else {
+					$voiceUserBadge->badgeLevel = '3';
+				}
+				$insertedBadgeId = self::save($wo, $voiceUserBadge);
+				if ( $insertedBadgeId === FALSE ) { return false; }
+			}
+		}
+		
+		//////////////////////////////////////////////
+			
+		return $points;
+	}	// computeVoiceUserBadges
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $voiceUserId
+	 * @param string $badgeType
+	 * @param string $effectiveDate
+	 * @return false | points
+	 */
+	public static
+	function computePoints( WOOOF $wo, $voiceUserId, $badgeType, $effectiveDate )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+			
+		if ( !$wo->hasContent($voiceUserId) ) {
+			$wo->logError(self::_ECP."3139 No value provided for [voiceUserId]" );
+			return false;
+		}
+	
+		if ( !$wo->hasContent($badgeType) ) {
+			$wo->logError(self::_ECP."3148 No value provided for [badgeId]" );
+			return false;
+		}
+	
+		$points = 0;
+		
+		switch ( $badgeType ) {
+			case 'publishIdea':
+				//TODO - Compute new points from statistics table based on $effectiveDate
+				//$points = 30;
+				break;
+		
+			case 'uponGraduationIdea':
+				//Compute new points from statistics table
+				break;
+					
+			case 'comments':
+				//Compute new points from statistics table
+				//$points = 1200;
+				break;
+		
+			case 'invitationsSent':
+				//Compute new points from statistics table
+				break;
+					
+			case 'contentProduction':
+				//Compute new points from statistics table
+				//$points = 25;
+				break;
+		
+			case 'likes':
+				//Compute new points from statistics table
+				break;
+					
+			case 'sharingIn':
+				//Compute new points from statistics table
+				$points = 27;
+				break;
+		
+			case 'sharingOut':
+				//Compute new points from statistics table
+				break;
+		
+			case 'followings':
+				//Compute new points from statistics table
+				break;
+		}
+			
+		return $points;
+	}	// computePoints
+
+}	// VO_Badges

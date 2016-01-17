@@ -1,0 +1,8 @@
+<IfModule mod_rewrite.c>
+    Options -MultiViews
+
+    RewriteEngine On
+    RewriteBase /voice
+    RewriteCond %{REQUEST_URI} !^publicSite/
+    RewriteRule ^(.*)$ publicSite/$1 [L]
+</IfModule>

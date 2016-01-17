@@ -1,0 +1,94 @@
+CREATE TABLE `_load_organisations` (
+  `crunchbase_uuid` varchar(40) DEFAULT NULL,
+  `org_type` varchar(40) DEFAULT NULL,
+  `primary_role` varchar(40) DEFAULT NULL,
+  `name` varchar(200) DEFAULT NULL,
+  `crunchbase_url` varchar(255) DEFAULT NULL,
+  `homepage_domain` varchar(255) DEFAULT NULL,
+  `homepage_url` varchar(255) DEFAULT NULL,
+  `profile_image_url` varchar(255) DEFAULT NULL,
+  `facebook_url` varchar(255) DEFAULT NULL,
+  `twitter_url` varchar(255) DEFAULT NULL,
+  `linkedin_url` varchar(255) DEFAULT NULL,
+  `stock_symbol` varchar(40) DEFAULT NULL,
+  `location_city` varchar(255) DEFAULT NULL,
+  `location_region` varchar(40) DEFAULT NULL,
+  `location_country_code` varchar(40) DEFAULT NULL,
+  `short_description` varchar(2000) DEFAULT NULL,
+  `funding_round_name` varchar(40) DEFAULT NULL,
+  `ending` varchar(20) DEFAULT NULL,
+  `voice_id` varchar(10) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
+  KEY `name` (`name`),
+  KEY `crunchbase_uuid` (`crunchbase_uuid`),
+  KEY `voice_id` (`voice_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+/* https://dev.mysql.com/doc/refman/5.6/en/load-data.html */
+
+/*
+	Files:
+		'C:\\Docs\\AIT\\VOICE\\organizations.csv' 
+		'/storage/VOICE_Docs/_Technical/UNIROMA/Data/organizations.csv'
+		'/tmp/organizations.csv'
+*/
+
+LOAD DATA INFILE '/tmp/organizations.csv' 
+INTO TABLE voice._load_organisations
+COLUMNS TERMINATED BY ','
+OPTIONALLY ENCLOSED BY '"'
+;
+
+
+/*
+
+select location_country_code, count(*)
+from _load_organisations
+group by location_country_code
+order by 2 desc;
+
+*/
+
+/*
+SELECT `location_country_code`, count(*)
+FROM `_load_organisations`
+where length(location_country_code) != 3
+group by location_country_code
+*/
+
+update _load_organisations
+set location_country_code = 'SVK'
+where location_country_code = 'Slovakia (Slovak Republic)';
+
+update _load_organisations
+set location_country_code = 'VNM'
+where location_country_code = 'Vietnam';
+
+update _load_organisations
+set location_country_code = 'PRK'
+where location_country_code = 'North Korea';
+
+update _load_organisations
+set location_country_code = 'MAF'
+where location_country_code = 'Saint-Martin (France)';
+
+update _load_organisations
+set location_country_code = 'BLM'
+where crunchbase_uuid = '2db6eede-6f91-a64b-a720-2b962c1ee5cb';
+
+
+
+transfer to organisations
+
+Address
+-> insert into address_generic 
+genericType	char(3)	 --> ORG
+createdDateTime	char(14)  
+genericId	char(10)  --> from caller
+areaId	char(10)	  --> based on the 3 letter location_country_code
+addressText	varchar(255) NULL	 --> location_region location_city
+addressTypeDVId	char(10) --> domainValue: ADDRESS_TYPE ORG headquarters
+
+Social Accounts
+->
+organisation_social_accounts

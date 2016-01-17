@@ -1,0 +1,19 @@
+<?php
+/* Class [VO_TblVoiceUserGroups] for table [voice_user_groups] */
+
+class VO_TblVoiceUserGroups extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'voice_user_groups';
+
+    public $id;
+    public $isDeleted;
+    public $groupMembershipType;
+    public $isAdmin;
+    public $isActive;
+    public $voiceUserId;
+    public $groupId;
+    public $isAllowedToPost;
+    public $fromDate;
+    public $toDate;
+
+}  // VO_TblVoiceUserGroups

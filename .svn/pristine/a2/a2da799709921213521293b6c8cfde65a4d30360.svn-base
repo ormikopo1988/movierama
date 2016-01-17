@@ -1,0 +1,973 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import $ from 'jquery';
+var RB = require('react-bootstrap');
+
+import MessagesBoxComp from './MessagesBoxComp';
+import AddressesBoxComp from './AddressesBoxComp';
+
+import YearInputComp from './YearInputComp';
+import AutoCompleteComp from './AutoCompleteComp';
+import AutoCompleteCompMulti from './AutoCompleteCompMulti';
+import LoadingComp from './LoadingComp';
+import TooltipComp from './TooltipComp';
+
+export default React.createClass({ //OrganisationEdit
+  
+  getInitialState: function() {
+  	return {
+    	data: {
+    	   main : this.props.data.main,
+    	   addresses : this.props.data.addresses,
+    	   tags : this.props.data.tags,
+    	   socialAccounts: this.props.data.socialAccounts, 
+		   loading: false
+		}
+    };
+  },
+  
+  render: function() { //function that returns a tree of React components that will eventually render to HTML
+    return (
+      <div className="profileBox">
+          <Main loading={this.state.data.loading} data={this.state.data.main} lookUps={this.props.lookUps} />
+          <AddressesBoxComp isType={this.state.data.main.isType} orgId={this.state.data.main.organisationId} loading={this.state.data.loading} data={this.state.data.addresses} lookUps= {this.props.lookUps}  ranges= {this.props.ranges} />
+          <Tags orgId={this.state.data.main.organisationId} loading={this.state.data.loading} data={this.state.data.tags} lookUps={this.props.lookUps}  ranges= {this.props.ranges} />
+          <Accounts orgId={this.state.data.main.organisationId} loading={this.state.data.loading} data={this.state.data.socialAccounts} lookUps= {this.props.lookUps}  ranges= {this.props.ranges} />
+      </div>
+    );
+  }
+  
+});	// OrganisationEdit
+
+/*************************************************************************************************************/
+
+var Main = React.createClass({
+  getInitialState: function() {
+  	console.log('MAIN VIEW: ', this.props);
+    var tmpMainView = this.props.data; //for reseting purposes
+    this.initialState = JSON.stringify(tmpMainView);
+  
+    return {
+	  mainView: tmpMainView,
+	  loading: this.props.loading
+    };
+  },
+  
+  handleChange: function(event) {
+	  var tmp = this.state.mainView;
+	  tmp[event.target.name] = event.target.value;
+
+	  this.setState({
+		  mainView: tmp
+	  });
+  },
+
+  handleAutoCompleteChange: function(value) {
+  	var tmp = this.state.mainView;
+  	console.log('this.refs.serviceId: ', this.refs.serviceId.getValue())
+	tmp['services'] = this.refs.serviceId.getValue();
+	tmp['voiceRolesIds'] = this.refs.roleId.getValue();
+	console.log('MAINVIEW: ',tmp);
+
+	this.setState({
+	  mainView: tmp
+    });
+  },
+  
+  handleReset: function() {
+  	  this.refs.msgBox.clearErrors();
+	  var resetView = JSON.parse(this.initialState);
+	  this.setState({mainView: resetView});
+  },
+  
+  handleSave: function(e) {
+	  e.preventDefault();
+
+	  var fd = new FormData(); //api ths javascript
+
+	  var data = this.state.mainView;
+
+	  if(ReactDOM.findDOMNode(this.refs.logoImage).value !== '') {
+	  	fd.append('logoImage', ReactDOM.findDOMNode(this.refs.logoImage).files[0]);
+	  }
+	  	
+	  fd.append('data', JSON.stringify(data));
+	  
+	  var url = VOICE.linkPrefix('api/organisation/mainInfoSave');
+	  //data to send to server!
+	  this.setState({
+	  	loading: true
+	  });
+	  VOICE.ajaxCallWithFiles(url, 'POST', fd, this, this.cbHandleSave);
+  },
+
+  cbHandleSave: function(result) {
+  	if(result.saveOk === true) {
+  		// if successully saved
+  		var data = this.state.mainView;
+  		data.logoImage = result.logoImage;
+	    this.initialState = JSON.stringify(this.state.mainView);
+	    this.setState({mainView: data});
+  		this.refs.msgBox.clearErrors();
+  		this.refs.msgBox.addSuccess('Organisation\' s information was saved successully!', false);
+	  	setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+  	}
+  	else {
+  		this.refs.msgBox.addError(result.errors);
+  	}
+  	this.setState({
+		loading: false
+	});
+  },
+
+  render: function() {
+	var mainInfo = this.state.mainView;
+	var logoImage = mainInfo.logoImage || mainInfo.logoURL || '$no_image_available.jpg';
+	var avatarURL = '';
+	if(logoImage !== '$no_image_available.jpg') {
+		if(logoImage === mainInfo.logoImage) {
+			avatarURL = VOICE.imgPrefix(logoImage, '');
+		}
+		else {
+			avatarURL = logoImage;
+		}
+	}
+	else {
+		avatarURL = VOICE.systemImgPrefix(logoImage);
+	}
+
+	var avatarDivStyle = {
+		backgroundImage: 'url(' + avatarURL + ')'
+	};
+
+    return (
+	  <RB.Well>
+	  	<center><h3><a href={VOICE.linkPrefix('organisation/view/'+mainInfo.organisationId)}>View Profile</a></h3></center>
+	    <RB.Row>
+			<RB.Col md={12}>
+				<center>
+					<a href={avatarURL} target="_blank">
+						<div className="circle" style={avatarDivStyle}></div>
+					</a>
+				</center><br/>
+				<center>
+					<label>
+						<i className="fa fa-camera"></i>
+					</label>
+		  			<input type="file" id="input-1" ref="logoImage" name="logoImage" />
+				</center>
+			</RB.Col>
+		</RB.Row><br/>
+      	<RB.Row>
+      		<RB.Col md={4}>
+				<RB.Col md={12}>
+					<RB.Input type="text" addonBefore="Name (*)" placeholder="Organisation Name..." value={mainInfo.name} ref="name" name="name" onChange={this.handleChange} />
+				</RB.Col>
+			</RB.Col>
+			<RB.Col md={4}>
+				<RB.Col md={12}>
+					<RB.Input type="text" addonBefore="Domain (*)" placeholder="Organisation Domain..." value={mainInfo.orgDomain} ref="orgDomain" name="orgDomain" onChange={this.handleChange} />
+				</RB.Col>
+			</RB.Col>
+			<RB.Col md={4}>
+				<RB.Col md={12}>
+					<RB.Input type="text" addonBefore="URL (*)" placeholder="Organisation URL..." value={mainInfo.orgURL} ref="orgURL" name="orgURL" onChange={this.handleChange} />
+				</RB.Col>
+			</RB.Col>
+		</RB.Row><br/>
+		<RB.Row>
+  			<RB.Col md={12}>
+  				<RB.Col md={12}>
+					<RB.Input type="select" addonBefore="Organisation Type" value={mainInfo.orgTypeDVId} placeholder="Select Type" ref="orgTypeDVId" name="orgTypeDVId" onChange={this.handleChange}>
+						<option value=""> - Select Title - </option>
+						{VOICE.renderOptions(this.props.lookUps.ORG_TYPE)}
+				    </RB.Input>
+			    </RB.Col>
+			</RB.Col>
+		</RB.Row><br/>
+		<RB.Row>
+			<RB.Col md={12}>
+				<RB.Col md={12}>
+  					<RB.Input type="textarea" rows="7" value={mainInfo.description} addonBefore="Description" ref="description" name="description" placeholder="Tell us a bit about the organisation..." onChange={this.handleChange}></RB.Input> 
+				</RB.Col>
+			</RB.Col>
+		</RB.Row><br/>
+		<RB.Row>
+			<RB.Col md={12}>
+  				<div className="panel panel-default">
+  					<div className="panel-heading">Roles</div>
+					<div className="panel-body">
+						<AutoCompleteCompMulti value={mainInfo.voiceRolesIds} isType="VRO" ref="roleId" minCharsForSearching="3" 
+							aria-describedby="basic-addon-10" placeholder="Search Role..." 
+							options={this.props.lookUps.VOICE_ROLE} customCallBackOnChange={this.handleAutoCompleteChange}>
+						</AutoCompleteCompMulti>
+					</div>
+				</div>
+			</RB.Col>
+			<RB.Col md={12}>
+  				<div className="panel panel-default">
+  					<div className="panel-heading">Services</div>
+					<div className="panel-body">
+						<AutoCompleteCompMulti value={mainInfo.services} isType="SRV" ref="serviceId" minCharsForSearching="3" 
+							aria-describedby="basic-addon-10" placeholder="Search Service..." 
+							options={this.props.lookUps.SERVICES} customCallBackOnChange={this.handleAutoCompleteChange}>
+						</AutoCompleteCompMulti>
+					</div>
+				</div>
+			</RB.Col>
+		</RB.Row><br/>
+		<RB.Row>
+			{
+				this.state.loading === false ?
+					<span>
+						<RB.Col md={1} mdOffset={5}>
+							<RB.Button bsStyle="success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save</RB.Button>
+						</RB.Col>
+						<RB.Col md={1}>
+							<RB.Button onClick={this.handleReset}><i className="glyphicon glyphicon-repeat"></i> Reset</RB.Button>
+						</RB.Col>
+					</span> :
+					<LoadingComp loadingText="Saving Information..."></LoadingComp>
+			}
+		</RB.Row><br/>
+		<RB.Row>
+			<RB.Col md={12}>
+				<MessagesBoxComp ref="msgBox"/>
+			</RB.Col>
+		</RB.Row>
+      </RB.Well>
+    );
+  }
+});	// Main
+
+/*************************************************************************************************************/
+
+// TODO: put in separate files!!!!
+//
+
+/*************************************************************************************************************/
+
+var Accounts = React.createClass({
+	
+  initObject: function(data) {
+  	  var tmp = {}; //for reseting purposes
+	  
+	  for(var i=0; i<data.length; i++) {
+		  var temp = data[i];
+		  temp._status = 'R';
+		  tmp[ data[i].id ] = temp;
+	  }
+
+	  return tmp;
+  },
+
+  getInitialState: function() {
+  	  var tmp = this.initObject(this.props.data);
+	  
+	  this.initialState = JSON.stringify(tmp);
+	  
+	  return {
+		  account: tmp,
+		  showAccountForm: false,
+		  showAddButton: true,
+		  showSaveAccButton: true,
+	  	  loading: this.props.loading
+	  };
+  },
+  
+  handleSave: function(e) {
+	  e.preventDefault();
+	  
+	  //TAKE OUT the TRASH ("_status = T") before send to server
+	  for (var key in this.state.account) {
+		  if (this.state.account.hasOwnProperty(key)) {
+		  //Now, this.state.addresses[key] is the current value of the address object
+			  if (this.state.account[key]._status === 'T') {
+				  delete this.state.account[key]
+			  }
+		  }
+	  }
+
+	  var url = VOICE.linkPrefix('api/organisation/saveAccounts/'+this.props.orgId);
+	  //data to send to server!
+	  this.setState({
+	  	loading: true
+	  });
+	  VOICE.ajaxCall(url, 'POST', this.state.account, this, this.cbHandleSave);
+  },
+
+  cbHandleSave: function(result) {
+  	console.log(result);
+  	if(result.saveOk === true) {
+  		this.refs.msgBox.clearErrors();
+  		this.refs.msgBox.addSuccess('Organisation\' s social accounts were saved successully!', false);
+	  	setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+
+	  	for (var key in this.state.account) {
+		  if (this.state.account.hasOwnProperty(key)) {
+		  //Now, this.state.account[key] is the current value of the address object
+			  if (this.state.account[key]._status === 'D') {
+				  delete this.state.account[key]
+			  }
+		  }
+	    }
+
+	    //After send to server update the status of all inserted to "R" from "I" OR "U"
+	  	for (var acc in this.state.account) {
+	     if (this.state.account.hasOwnProperty(acc)) {
+	         var obj = this.state.account[acc];
+	          for (var prop in obj) {
+	            // important check that this is objects own property 
+	            // not from prototype prop inherited
+	            if(obj.hasOwnProperty(prop)){
+	              if(prop === '_status' && (obj[prop] === 'I' || obj[prop] === 'U')) {
+	            	  obj[prop] = 'R';  	
+	              }
+	            }
+	         }
+	      }
+	    }
+	  
+ 		var url = VOICE.linkPrefix('api/organisation/getAccounts/'+this.props.orgId);
+
+	    VOICE.ajaxCall(url, 'GET', {}, this, this.cbHandleSaveAccount);
+  	}
+  	else {
+		this.refs.msgBox.addError(result.errors);
+  	}
+  	this.setState({
+		loading: false
+	});
+  },
+
+  cbHandleSaveAccount: function(result) {
+  		var tmp = this.initObject(result);
+  		this.initialState = JSON.stringify(tmp);
+	    this.setState({account: tmp});
+  },
+  
+  handleReset: function() {
+  	  this.refs.msgBox.clearErrors();
+	  var resetView = JSON.parse(this.initialState);
+	  this.setState({account: resetView});
+  },
+  
+  handleAccountSubmit: function(newAccount) {
+	var account = this.state.account;
+	var id = Math.floor((Math.random() * 10000000000) + 1000000000);
+	newAccount.id = id;
+	account[id] = newAccount;
+	
+	this.setState({
+		account: account,
+		showAccountForm: false,
+		showAddButton: true,
+		showSaveAccButton: true
+	});
+  },
+  
+  handleChange: function(accountId, event) {
+  	  // educationId is passed from caller!
+
+	  var exists = false, 
+	  	  newAccount = this.state.account;
+	  
+	  exists = this.state.account.hasOwnProperty(accountId);
+	  if(exists) {
+		   newAccount[accountId][event.target.name] = event.target.value;
+	  }
+	  else {
+		  var tempObj = {};
+		  tempObj['id'] = accountId;
+		  tempObj[event.target.name] = event.target.value;
+		  
+		  newAccount[accountId] = tempObj;
+	  }
+	  
+	  if(newAccount[accountId]._status !== 'I') {
+	      newAccount[accountId]._status = 'U';
+	  }
+	  
+	  this.setState({
+		  account: newAccount
+	  });
+  },
+  
+  onPlusClick: function() {
+	  this.setState({ 
+		  showAccountForm: true,
+		  showAddButton: false,
+		  showSaveAccButton: false
+	  });  
+  },
+  
+  onDeleteClick: function(accountId, event) {
+  	  if(this.state.account[accountId]._status === 'I') {
+		  this.state.account[accountId]._status = 'T'; //trash status (inserted and then updated)
+	  }
+	  else {
+		  this.state.account[accountId]._status = 'D'; //update status
+	  }
+	  
+	  this.setState({
+		  account: this.state.account
+	  }); //update view
+	  
+  },
+  
+  handleCancelClick: function(newView) {
+    this.setState(newView);
+  },
+
+  render: function() {
+	var tds = [];
+	var keys = Object.keys(this.state.account);
+	console.log('RENDERING WITH ACCOUNTS: ', this.state.account);
+	for(var i=0; i < keys.length; i++ ) {
+		var acc = this.state.account[keys[i]];
+
+		// partial call to callback. Pass edu.id as parameter
+		var cb1  = this.handleChange.bind(null,acc.id);
+		tds.push(
+			<tr key={acc.id} id={acc.id} className={(acc._status === 'D' || acc._status === 'T') ? 'hidden' : null}>
+				<td>
+					<select className="form-control" value={acc.socialAccountDVId} ref="socialAccountDVId" name="socialAccountDVId" onChange={cb1} >
+					    {VOICE.renderOptions(this.props.lookUps.SOCIAL_ACCOUNT)}
+				    </select>
+				</td>
+				<td><input type="text" className="form-control" value={acc.url} ref="url" name="url" onChange={cb1} /></td>
+				<td><a href="javascript:void(0)"><i className="fa fa-ban" data-account-id={acc.id} onClick={this.onDeleteClick.bind(null, acc.id)}></i></a></td>
+			</tr>
+		);
+	}
+	
+    return (
+      <div className="well well-large formInlineStyle">
+	  	<div className="panel panel-default">
+		  <div className="panel-heading">
+		  	Social Accounts
+		  	<span id="addAccount">{ this.state.showAddButton ? <a href="javascript:void(0)"><i className="fa fa-plus-circle" onClick={this.onPlusClick}></i></a> : null }</span>
+		  </div>
+	  		  <div className="table-responsive">
+				  <table className="table table-hover">
+					<thead>
+						<tr>
+						    <th>Type</th>
+						    <th>Value</th>
+						    <th>Options</th>
+					    </tr>
+					</thead>
+					<tbody>
+					    {tds}
+					</tbody>
+				  </table>
+			  </div>
+		  </div>
+		  <div className="row">
+		  		{
+					this.state.loading === false ?
+					<span>
+						<div className="col-md-1 col-md-offset-5">
+					      { this.state.showSaveAccButton ? <button type="button" className="btn btn-success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save</button> : null }
+					    </div>
+					    <div className="col-md-1">
+					      { this.state.showSaveAccButton ? <button type="button" className="btn btn-default" onClick={this.handleReset}><i className="glyphicon glyphicon-repeat"></i> Reset</button> : null }
+					    </div>
+					</span> :
+					<LoadingComp loadingText="Saving Accounts..."></LoadingComp>
+				}
+		  </div><br/>
+		  <br/>
+		  <div className="row">
+		  	<div className="col-md-12">
+		  		<MessagesBoxComp ref="msgBox"/>
+		  	</div>
+		  </div>
+		  <div className="row">
+		  	<div className="col-md-12">
+		  		{ this.state.showAccountForm ? <AccountForm {...this.props} onAccountSubmit={this.handleAccountSubmit} onCancelClick={this.handleCancelClick} /> : null }
+		  	</div>
+		  </div>
+      </div>
+	  
+    );
+  }
+});	// Accounts
+
+/*************************************************************************************************************/
+
+var AccountForm = React.createClass({
+
+  getInitialState: function() {
+  	var accountType;
+  	return {
+  		accountType: 'I'
+  	};
+  },
+
+  handleSubmit: function(e) {
+    e.preventDefault();
+    var accountTypeForm = ReactDOM.findDOMNode(this.refs.accountTypeForm).value.trim();
+    var urlForm = ReactDOM.findDOMNode(this.refs.urlForm).value.trim();
+    
+    if (!accountTypeForm || !urlForm) {
+    	alert('Please fill all the required input fields!');
+        return;
+    }
+    
+	this.props.onAccountSubmit({
+		socialAccountDVId: accountTypeForm,
+		url: urlForm,
+		_status: 'I'
+	});
+	
+    ReactDOM.findDOMNode(this.refs.accountTypeForm).value = '';
+    ReactDOM.findDOMNode(this.refs.urlForm).value = '';
+    return;
+  },
+  
+  handleCancel: function() {
+  	ReactDOM.findDOMNode(this.refs.accountTypeForm).value = '';
+  	
+  	if(this.refs.urlForm) {
+  		ReactDOM.findDOMNode(this.refs.urlForm).value = '';
+	}
+    
+	this.props.onCancelClick({
+		showAccountForm: false,
+		showAddButton: true,
+		showSaveAccButton: true
+	});
+	
+	return;
+  },
+
+  handleSelectChange: function(event) {
+  	var indexSelected = event.nativeEvent.target.selectedIndex;
+  	var selectedLabel = event.nativeEvent.target[indexSelected].text;
+  	var accountType;
+  	if(selectedLabel === 'Twitter') {
+  		accountType = 'T';
+  	}
+  	else if(selectedLabel === 'Facebook') {
+  		accountType = 'F';
+  	}
+  	else if(selectedLabel === 'LinkedIn') {
+  		accountType = 'L';
+  	}
+  	else if(selectedLabel === 'GMail') {
+  		accountType = 'G';
+  	}
+  	else if(selectedLabel === 'Mobile') {
+  		accountType = 'M';
+  	}
+  	else if(selectedLabel === 'Work telephone #') {
+  		accountType = 'W';
+  	}
+
+  	this.setState({
+  		accountType: accountType
+  	})
+  },
+  
+  eventHandler: function(event) {
+  	console.log(event.charCode);
+  	if(event.charCode < 48 || event.charCode > 57) {
+  		event.preventDefault();
+  		return;
+  	}
+  },
+
+  render: function() {
+  	var accountType = this.state.accountType;
+  	console.log(this.props.lookUps.SOCIAL_ACCOUNT);
+    return (
+	  <form className="accountForm">
+	    <div className="row">
+			<div className="col-md-12">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-5">Account Type (*)</span>
+					<select className="form-control" aria-describedby="basic-addon-5" ref="accountTypeForm" onChange={this.handleSelectChange}>
+						<option name="" value="">- Please Choose -</option>
+					    {VOICE.renderOptions(this.props.lookUps.SOCIAL_ACCOUNT)}
+				    </select>
+			    </div>
+			</div><br/><br/>
+			{
+				accountType === 'T' ?
+					<div className="col-md-12">
+						<div className="input-group">
+							<span className="input-group-addon" id="basic-addon-13">Twitter Username (*)</span>
+							<input type="text" className="form-control" placeholder="Twitter Username..." defaultValue={this.props.lookUps.SOCIAL_ACCOUNT[0].extraInfo1} aria-describedby="basic-addon-13" ref="urlForm" />
+						</div>
+					</div> : null
+			}
+			{
+				accountType === 'F' ?
+					<div className="col-md-12">
+						<div className="input-group">
+							<span className="input-group-addon" id="basic-addon-13">Facebook Username (*)</span>
+							<input type="text" className="form-control" placeholder="Facebook Username..." defaultValue={this.props.lookUps.SOCIAL_ACCOUNT[2].extraInfo1} aria-describedby="basic-addon-13" ref="urlForm" />
+						</div>
+					</div> : null
+			}
+			{
+				accountType === 'L' ?
+					<div className="col-md-12">
+						<div className="input-group">
+							<span className="input-group-addon" id="basic-addon-13">LinkedIn Profile URL (*)</span>
+							<input type="text" className="form-control" placeholder="LinkedIn Profile URL..." aria-describedby="basic-addon-13" ref="urlForm" />
+						</div>
+					</div> : null
+			}
+			{
+				accountType === 'G' ?
+					<div className="col-md-12">
+						<div className="input-group">
+							<span className="input-group-addon" id="basic-addon-13">GMail Username (*)</span>
+							<input type="text" className="form-control" placeholder="GMail Username..." defaultValue={this.props.lookUps.SOCIAL_ACCOUNT[4].extraInfo1} aria-describedby="basic-addon-13" ref="urlForm" />
+						</div>
+					</div> : null
+			}
+			{
+				accountType === 'M' ?
+					<div className="col-md-12">
+						<div className="input-group">
+							<span className="input-group-addon" id="basic-addon-13">Mobile Phone Number (*)</span>
+							<input type="text" onKeyPress={this.eventHandler} className="form-control" placeholder="Mobile Phone Number..." aria-describedby="basic-addon-13" ref="urlForm" />
+						</div>
+					</div> : null
+			}
+			{
+				accountType === 'W' ?
+					<div className="col-md-12">
+						<div className="input-group">
+							<span className="input-group-addon" id="basic-addon-13">Work Phone Number (*)</span>
+							<input type="text" onKeyPress={this.eventHandler} className="form-control" placeholder="Work Phone Number..." aria-describedby="basic-addon-13" ref="urlForm" />
+						</div>
+					</div> : null
+			}
+		</div><br/>
+		<div className="row">
+			<div className="col-md-1 col-md-offset-5">
+				<button type="button" className="btn btn-default" onClick={this.handleSubmit}>Add to List</button>
+			</div>
+			<div className="col-md-1">
+				<button type="button" onClick={this.handleCancel} className="btn btn-default">Cancel</button>
+			</div>
+		</div>
+      </form>
+    );
+  } 
+});	// AccountForm
+
+/*************************************************************************************************************/
+
+var Tags = React.createClass({
+	
+  initObject: function(data) {
+  	  var tmp = {}; //for reseting purposes
+	  
+	  for(var i=0; i<data.length; i++) {
+		  var temp = data[i];
+		  temp._status = 'R';
+		  tmp[ data[i].id ] = temp;
+	  }
+
+	  return tmp;
+  },
+
+  getInitialState: function() {
+  	  var tmp = this.initObject(this.props.data);
+	  
+	  this.initialState = JSON.stringify(tmp);
+	  
+	  return {
+		  tag: tmp,
+		  showTagForm: false,
+		  showAddButton: true,
+		  showSaveTagButton: true,
+	      loading: this.props.loading
+	  };
+  },
+  
+  handleSave: function(e) {
+	  e.preventDefault();
+	  
+	  //TAKE OUT the TRASH ("_status = T") before send to server
+	  for (var key in this.state.tag) {
+		  if (this.state.tag.hasOwnProperty(key)) {
+			  if (this.state.tag[key]._status === 'T') {
+				  delete this.state.tag[key]
+			  }
+		  }
+	  }
+
+	  var url = VOICE.linkPrefix('api/organisation/saveTags/'+this.props.orgId);
+	  //data to send to server!
+	  this.setState({
+	  	loading: true
+	  });
+	  VOICE.ajaxCall(url, 'POST', this.state.tag, this, this.cbHandleSave);
+  },
+
+  cbHandleSave: function(result) {
+  	console.log(result);
+  	if(result.saveOk === true) {
+  		this.refs.msgBox.clearErrors();
+  		this.refs.msgBox.addSuccess('Organisation\' s tags were saved successully!', false);
+	  	setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+
+	  	for (var key in this.state.tag) {
+		  if (this.state.tag.hasOwnProperty(key)) {
+			  if (this.state.tag[key]._status === 'D') {
+				  delete this.state.tag[key]
+			  }
+		  }
+	    }
+
+	    //After send to server update the status of all inserted to "R" from "I" OR "U"
+	  	for (var tag in this.state.tag) {
+	     if (this.state.tag.hasOwnProperty(tag)) {
+	         var obj = this.state.tag[tag];
+	          for (var prop in obj) {
+	            // important check that this is objects own property 
+	            // not from prototype prop inherited
+	            if(obj.hasOwnProperty(prop)){
+	              if(prop === '_status' && (obj[prop] === 'I' || obj[prop] === 'U')) {
+	            	  obj[prop] = 'R';  	
+	              }
+	            }
+	         }
+	      }
+	    }
+	  
+ 		var url = VOICE.linkPrefix('api/organisation/getTags/'+this.props.orgId);
+
+	    VOICE.ajaxCall(url, 'GET', {}, this, this.cbHandleSaveTag);
+  	}
+  	else {
+		this.refs.msgBox.addError(result.errors);
+  	}
+  	this.setState({
+		loading: false
+	});
+  },
+
+  cbHandleSaveTag: function(result) {
+  		var tmp = this.initObject(result);
+  		this.initialState = JSON.stringify(tmp);
+	    this.setState({tag: tmp});
+  },
+  
+  handleReset: function() {
+  	  this.refs.msgBox.clearErrors();
+	  var resetView = JSON.parse(this.initialState);
+	  this.setState({tag: resetView});
+  },
+  
+  handleTagSubmit: function(newTag) {
+	var tag = this.state.tag;
+	var id = Math.floor((Math.random() * 10000000000) + 1000000000);
+	newTag.id = id;
+	tag[id] = newTag;
+	
+	this.setState({
+		tag: tag,
+		showTagForm: false,
+		showAddButton: true,
+		showSaveTagButton: true
+	});
+  },
+  
+  handleChange: function(tagId, event) {
+  	  // educationId is passed from caller!
+
+	  var exists = false, 
+	  	  newTag = this.state.tag;
+	  
+	  exists = this.state.tag.hasOwnProperty(tagId);
+	  if(exists) {
+		   newTag[tagId][event.target.name] = event.target.value;
+	  }
+	  else {
+		  var tempObj = {};
+		  tempObj['id'] = tagId;
+		  tempObj[event.target.name] = event.target.value;
+		  
+		  newTag[tagId] = tempObj;
+	  }
+	  
+	  if(newTag[tagId]._status !== 'I') {
+	      newTag[tagId]._status = 'U';
+	  }
+	  
+	  this.setState({
+		  tag: newTag
+	  });
+  },
+  
+  onPlusClick: function() {
+	  this.setState({ 
+		  showTagForm: true,
+		  showAddButton: false,
+		  showSaveTagButton: false
+	  });  
+  },
+  
+  onDeleteClick: function(tagId, event) {
+  	  if(this.state.tag[tagId]._status === 'I') {
+		  this.state.tag[tagId]._status = 'T'; //trash status (inserted and then updated)
+	  }
+	  else {
+		  this.state.tag[tagId]._status = 'D'; //update status
+	  }
+	  
+	  this.setState({
+		  tag: this.state.tag
+	  }); //update view
+	  
+  },
+  
+  handleCancelClick: function(newView) {
+    this.setState(newView);
+  },
+
+  render: function() {
+	var tds = [];
+	var keys = Object.keys(this.state.tag);
+	for(var i=0; i < keys.length; i++ ) {
+		var view = this.state.tag[keys[i]];
+
+		var cb1  = this.handleChange.bind(null,view.id);
+		tds.push(
+			<tr key={view.id} id={view.id} className={(view._status === 'D' || view._status === 'T') ? 'hidden' : null}>
+				<td>
+					<input type="text" className="form-control" value={view.name} ref="tagId" name="tagId" disabled />
+				</td>
+				<td><a href="javascript:void(0)"><i className="fa fa-ban" data-tag-id={view.id} onClick={this.onDeleteClick.bind(null, view.id)}></i></a></td>
+			</tr>
+		);
+	}
+	
+    return (
+      <div className="well well-large formInlineStyle">
+	  	<div className="panel panel-default">
+		  <div className="panel-heading">
+		  	Tags
+		  	<span id="addTag">{ this.state.showAddButton ? <a href="javascript:void(0)"><i className="fa fa-plus-circle" onClick={this.onPlusClick}></i></a> : null }</span>
+		  </div>
+	  		  <div className="table-responsive">
+				  <table className="table table-hover">
+					<thead>
+						<tr>
+							<th>Tag Name</th>
+						    <th>Options</th>
+					    </tr>
+					</thead>
+					<tbody>
+					    {tds}
+					</tbody>
+				  </table>
+			  </div>
+		  </div>
+		  <div className="row">
+		  	  {
+					this.state.loading === false ?
+					<span>
+						<div className="col-md-1 col-md-offset-5">
+						    { this.state.showSaveTagButton ? <button type="button" className="btn btn-success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save</button> : null }
+						</div>
+						<div className="col-md-1">
+						    { this.state.showSaveTagButton ? <button type="button" className="btn btn-default" onClick={this.handleReset}><i className="glyphicon glyphicon-repeat"></i> Reset</button> : null }
+						</div>
+					</span> :
+					<LoadingComp loadingText="Saving Tags..."></LoadingComp>
+			  }
+		  </div><br/>
+		  <br/>
+		  <div className="row">
+		  	<div className="col-md-12">
+		  		<MessagesBoxComp ref="msgBox"/>
+		  	</div>
+		  </div>
+		  <div className="row">
+		  	<div className="col-md-12">
+		  		{ this.state.showTagForm ? <TagForm {...this.props} onTagSubmit={this.handleTagSubmit} onCancelClick={this.handleCancelClick} /> : null }
+		  	</div>
+		  </div>
+      </div>
+	  
+    );
+  }
+});	// Tags
+
+/*************************************************************************************************************/
+
+var TagForm = React.createClass({
+
+  getInitialState: function() {
+  	this.autoCompleteLabel = '';
+  	return {
+  		autoCompleteValue: ''
+  	};
+  },
+
+  handleSubmit: function(e) {
+    e.preventDefault();
+    console.log(this.state);
+    var tagId = this.refs.tag.getValue();
+    var name = this.refs.tag.getLabel();
+    
+    if (!tagId) {
+    	alert('Please fill all the required input fields!');
+        return;
+    }
+    
+	this.props.onTagSubmit({
+		tagId: tagId,
+		name: name,
+		_status: 'I'
+	});
+	
+    return;
+  },
+  
+  handleCancel: function() {
+	this.props.onCancelClick({
+		showTagForm: false,
+		showAddButton: true,
+		showSaveTagButton: true
+	});
+	
+	return;
+  },
+  
+  render: function() {
+    return (
+	  <form className="accountForm">
+	    <div className="row">
+			<div className="col-md-12">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-11">Tag (*)</span>
+					<AutoCompleteComp isType="TAG" ref="tag" minCharsForSearching="3" 
+						aria-describedby="basic-addon-11" placeholder="Search Tag..." 
+						url={VOICE.linkPrefix('api/autoComplete/tagsALL')}>
+					</AutoCompleteComp>
+				</div>
+			</div>
+		</div><br/>
+		<div className="row">
+			<div className="col-md-1 col-md-offset-5">
+				<button type="button" className="btn btn-default" onClick={this.handleSubmit}>Add to List</button>
+			</div>
+			<div className="col-md-1">
+				<button type="button" onClick={this.handleCancel} className="btn btn-default">Cancel</button>
+			</div>
+		</div>
+      </form>
+    );
+  } 
+});	// TagForm
+
+/*************************************************************************************************************/

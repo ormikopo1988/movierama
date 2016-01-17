@@ -1,0 +1,261 @@
+Array
+(
+    [main] => Array
+        (
+            [id] => 1
+            [isDeleted] => 0
+            [createdByUserId] => lJgKsDk49N
+            [updatedByUserId] => lJgKsDk49N
+            [createdDateTime] => 20151212012400
+            [updatedDateTime] => 20151212012400
+            [isTemplate] => 0
+            [fromTemplateId] => 
+            [languageId] => 
+            [title] => 
+            [subTitle] => 
+            [snippet] => 
+            [titleImg] => 
+            [titleMidImg] => 
+            [titleThumbImg] => 
+            [isPartOfIdea] => 0
+            [contentVisibilityDVCode] => 
+        )
+
+    [authors] => Array
+        (
+            [0] => Array
+                (
+                    [id] => 5787
+                    [isDeleted] => 0
+                    [contentId] => 1
+                    [ord] => 100
+                    [name] => Antonis
+                    [voiceUserId] => 
+                    [description] => Wow
+                    [email] => apapanto@gmail.com
+                    [webURL] => 
+                    [logoURL] => 
+                )
+
+            [1] => Array
+                (
+                    [id] => 5789
+                    [isDeleted] => 0
+                    [contentId] => 1
+                    [ord] => 200
+                    [name] => Maria
+                    [voiceUserId] => 
+                    [description] => Wife
+                    [email] => 
+                    [webURL] => 
+                    [logoURL] => 
+                )
+
+        )
+
+    [tags] => Array
+        (
+            [0] => Array
+                (
+                    [contentId] => 1
+                    [tagType] => DOM
+                    [tagId] => xI1JkTjQgE
+                    [tagCategoryType] => IDEA_TYPE
+                    [tagText] => Idea
+                )
+
+            [1] => Array
+                (
+                    [contentId] => 1
+                    [tagType] => TAG
+                    [tagId] => 001b122e3e
+                    [tagCategoryType] => ICT
+                    [tagText] => Human Capital Management (HCM) in Social Software
+                )
+
+            [2] => Array
+                (
+                    [contentId] => 1
+                    [tagType] => TXT
+                    [tagId] => 
+                    [tagCategoryType] => 
+                    [tagText] => Anything...
+                )
+
+        )
+
+    [sections] => Array
+        (
+            [100] => Array
+                (
+                    [id] => 100
+                    [isDeleted] => 0
+                    [contentId] => 1
+                    [sectionType] => TEXT
+                    [ord] => 1
+                    [belongsToSectionId] => 
+                    [title] => 1 First section of Content 1
+                    [attachmentSetId] => 
+                    [fromTemplateSectionId] => 
+                    [mnemonicCode] => 1C1
+                    [theText] => The Text of 1st Section of Content 1.
+1C1
+                    [value1] => 
+                    [value2] => 
+                    [value3] => 
+                    [_level] => 1
+                    [_seq] => 1
+                    [_numbering] => 1
+                )
+
+            [105] => Array
+                (
+                    [id] => 105
+                    [isDeleted] => 0
+                    [contentId] => 1
+                    [sectionType] => TEXT
+                    [ord] => 0
+                    [belongsToSectionId] => 100
+                    [title] => 1.1 SubSection 1 of Section 1
+                    [attachmentSetId] => 
+                    [fromTemplateSectionId] => 
+                    [mnemonicCode] => 1.1C1
+                    [theText] => 
+                    [value1] => 
+                    [value2] => 
+                    [value3] => 
+                    [_level] => 2
+                    [_seq] => 1
+                    [_numbering] => 1.1
+                )
+
+            [1051] => Array
+                (
+                    [id] => 1051
+                    [isDeleted] => 0
+                    [contentId] => 1
+                    [sectionType] => TEXT
+                    [ord] => -87
+                    [belongsToSectionId] => 105
+                    [title] => 1.1.1 SubSection 1 of SubSection 1.1
+                    [attachmentSetId] => 
+                    [fromTemplateSectionId] => 
+                    [mnemonicCode] => 
+                    [theText] => 
+                    [value1] => 
+                    [value2] => 
+                    [value3] => 
+                    [_level] => 3
+                    [_seq] => 1
+                    [_numbering] => 1.1.1
+                )
+
+            [106] => Array
+                (
+                    [id] => 106
+                    [isDeleted] => 0
+                    [contentId] => 1
+                    [sectionType] => TEXT
+                    [ord] => 0
+                    [belongsToSectionId] => 105
+                    [title] => 1.1.2 SubSection 2 of Subsection 1.1
+                    [attachmentSetId] => 
+                    [fromTemplateSectionId] => 
+                    [mnemonicCode] => 1.1.2C1
+                    [theText] => 
+                    [value1] => 
+                    [value2] => 
+                    [value3] => 
+                    [_level] => 3
+                    [_seq] => 2
+                    [_numbering] => 1.1.2
+                )
+
+            [110] => Array
+                (
+                    [id] => 110
+                    [isDeleted] => 0
+                    [contentId] => 1
+                    [sectionType] => TEXT
+                    [ord] => 3
+                    [belongsToSectionId] => 100
+                    [title] => 1.2 SubSection 2 of Section 1
+                    [attachmentSetId] => 
+                    [fromTemplateSectionId] => 
+                    [mnemonicCode] => 
+                    [theText] => 
+                    [value1] => 
+                    [value2] => 
+                    [value3] => 
+                    [_level] => 2
+                    [_seq] => 2
+                    [_numbering] => 1.2
+                )
+
+            [300] => Array
+                (
+                    [id] => 300
+                    [isDeleted] => 0
+                    [contentId] => 1
+                    [sectionType] => AMOUNT
+                    [ord] => 3
+                    [belongsToSectionId] => 110
+                    [title] => 1.2.1 An amount Section
+                    [attachmentSetId] => 
+                    [fromTemplateSectionId] => 
+                    [mnemonicCode] => 3C1
+                    [theText] => 
+                    [value1] => 
+                    [value2] => 1576
+                    [value3] => USD
+                    [_level] => 3
+                    [_seq] => 1
+                    [_numbering] => 1.2.1
+                )
+
+            [200] => Array
+                (
+                    [id] => 200
+                    [isDeleted] => 0
+                    [contentId] => 1
+                    [sectionType] => TEXT
+                    [ord] => 2
+                    [belongsToSectionId] => 
+                    [title] => 2 2nd Section of Content 1
+                    [attachmentSetId] => 
+                    [fromTemplateSectionId] => 
+                    [mnemonicCode] => 2C1
+                    [theText] => Text for 2nd Section of Content 1.
+2C1 Text
+                    [value1] => 
+                    [value2] => 
+                    [value3] => 
+                    [_level] => 1
+                    [_seq] => 2
+                    [_numbering] => 2
+                )
+
+            [205] => Array
+                (
+                    [id] => 205
+                    [isDeleted] => 0
+                    [contentId] => 1
+                    [sectionType] => TEXT
+                    [ord] => 0
+                    [belongsToSectionId] => 200
+                    [title] => 2.1 SubSection 1 of Section 2
+                    [attachmentSetId] => 
+                    [fromTemplateSectionId] => 
+                    [mnemonicCode] => 2.1C1
+                    [theText] => 
+                    [value1] => 
+                    [value2] => 
+                    [value3] => 
+                    [_level] => 2
+                    [_seq] => 1
+                    [_numbering] => 2.1
+                )
+
+        )
+
+)

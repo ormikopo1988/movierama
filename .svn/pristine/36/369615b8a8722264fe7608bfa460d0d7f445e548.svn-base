@@ -1,0 +1,29 @@
+<?php 
+
+	/********************************************************************/
+	// Ideas
+	
+	// idea/create
+	$router->map(
+		'GET',
+		'/idea/createForm',
+		function() use($wo) {
+			VO_CtrlIdeas::createIdeaViewForm($wo);
+		}
+		, 'createIdeaViewForm'
+	);
+	
+	/**************************** API calls ****************************************/
+	
+	// /api/ideas/createIdea
+	$router->map('POST', '/api/ideas/createIdea', function() use($wo) {
+		try {
+			$res = VO_CtrlIdeas::createIdea($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+
+/* End of file ideas.php */
+

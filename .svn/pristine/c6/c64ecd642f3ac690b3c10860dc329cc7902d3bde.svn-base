@@ -1,0 +1,606 @@
+<?php
+
+class VO_Content {
+	const _ECP = 'CON';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static
+	function saveFullContent( WOOOF $wo, $data, $userid  )
+	{
+		// 1000
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place: [$userid]" );
+		
+		// Checks
+		//
+		if ( !$wo->hasContent($userid) ) {
+			$wo->logError(self::_ECP."1000 'userId' must be provided");
+			return false;
+		}
+		
+		if ( !$wo->hasContent($data) ) {
+			$wo->logError(self::_ECP."1005 'data' must be provided");
+			return false;
+		}
+		
+		
+		
+		
+	}	// saveFullContent
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param string $contentId
+	 * @param string $requestorUserid
+	 * @return false | array[ 'main' => v_contents rec, 'authors' => [content_authors rec], 'tags' => [v_content_tags rec], 'sections' => [v_content_sections rec + _level + _seq + _numbering ]  
+	 */
+	public static
+	function getContent( WOOOF $wo, $contentId, $requestorUserid )
+	{
+		// 100
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place: [$contentId] [$requestorUserid]" );
+		
+		$contentIdSafe = $wo->db->escape($contentId);
+		
+		$out = [];
+	
+		// Checks
+		//
+		if ( !$wo->hasContent($contentId) ) {
+			$wo->logError(self::_ECP."0100 'contentId' must be provided");
+			return false;
+		}
+	
+		if ( !$wo->hasContent($requestorUserid) ) {
+			$wo->logError(self::_ECP."0105 'requestorUserid' must be provided");
+			return false;
+		}
+		
+		if ( !self::userAllowedTo($wo, $contentId, $requestorUserid, 'VIEW') ) {
+			return false;
+		}
+	
+		// Gets
+		//
+		
+		// Get main + title
+		$contentsRec = $wo->db->getRow( 'contents', $contentId );
+		if ( $contentsRec === FALSE ) { return FALSE; }
+		if ( $contentsRec === NULL ) {
+			$wo->logError(self::_ECP."0120 Content [$contentId] was not found in contents");
+			return false;
+		}
+		
+		$out['main'] = $contentsRec;
+		
+		// Get Authors
+		$sql = "select * from content_authors where contentId = '$contentIdSafe' order by ord";
+		$res = $wo->db->getResultByQuery($sql, true, false );
+		if ( $res === FALSE ) { return FALSE; }
+		$out['authors'] = $wo->db->resultRows;
+		
+		// Get Tags
+		$sql = "select * from v_content_tags where contentId = '$contentIdSafe' order by tagType, tagCategoryType";
+		$res = $wo->db->getResultByQuery($sql, true, false );
+		if ( $res === FALSE ) { return FALSE; }
+		$out['tags'] = $wo->db->resultRows;
+		
+		// Get Sections + Texts + Others
+		$sql = "select * from v_content_sections where contentId = '$contentIdSafe' order by if(belongsToSectionId is null or belongsToSectionId = '', 0, 1), ord";
+		$res = $wo->db->getResultByQuery($sql, false, true );
+		if ( $res === FALSE ) { return FALSE; }
+		$tmpSections = $wo->db->resultRows;
+		
+		// Now put the sections in order.
+		// Based on level and then on 'ord'
+		$belongings = [];
+		foreach( $tmpSections as $aSection ) {
+			$belongings[$aSection['belongsToSectionId']][] = $aSection['id']; 
+		}
+		//var_dump($b); die();
+		
+		$orderedSections = [];
+		self::recurseSortSections($wo, $belongings, "", $tmpSections, 1, $orderedSections );
+		//var_dump($orderedSections); die();
+		
+		self::addNumberingToSections($wo, $orderedSections);
+		
+		$out['sections'] = $orderedSections;
+		
+		return $out;
+	}	// getContent
+
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	private static
+	function recurseSortSections( WOOOF $wo, $belongings, $start, $sections, $level, &$orderedSections )
+	{
+		if ( count($belongings) == 0 ) { return; }
+		
+		$seq = 1;
+		foreach( $belongings[$start] as $anId ) {
+			$sections[$anId]['_level'] = $level;
+			$sections[$anId]['_seq'] = $seq;
+			$orderedSections[$anId] = $sections[$anId];
+			//echo  $anId . " " . $sections[$anId]['title'] . " [$level] <br>";
+			if ( isset($belongings[$anId]) ) {
+				self::recurseSortSections($wo, $belongings, $anId, $sections, $level+1, $orderedSections);
+			}
+			$seq++;
+		}
+		return;
+	}	// recurseSortSections
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param array $sections	// Ordered sections with _level value already computed
+	 * @return boolean
+	 */
+	private static
+	function addNumberingToSections( WOOOF $wo, &$sections )
+	{
+		$numbering = []; $prevLevel = 0;
+		foreach( $sections as &$d ) {
+			$l = $d['_level'];
+				
+			if ( $l > $prevLevel ) { $numbering[$l] = 1; }
+			else  { $numbering[$l]++; }
+			$prevLevel = $l;
+			$numString = '';
+			for( $i=1; $i<=$l; $i++ ) { $numString .= $numbering[$i] . '.'; }
+			$numString = substr($numString,0,-1);
+			
+			$d['_numbering'] = $numString;
+		}
+		
+		return true;
+	}	// addNumberingToSections
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static
+	function userAllowedTo( WOOOF $wo, $contentId, $requestorUserid, $action )
+	{
+		// 300
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place: [$contentId] [$requestorUserid] [$action]" );
+		
+		// Checks
+		//
+		if ( !$wo->hasContent($contentId) ) {
+			$wo->logError(self::_ECP."0300 'contentId' must be provided");
+			return false;
+		}
+		
+			if ( !$wo->hasContent($requestorUserid) ) {
+			$wo->logError(self::_ECP."0305 'requestorUserid' must be provided");
+			return false;
+		}
+		
+		if ( !$wo->hasContent($action) ) {
+			$wo->logError(self::_ECP."0310 'action' must be provided");
+			return false;
+		}
+		
+		// TODO: Check!!!
+		//$wo->logError(self::_ECP."0110 user [$requestorUserid] is not allowd to [$action] content [$contentId]");
+		
+		
+		return true;
+	}	// userAllowedTo
+
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param array $data	// as returned by getContent
+	 * @param string $requestorUserid
+	 * @return false | array[ 'main' => html, 'title' => html, 'authors' => html, 'tags' => html, 'sections' => html ]
+	 */
+	public static
+	function formatFetchedContent( WOOOF $wo, $data, $requestorUserid )
+	{
+		// 400
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		//$wo->debug( "$place: " );
+	
+		$res = [];
+	
+		// Checks
+		//
+		if ( !$wo->hasContent($data) or !isset($data['main']) ) {
+			$wo->logError(self::_ECP."0400 'data' array must be provided and contain a 'main' key");
+			return false;
+		}
+		
+		// main + title
+		$d = $wo->getFromArray($data, 'main', [] );
+		$res['title'] = "
+			<h1>[{$d['id']}] - <i>{$d['title']}</i></h1>
+			<p>{$d['subTitle']}</p>
+			<p>{$d['snippet']}</p>
+		";
+
+		$res['main'] = "
+			{$d['createdByUserId']}: {$d['createdDateTime']}<br>
+			{$d['updatedByUserId']}: {$d['updatedDateTime']} 
+		";
+
+		// author(s)
+		$dArr = $wo->getFromArray($data, 'authors', [] );
+		$res['authors'] = '';
+		foreach( $dArr as $d ) {
+			$res['authors'] .= "
+			<p>
+			{$d['name']} {$d['description']} {$d['email']}
+			</p> 
+			";
+		}
+		
+		// tags
+		$dArr = $wo->getFromArray($data, 'tags', [] );
+		$res['tags'] = '';
+		foreach( $dArr as $d ) {
+			$res['tags'] .= "
+			[{$d['tagType']} {$d['tagCategoryType']} {$d['tagText']}] 
+			";
+		}
+		
+		// sections
+		$dArr = $wo->getFromArray($data, 'sections', [] );
+		$res['sections'] = '';
+		foreach( $dArr as $d ) {
+			$l = $d['_level'];
+			
+			$h = 'h' . $l;
+			$res['sections'] .= "
+				<$h>[{$d['_numbering']}] {$d['title']}</$h>
+			";
+			switch ( $d['sectionType'] ) {
+				case 'TEXT':
+					$res['sections'] .= "<p>{$d['theText']}</p>";
+					break;
+				case 'AMOUNT':
+					$res['sections'] .= "<p><b>{$d['value2']}</b> {$d['value3']}</p>";
+					break;
+				default:
+					$res['sections'] .= "<p>{$d['value1']} {$d['value2']} {$d['value3']}</p>";
+					break;
+			}
+		}
+		
+		return $res;
+	
+	}	// formatFetchedContent
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 * For Testing...
+	 * @param WOOOF $wo
+	 * @param string $contentId
+	 * @param string $requestorUserid
+	 * @return false | string	// HTML string
+	 */
+	public static
+	function showContentSimple( WOOOF $wo, $contentId, $requestorUserid )
+	{
+		// 500
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place: [$contentId] [$requestorUserid]" );
+		
+		$data = VO_Content::getContent($wo, $contentId, $requestorUserid);
+		if ( $data === FALSE ) { return FALSE; }
+		$resArr = VO_Content::formatFetchedContent($wo, $data, $requestorUserid);
+		if ( $resArr !== FALSE ) {
+			$res = $resArr['title'] . $resArr['authors'] . $resArr['main'] .
+			'<br><br>' . $resArr['tags'] .
+			'<br><br>' . $resArr['sections'] .
+			'<br>***The End***<br>';
+		}
+		
+		return $res;
+		
+	}	// showContentSimple
+
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static
+	function copyContent( WOOOF $wo, $contentId, $userid, $copyAsTemplate = false )
+	{
+		// 600
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place: [$contentId] [$userid] [$copyAsTemplate]" );
+	
+		$data = VO_Content::getContent($wo, $contentId, $userid);
+		if ( $data === FALSE ) { return FALSE; }
+		
+		$mainData = $data['main'];
+		$mainData['id'] = null;	// force copy/creation
+		// order below is important. isTemplate is used and then overriden
+		$mainData['fromTemplateId']	= ( !$copyAsTemplate and $mainData['isTemplate'] == '1' ? $contentId : null );
+		$mainData['isTemplate'] 	= ( $copyAsTemplate ? '1' : '0' );
+
+		$newContentId = self::saveContentMain($wo, $mainData, $userid);
+		if ( $newContentId === FALSE ) { return FALSE; }
+		
+		$res = self::saveAuthors( $wo, $data['authors'], $newContentId, true );
+		if ( $res === FALSE ) { return FALSE; }
+		
+		$res = self::saveTags( $wo, $data['tags'], $newContentId, true );
+		if ( $res === FALSE ) { return FALSE; }
+		
+		$res = self::saveSections( $wo, $data['sections'], $newContentId, true );
+		if ( $res === FALSE ) { return FALSE; }
+		
+		return $newContentId;
+	
+	}	// copyContent
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static
+	function saveContentMain( WOOOF $wo, $mainData, $userid )
+	{
+		// 700
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		
+		// TODO: Checks
+	
+		$tblContents = new WOOOF_dataBaseTable($wo->db, 'contents');
+		if($tblContents->constructedOk === FALSE) { return false; }
+		
+		$obj = new VO_TblContent();
+		$ob->languageId			= $mainData['languageId'];
+		$obj->title				= $mainData['title'];
+		$obj->subTitle			= $mainData['subTitle'];
+		$obj->snippet			= $mainData['snippet'];
+		$obj->titleImg			= $mainData['titleImg'];
+		$obj->updatedByUserId	= $userid;
+		$obj->isPartOfIdea		= $mainData['isPartOfIdea'];
+		$obj->contentVisibilityDVCode = $mainData['contentVisibilityDVCode'];
+		$obj->isTemplate		= $mainData['isTemplate'];
+		$obj->fromTemplateId	= $mainData['fromTemplateId'];
+		
+		// TODO: mid and thumb images ???
+		
+		if ( !$wo->hasContent($mainData['id']) ) {
+			$obj->isDeleted			= '0';
+			$obj->createdByUserId	= $userid;
+			$obj->createdDateTime	= $wo->currentGMTDateTime();
+			$obj->updatedDateTime	= $obj->createdDateTime;
+				
+			$res = $tblContents->insertRowFromArraySimple( $obj->toArray() );
+			if ( $res === FALSE ) { return false; }
+		}	// new / insert				
+		else {
+			$obj->updatedDateTime	= $wo->currentGMTDateTime();
+				
+			$res = $tblContents->updateRowFromArraySimple( $obj->toArray() );
+			if ( $res === FALSE ) { return false; }
+			$res = $mainData['id'];
+		}				
+	
+		return $res;
+	
+	}	// saveContentAndTitle
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static
+	function saveAuthors( WOOOF $wo, $authors, $contentId, $doInsert )
+	{
+		// 800
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		
+		if ( !$wo->hasContent($contentId) ) {
+			$wo->logError(self::_ECP."0800 'contentId' must be provided" );
+			return false;
+		}
+	
+		$tbl = new WOOOF_dataBaseTable($wo->db, 'content_authors');
+		if($tbl->constructedOk === FALSE) { return false; }
+	
+		foreach( $authors as $anAuthor ) {
+			$obj = new VO_TblContentAuthor();
+			$obj->id				= ( $doInsert ? null : $anAuthor['id'] );
+			$obj->isDeleted			= '0';
+			$obj->contentId			= $contentId;
+			$obj->ord				= $anAuthor['ord'];
+			$obj->name				= $anAuthor['name'];
+			$obj->voiceUserId		= $anAuthor['voiceUserId'];
+			$obj->description		= $anAuthor['description'];
+			$obj->email				= $anAuthor['email'];
+			$obj->webURL			= $anAuthor['webURL'];
+			$obj->logoURL			= $anAuthor['logoURL'];
+				
+			if ( !$wo->hasContent($obj->id) ) {
+				$newId = $tbl->insertRowFromArraySimple( $obj->toArray() );
+				if ( $newId === FALSE ) { return false; }
+					
+			}	// new / insert
+			else {
+				$res = $tbl->updateRowFromArraySimple( $obj->toArray() );
+				if ( $res === FALSE ) { return FALSE; }
+			}	// update
+		}	// for each author
+			
+		return true;
+	
+	}	// saveAuthors
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static
+	function saveTags( WOOOF $wo, $tags, $contentId, $doInsert )
+	{
+		// 900
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( !$wo->hasContent($contentId) ) {
+			$wo->logError(self::_ECP."0900 'contentId' must be provided" );
+			return false;
+		}
+	
+		$tbl = new WOOOF_dataBaseTable($wo->db, 'content_tags');
+		if($tbl->constructedOk === FALSE) { return false; }
+	
+		foreach( $tags as $aTag ) {
+			$obj = new VO_TblContentTag();
+			$obj->id				= ( $doInsert ? null : $aTag['id'] );
+			$obj->isDeleted			= '0';
+			$obj->contentId			= $contentId;
+			$obj->tagType			= $aTag['tagType'];
+			$obj->tagId				= $aTag['tagId'];
+			$obj->tagText			= $aTag['tagText'];
+			$obj->tagCategoryType	= $aTag['tagCategoryType'];
+	
+			if ( !$wo->hasContent($obj->id) ) {
+				$newId = $tbl->insertRowFromArraySimple( $obj->toArray() );
+				if ( $newId === FALSE ) { return false; }
+					
+			}	// new / insert
+			else {
+				$res = $tbl->updateRowFromArraySimple( $obj->toArray() );
+				if ( $res === FALSE ) { return FALSE; }
+			}	// update
+		}	// for each tag
+			
+		return true;
+	
+	}	// saveTags
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static
+	function saveSections( WOOOF $wo, $sections, $contentId, $doInsert )
+	{
+		// 1000
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		// TODO: Check updates also!!!! or disable them!!!
+		
+		if ( !$wo->hasContent($contentId) ) {
+			$wo->logError(self::_ECP."1000 'contentId' must be provided" );
+			return false;
+		}
+	
+		$tblSect = new WOOOF_dataBaseTable($wo->db, 'content_sections');
+		if($tblSect->constructedOk === FALSE) { return false; }
+	
+		$tblText = new WOOOF_dataBaseTable($wo->db, 'content_section_texts');
+		if($tblText->constructedOk === FALSE) { return false; }
+	
+		$tblOth = new WOOOF_dataBaseTable($wo->db, 'content_section_others');
+		if($tblOth->constructedOk === FALSE) { return false; }
+	
+		$sectionIds = [];	// [ 'oldId' => 'newId', ... ]
+		
+		foreach( $sections as $aSection ) {
+			$obj = new VO_TblContentSection();
+			$obj->id				= ( $doInsert ? null : $aSection['id'] );
+			$obj->isDeleted			= '0';
+			$obj->contentId			= $contentId;
+			$obj->sectionType		= $aSection['sectionType'];
+			$obj->ord				= $aSection['ord'];
+			$obj->title				= $aSection['title'];
+
+			// TODO: Should call a save/copy attachmentSet first!!!!
+			$obj->attachmentSetId	= $aSection['attachmentSetId'];	
+			
+			$obj->fromTemplateSectionId	= $aSection['fromTemplateSectionId'];
+			$obj->mnemonicCode		= $aSection['mnemonicCode'];
+			
+			$obj->belongsToSectionId = ( 
+				$wo->hasContent($aSection['belongsToSectionId']) ? 
+				$sectionIds[$aSection['belongsToSectionId']] : null 
+			);
+				
+			if ( !$wo->hasContent($obj->id) ) {
+				$newId = $tblSect->insertRowFromArraySimple( $obj->toArray() );
+				if ( $newId === FALSE ) { return false; }
+
+				if ( $wo->hasContent($aSection['id']) ) {
+					$sectionIds[$aSection['id']] = $newId;
+				}
+			}	// new / insert
+			else {
+				$res = $tblSect->updateRowFromArraySimple( $obj->toArray() );
+				if ( $res === FALSE ) { return FALSE; }
+				$newId = $obj->id;	// for symmetry below
+			}	// update
+			
+			// Take care of Section detail/data
+			//
+			if ( $obj->sectionType == 'TEXT' ) {
+				$objText = new VO_TblContentSectionText();
+				$objText->contentSectionId	= $newId;
+				$objText->theText			= $aSection['theText'];
+				
+				if ( !$wo->hasContent($obj->id) ) {
+					$res = $tblText->insertRowFromArraySimple($objText->toArray());
+				}
+				else {
+					$res = $tblText->updateRowFromArraySimple($objText->toArray());
+				}
+				if ( $res === FALSE ) { return FALSE; }
+			}
+			else {
+				// sectionType other than TEXT
+				$objOth = new VO_TblContentSectionOther();
+				$objOth->contentSectionId	= $newId;
+				$objOth->value1			= $aSection['value1'];
+				$objOth->value2			= $aSection['value2'];
+				$objOth->value3			= $aSection['value3'];
+
+				if ( !$wo->hasContent($obj->id) ) {
+					$res = $tblOth->insertRowFromArraySimple($objOth->toArray());
+				}
+				else {
+					$res = $tblOth->updateRowFromArraySimple($objOth->toArray());
+				}
+				if ( $res === FALSE ) { return FALSE; }
+			}	// what sectionType
+					
+		}	// for each section
+			
+		return true;
+	
+	}	// saveTags
+	
+
+	
+}	// VO_Content

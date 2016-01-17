@@ -1,0 +1,57 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import VOICE from './voice.js';
+import moment from 'moment';
+
+var RB = require('react-bootstrap');
+
+export default React.createClass({
+	getInitialState: function()
+	{
+		return {
+					username: this.props.data.VUS_slug,
+					picture: this.props.data.VUS_avatarImg,
+					date: this.props.data.POS_entryDate
+				}
+	},
+
+	render: function()
+	{
+		var theDate = '';
+		var startTag = '';
+		var finishTag = '';
+
+		if (this.state.date !== null)
+		{
+			theDate = moment.utc(this.state.date, 'YYYYMMDDhhmmss').fromNow();
+		}else
+		{
+			theDate = '';
+		}
+		
+		var avatarImg = this.state.picture || '$profile_none.png';
+		
+		var internalElement = 
+			<span>
+				<img src={VOICE.imgPrefix(avatarImg, '')} className="circle-header-2" title={this.state.username}/>
+				&nbsp;{this.state.username.substring(0,20)}
+			</span>
+			;
+		
+		return( <span>
+			{ (this.state.date !== null) ? 
+				<RB.Panel>
+					<small>
+						{internalElement}
+						<br/>
+						<small><i>{theDate}</i></small>
+					</small>
+				</RB.Panel>
+				:
+				<span><small>{internalElement}</small></span>
+			}
+			</span>
+			);
+	},
+
+});

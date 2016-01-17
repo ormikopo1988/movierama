@@ -1,0 +1,311 @@
+<?php
+
+	// _tests.php
+	
+	require_once '../setup.inc.php';
+	
+	$requestedAction='viewUncontroled'; // test';
+	$pageLocation='3';
+	$browserTitle='Tests';
+
+	
+	$timers = array();
+	
+	$wo = new WOOOF();
+	if ( !$wo->constructedOk ) { $wo->handleShowStopperError( "1000 Failed to init WOOOF." ); }
+	
+	//$res = VO_Registration::checkDomainForIndividuals($wo, 'yahoo.com');
+	//var_dump($res); die();
+	
+	Timer::start();
+	
+	$paramNames = array(
+			'what', 
+			'doTransaction',
+			'param1', 'param2', 'param3', 'param4',  
+			'param5', 'param6', 'param7', 'param8',  
+	);
+	$in = $wo->getMultipleGetPost( $paramNames );
+
+	$what = $in['what'];
+	$doTransaction = ( $in['doTransaction'] == '1' );
+	
+	// TODO: Form with dropdown for 'what', inputs for params
+	//
+	
+	/*
+	if ( !WOOOF::hasContent($what) ) {
+		echo "Please specify a 'what' parameter...";
+		echo "<br>updateApplicationAmount, calculateAmount";
+		echo "<br>viewApplication, ";
+		echo "<br>";
+		die();
+	}
+	*/
+
+	$errorMessage = '';
+	
+	$content = "$what<br>";
+	for( $i=1; $i<=8; $i++ ) {
+		$content .= "param$i: [". $in['param'.$i] . "] ";
+	}
+	$content .= "<br>";
+	$content .= ( $doTransaction ? "Transaction is ON" : "No Transaction" );
+	$content .= '<br>';
+	
+	$tpl = NULL;
+	$res = FALSE;
+
+	switch ( $what ) {
+        // Return value (put always in $res) can be:
+        //   false: call failed. Errors should be logged in wooof and/or special errors returned from call as return parameter
+        //   array of HTML strings with keys: contentTop, content, message, errorMessage. Ready to pass to template.
+        //   single HTML string: just copy to $tpl['content']
+        //   anyother value: format as desired and copy to $tpl['content'].
+        //   Assign directly to $tpl if you want smg custom.
+        
+    	// It is possible to get params with custom names.
+    	// $paramNames = array( 'fromBookmarks', 'id', 'action', 'userId', 'objectType', 'objectId', 'htmlElementId' );
+    	// $in = $wo->getMultipleGetPost( $paramNames );
+	
+        /* Example cases */
+
+		case 'showWooofObject':
+			$res = WOOOF_Util::do_dump($wo, 'wo');
+			break;
+		
+		case 'calcStatsForUser':
+			$res = VO_Users::calcStatsForUser($wo, 'Rw0xTyLrXl');
+			break;
+			
+		case 'searchOrgs':
+			$res = VO_Organisations::search($wo, 'Aalb' );
+			var_dump($res);
+			break; 
+			
+		case 'loadOrgsAssignIds':
+			$res = VO_Various::populateIds($wo, '_load_organisationsXX', 'voice_idXX' );
+			if ( $res !== FALSE ) {
+				$wo->db->commit();
+			}
+			
+		case 'sessionMessage':
+			$res = VO_SessionMessages::addMessage($wo, 'Info 1' );
+			$res = VO_SessionMessages::addMessage($wo, 'Error 1', 'E' );
+			$res = VO_SessionMessages::addMessage($wo, 'Error 2', 'E' );
+			
+			$wo->db->commit();
+			//break;
+			
+			$res = VO_SessionMessages::getMessages($wo);
+			var_dump($res);
+			$wo->db->commit();
+			break;
+			
+		case 'registerOrganisation':
+			$res = VO_Organisations::registerOrganisation($wo, 
+				[ 'name'=> 'ait.gr', 'orgDomain' => 'ds' ]);
+			var_dump($res);
+			break;
+		case 'getSiteMetaData':
+			$res = WOOOF_Util::getSiteMetadata($wo, 'as.com');
+			var_dump($res);
+			break;
+		case 'getSiteMetaDataV2':
+			$res = WOOOF_Util::getSiteMetadataAndProperties($wo, 'uniroma1.it');
+			var_dump($res);
+			break;
+			
+		case 'getSiteMetaDataV3':
+			$res = WOOOF_Util::getSiteMetadataV3($wo, 'uniroma1.it');
+			var_dump($res);
+			break;
+			
+		case 'formFullURL':
+			$res = WOOOF_Util::formFullURL($wo, 'dis.uniroma1.it');
+			var_dump($res);
+			break;
+			
+		case 'checkOrgByDomain':
+			$res = VO_Organisations::checkOrgByDomain($wo, 'ait.gr');
+			var_dump($res);
+			break;
+				
+		case 'tblClass':
+			$u = new VO_TblUser();
+			var_dump( $u->toArray() );
+			$u->isOrganisationAdmin = '12';
+			echo 'Get a value:' . $u->isOrganisationAdmin . "<br>";
+			var_dump($u->toArray() );
+			
+			echo "<br>";
+			$u2 = new VO_TblUser();
+			var_dump($u2->toArray() );
+			$u2->fillFromArray(['id'=>'12345', 'ddd' => 'asd', 'organisationId' => '12134'] );
+			echo "<br>";
+			var_dump($u2->toArray() );
+			
+			echo "<hr>";
+			var_dump($u2->getProps());
+			echo "<hr>";
+			$res=true;
+			break;
+			
+		case 'createTblCode':
+			$res = WOOOF_MetaData::createTplCodeForTable( $wo, $in['param1'], $in['param2'] );
+			$res = "<pre><code>". htmlentities($res) . "</code></pre>";
+			break;
+			
+		case 'curl':
+			$curl = new Curl();
+			$curl->get('');
+
+			if ($curl->error) {
+			    echo 'Error: ' . $curl->errorCode . ': ' . $curl->errorMessage;
+			}
+			else {
+			    echo $curl->response;
+			}
+			
+			echo '<pre><code>';
+			var_dump($curl->requestHeaders);
+			var_dump($curl->responseHeaders);
+			echo '</code></pre>';
+			
+			break;
+						
+		case 'loadAllParams':
+			$res = VO_SysParams::loadAll($wo);
+			break;
+
+		case 'getParam':
+			//$res = VO_SysParams::loadAll($wo);
+			$res = VO_SysParams::get($wo, $in['param1']);
+			break;
+
+		case 'getParamFreshValue':
+			$res = VO_SysParams::getFreshValue($wo, $in['param1']);
+			break;
+		case 'getDomainValues':
+			$res = WOOOF_Domains::getMultipleDomains($wo, array(array('ADDRESS_TYPEs','PRS'),'DEGREE_TYPE'));
+            var_dump($res);
+            break;
+        case 'changeMyPicture':
+        	$res = $wo->handlePictureUpload('avatarImg', 'zMAtSgZSEM', 'voice_users');
+        	if ($res==FALSE)
+        	{
+        		echo 'FAILED!';
+        	}else
+        	{
+        		echo 'DONE!';
+        	}
+        	break;
+			/*				
+		case 'createUser':
+			$roles = explode(',', $in['param3'] );
+			$res = WOOOF_User::createUser($wo, $in['param1'], $in['param2'], $roles, '', true );
+			break;
+
+		case 'changePassword':
+			if (!$wo->hasContent($in['param3'])) { $in['param3'] = 'fried'; }
+			$res = WOOOF_User::changePassword($wo, $in['param1'], $in['param2'], $errors, $in['param3'], true);
+			$errorMessage .= implode('<br>', $errors);
+			break;
+			
+		case 'calculateAmount':
+			$res = Registration::calculateAmount( $wo, $in['param1'], $in['param2'] );
+			break;
+			
+		case 'updateApplicationAmount':
+			$res = Registration::updateApplicationAmount( $wo, $in['param1'] );
+			break;
+			
+		case 'approveOrRejectApplication':
+			$res = Registration::approveApplication( $wo, $in['param1'], $in['param2'] );
+			break;
+			
+		case 'viewApplication':
+			$res = Registration::viewApplication( $wo, $in['param1'], $in['param2'] );
+			break;
+		
+		case 'viewReceipt':
+			$res = Registration::viewReceipt( $wo, $in['param1'] );
+			break;
+		
+		case 'getApplicationData':
+			$res = Registration::getApplicationData( $wo, $in['param1'] );
+			
+			if ( $res !== FALSE ) {
+				$res = '<code><pre>' . print_r($res,true) . '</pre></code>';
+			}
+			break;
+			
+		case 'sendEmails':
+			$res = Registration::sendEmails( $wo, $in['param1'], $in['param2'] );
+			break;
+		*/
+        		
+		case 'testEmail':
+			//$conf = $wo->getConfigurationFor('', 'email_smtp' );
+			//if ( $conf === NULL ) { die('bad config'); }
+			
+			$from = '';
+			$emailAddress = 'apapanto@gmail.com,apapanto@ait.gr';
+			$subject = 'Testing PHPMailer';
+			$message = "Hello World!";
+			$replyTo = '';
+			$cc		 = 'apapanto@yahoo.com, apapanto@twinnet.gr';
+			$htmlMessage = '';
+			$files = null;
+			//$res = $wo->sendMail($from,$emailAddress,$subject,$message,$replyTo,$htmlMessage,$files);
+
+			$res = $wo->sendMail($from,$emailAddress,$subject,$message,$replyTo,$cc,$htmlMessage,$files);
+			break;
+		
+		default:
+			$tpl = array(
+				'browserTitle'	=> "$what test",
+				'content' 		=> $content,
+				'errorMessage'	=> "Unknown 'what' [$what]",
+				'message'		=> "Finished with '$what'.",
+			);
+	}	// which what
+	
+	// Tidy things up
+	//
+	if ( $tpl === NULL ) {
+		if ( is_array($res) ) {
+			$tpl = $res;
+		}
+		else {
+			$tpl = array(
+				'content' 		=> $content . '<br>Result:<hr>' . ( ($res===TRUE) ? "OK" : ($res===FALSE ? "****Failed! !!!! ****" : $res ) ) . '<hr>',
+				'errorMessage'	=> $errorMessage . '<br>' . nl2br( $wo->getErrorsAsStringAndClear() ),
+			);
+		}
+	}
+    
+	if ( !isset($tpl['browserTitle']) ) {
+		$tpl['browserTitle'] = "$what test";
+	}
+	if ( !isset($tpl['message']) ) {
+		$tpl['message'] = "Finished with '$what'.";
+	}
+	
+	// Do not forget the transaction
+	//
+	if ( $doTransaction ) {
+		if ( $res !== FALSE ) { $wo->db->commit(); }
+		else { $wo->db->rollback(); }
+	}
+	
+	Timer::stopSave($timers, "Test [$what]");
+	
+	
+	$wo->fetchApplicationFragment('structural/generic_template.php', $tpl );
+	
+	// UNREACHEABLE: As template exits at its end!
+	
+	
+
+// End of file _tests.php

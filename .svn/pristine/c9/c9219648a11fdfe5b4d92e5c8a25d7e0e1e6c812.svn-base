@@ -1,0 +1,82 @@
+<?php
+/* The VOICE Application Class */
+
+class VO_App extends VO_TblAbstract {
+	const _ECP = 'APP';	// Error Code Prefix
+	
+    public $userId;				// VOICE User Id
+    public $personProfileId;	// VOICE Person Profile Id
+    public $userSlug;			// First Name, Last Name
+    public $userAvatarImgURL;
+    public $isUserRegistered;
+    public $voicePersonRow;		// A v_voice_persons Row
+
+    public
+    function initFor( WOOOF $wo ) {
+    	$wooofUserId = $wo->userData['id'];
+    	
+    	if ( !$wo->hasContent($wooofUserId) ) {
+    		$wo->logError(self::_ECP."0010 No value found for 'wooofUserId'");
+    		return false;
+    	}
+    	
+    	if ( $wooofUserId === '0123456789' ) {
+    		return true;
+    	}
+    	
+    	$voicePersonRow = $wo->db->getRowByColumn('v_voice_persons', 'VUS_userId', $wooofUserId );
+    	if ( $voicePersonRow === FALSE ) { return FALSE; }
+    	
+    	if ( $voicePersonRow === NULL ) {
+    		$wo->logError(self::_ECP."0020 User [$wooofUserId] should not be logged-in");
+    		return false;
+    	}
+    	
+    	$this->userId 			= $voicePersonRow['VUS_id'];
+    	$this->personProfileId 	= $voicePersonRow['VUS_personProfileId'];
+    	$this->userSlug			= $voicePersonRow['PROF_firstName'] . ' ' . $voicePersonRow['PROF_lastName'];
+    	$this->voicePersonRow	= $voicePersonRow;
+    	
+    	$exFileObj = WOOOF_ExternalFiles::getFileObject( $wo, $voicePersonRow['VUS_avatarImg'] );
+    	if ( $exFileObj !== FALSE ) {
+	    	$this->userAvatarImgURL = $wo->imagesURL . $exFileObj['fileName'];
+    	}
+    		
+    	$this->isUserRegistered = ( $voicePersonRow['VUS_isVerified'] == '1' );
+    	
+    	return $this->userId;
+    		 
+    }	// initFor
+    
+    public static
+    function handleClassAutoloader( $className ) 
+    {
+    	// Looking at:
+    	//		siteBasePath/classes/
+    	//			VO_Ctrl	for Controllers
+    	//			VO_Tbl	for Table Classes
+    	$wo = WOOOF::$instance;
+    	
+        $classesDir = $wo->getConfigurationFor('siteBasePath') . $wo->getConfigurationFor('classesPath');
+    	
+    	if ( substr($className,0,7) == 'VO_Ctrl' ) {
+    		require( $classesDir . 'VO_Ctrl/' . $className . '.php' );
+    		return true; // ???
+    	}
+    	
+        if ( substr($className,0,6) == 'VO_Tbl' ) {
+    		require( $classesDir . 'VO_Tbl/' . $className . '.php' );
+    		return true; // ???
+    	}
+    	
+    	$filename = $classesDir . $className . '.php';
+    	
+    	if ( file_exists($filename) ) {
+    		require( $filename );
+    	}
+    	
+    	return false;
+    }	// handleClassAutoloader
+    
+
+}  // VO_App

@@ -1,0 +1,64 @@
+	  <div className="well well-large formInlineStyle">
+	    <center><h3>Personal Details</h3></center><br/>
+      	<div className="row">
+      		<div className="col-md-4">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon">My First Name</span>
+					<input type="text" className="form-control" placeholder="Your First Name..." aria-describedby="basic-addon" value={mainInfo.firstName} ref="firstName" name="firstName" onChange={this.handleChange} />
+				</div>
+			</div>
+			<div className="col-md-4">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-2">My Middle Name</span>
+					<input type="text" className="form-control" placeholder="Your Middle Name..." aria-describedby="basic-addon-2" value={mainInfo.middleName} ref="middleName" name="middleName" onChange={this.handleChange} />
+				</div>
+			</div>
+			<div className="col-md-4">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-3">My Last Name</span>
+					<input type="text" className="form-control" placeholder="Your Last Name..." aria-describedby="basic-addon-3" value={mainInfo.lastName} ref="lastName" name="lastName" onChange={this.handleChange} />
+				</div>
+			</div>
+		</div><br/>
+		<div className="row">
+	  		<div className="col-md-12">
+				<div className="input-group">
+			       <i className="fa fa-camera"></i> My Avatar <input type="file" className="file" id="input-1" ref="avatar" name="avatar" defaultValue={mainInfo.avatar} onChange={this.handleChange} />
+				</div>
+			</div>
+		</div><br/>
+		<div className="row">
+	  		<div className="col-md-6">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-4">Gender</span>
+					<div className="form-control" aria-describedby="basic-addon-4">
+					  <label><input type="radio" name="gender" checked={male ? "checked" : null} value="M" onChange={this.handleChange} />Male</label>
+					  <label><input type="radio" name="gender" checked={!male ? "checked" : null} value= "F" onChange={this.handleChange} />Female</label>
+					</div>
+				</div>
+			</div>
+			<div className="col-md-6">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-5">Birth Year</span>
+					<select className="form-control" aria-describedby="basic-addon-5" ref="birthYear" name="birthYear" onChange={this.handleChange}>
+						<option selected={mainInfo.birthYear === "1988" ? "selected" : null}>1988</option>
+				    </select>
+				</div>
+			</div>
+		</div><br/>
+		<div className="row">
+  			<div className="col-md-12">
+				<div className="input-group">
+			       <i className="fa fa-file"></i> CV File <input type="file" className="file" id="input-2" ref="CVFile" name="CVFile" defaultValue={mainInfo.CVFile} onChange={this.handleChange} />
+				</div>
+			</div>
+		</div><br/>
+		<div className="row">
+			<div className="col-md-1 col-md-offset-5">
+				<button type="button" className="btn btn-success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save</button>
+			</div>
+			<div className="col-md-1">
+				<button type="button" className="btn btn-default" onClick={this.handleReset}><i className="glyphicon glyphicon-repeat"></i> Reset</button>
+			</div>
+		</div>
+      </div>

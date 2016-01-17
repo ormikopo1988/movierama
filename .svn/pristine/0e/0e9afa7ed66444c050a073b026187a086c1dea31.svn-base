@@ -1,0 +1,117 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import $ from 'jquery';
+var Select = require('react-select');
+
+// AutoCompleteCompMulti
+
+export default React.createClass({
+	// Properties:
+	// url: for fetching options
+	// autoLoad
+	// multi
+	// minCharsForSearching
+	// optionStyle
+	
+	// Functions:
+	// getValue()
+	// getLabel()
+
+	getInitialState: function() {
+		this.autoCompleteLabel = {};
+		return {
+			autoCompleteValue: ''
+		};
+	},
+
+	getValue: function() {
+		return this.state.autoCompleteValue;
+	},
+
+	getLabel: function() {
+		var array = $.map(this.autoCompleteLabel, function(value, index) {
+		    return [value];
+		});
+		return array;
+	},
+
+	getDefaultProps: function() {
+    	return {
+    		autoload: false,
+      		multi: true,
+      		minCharsForSearching: 4,
+      		optionStyle: {
+      			color: 'black'
+      		},
+      		customCallBackOnChange: function() {}
+    	};
+  	},
+
+	handleOnChange: function(value) {
+		console.log('CHANGING: ', value);
+		var values = value.split(',');
+		console.log('VALUES: ', values);
+		
+		if(values.length === 1) {
+			this.setState({
+				autoCompleteValue: values[0]
+			});
+		}
+
+		else {
+			this.setState({
+				autoCompleteValue: values
+			});
+		}
+			
+
+		if(value === '') {
+			this.autoCompleteLabel = '';
+		}
+
+		var self = this;
+		setTimeout(function(){
+			self.props.customCallBackOnChange(self.state.autoCompleteValue, self.autoCompleteLabel);
+		}, 0);
+	},
+
+	getAutoCompleteLabel: function(option) {
+		console.log('LABEL: ', option);
+		this.autoCompleteLabel[option.value] = option.label;
+		return <p style={this.props.optionStyle}>{option.label}</p>;
+	},
+
+	render: function() {
+		var self = this;
+		var getOptions = function(input, callback) {
+			if ( input.length < self.props.minCharsForSearching ) { return; }
+			VOICE.ajaxCall(self.props.url, 'GET', { input: input }, this, function(result) {
+				console.log(result);
+				callback(null, {
+		            options: result,
+		            complete: true
+		        });
+			});
+		};
+
+		return (
+			<Select
+				{...this.props}
+			    asyncOptions={getOptions}
+			    autoload={this.props.autoload}
+			    cacheAsyncResults={false}
+			    multi={this.props.multi}
+			    valueRenderer={this.getAutoCompleteLabel}
+			    filterOption={this.filterOption}
+			    onChange={this.handleOnChange} />
+
+		);
+	}
+	,
+
+	// override matchPos, matchProp and ignoreCase.
+	// trust all results returned by asynch call
+	filterOption: function(option, filter) {
+		return option;
+	}
+});

@@ -1,0 +1,19 @@
+<?php
+/* Class [VO_TblIdeaVersions] for table [idea_versions] */
+
+class VO_TblIdeaVersions extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'idea_versions';
+
+    public $id;
+    public $isDeleted;
+    public $ideaId;
+    public $versionString;
+    public $versionName;
+    public $fromDate;
+    public $toDate;
+    public $ideaTypeDVId;
+    public $contentId;
+    public $voiceUserId;
+
+}  // VO_TblIdeaVersions

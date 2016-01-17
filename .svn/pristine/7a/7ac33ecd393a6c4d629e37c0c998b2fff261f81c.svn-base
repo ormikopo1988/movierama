@@ -1,0 +1,104 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import PostInput from './PostInputComp.jsx';
+import Post from './PostComp.jsx';
+import VOICE from './voice.js';
+import $ from 'jquery';
+
+var RB = require('react-bootstrap');
+
+export default React.createClass({ //ProfileEdit
+	
+	getDefaultProps: function() 
+	{
+	    return {
+	      data: {posts: null, showPrivacy: true}
+	      
+	    };
+	},
+
+	getInitialState: function()
+	{
+		if (this.props.data.posts === undefined || this.props.data.posts === null || this.props.data.posts.length === 0)
+		{
+			VOICE.ajaxCall(VOICE.linkPrefix('api/timeline/'+ this.props.data.postBoxId), 'GET', '', this, this.gotUpdatedData);
+			return {
+				posts: []
+			}
+		}else
+		{
+
+			return {
+					posts: this.props.data.posts,
+					userData: this.props.data.userData,
+					showPrivacy: this.props.data.showPrivacy,
+				}
+		}
+	},
+
+	gotUpdatedData: function(returnedData)
+	{
+		var tmp = this.state;
+		tmp.posts = returnedData.data.posts;
+		tmp.userData = returnedData.data.userData;
+		tmp.lookUps = returnedData.lookUps;
+		tmp.showPrivacy = returnedData.data.showPrivacy;
+		window.postersData = tmp.userData;
+		this.setState(tmp);
+	},
+
+	gotAditionalData: function(returnedData)
+	{
+		var tmp = this.state;
+		tmp.posts = tmp.posts.concat(returnedData.data.posts);
+		for (var attrname in returnedData.data.userData) 
+		{
+			tmp.userData[attrname] = returnedData.data.userData[attrname]; 
+		}
+		tmp.lookUps = returnedData.lookUps;
+		window.postersData = tmp.userData;
+		this.setState(tmp);
+	},
+
+	render: function() 
+	{
+		var inputData = {
+							parentPostId: null,
+							postBoxId: this.props.data.postBoxId,
+							showPrivacy: this.state.showPrivacy,
+						};
+		var inputLookUps = 	{ 
+								POST_PRIVACY_CHOICES: this.props.lookUps.POST_PRIVACY_CHOICES, 
+							};
+		var posts = [];
+
+		for(var q =0; q<this.state.posts.length; q++)
+		{
+			this.state.posts[q]['userData'] = this.state.userData[this.state.posts[q].userId];
+			posts.push(
+				<Post data = {this.state.posts[q]} key={this.state.posts[q].id}/>
+			);
+		}
+
+		return (	<div>
+		<PostInput data={inputData} lookUps = {inputLookUps} newInsertCallBack = {this.handlePostInsert}/>
+		{posts}
+			<RB.Row>
+      			<RB.Col xs={2} xsOffset={5}><RB.Button bsStyle="success" bsSize="small" onClick={this.fetchMorePosts}>Load More Posts</RB.Button></RB.Col>
+    		</RB.Row>		
+	</div>
+		);
+	},
+
+	handlePostInsert: function(newPostData)
+	{
+		var tmp = this.state;
+		tmp.posts.unshift(newPostData);
+		this.setState(tmp);
+	},
+
+	fetchMorePosts: function()
+	{
+		VOICE.ajaxCall(VOICE.linkPrefix('api/timelinePart/'+ this.props.data.postBoxId+'/'+this.state.posts.length), 'GET', '', this, this.gotAditionalData);
+	}
+});

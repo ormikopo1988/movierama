@@ -1,0 +1,49 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import VOICE from './voice.js';
+import PersonDisplay from './SmallPersonPresentationComp.jsx';
+var RB = require('react-bootstrap');
+
+export default React.createClass(
+	{ //PersonalMessagesExchange
+		render: function()
+		{
+			var participatingUsers = [];
+
+			console.log(this.props.data);
+
+			this.props.data.recipients.forEach(function (participant)
+			{
+				var avatarImg = participant.picture || '$profile_none.png';		
+				participatingUsers.push(<div key={participant.id}><img src={
+					VOICE.imgPrefix( avatarImg , '')
+				} className="circle-header-2" />
+				<br />
+				{
+					participant.username
+				}</div>);
+			});
+
+			return (<RB.Well key={this.props.data.id} onClick={this.showExchange}>
+				    <RB.Panel>
+				    	{participatingUsers}
+			        </RB.Panel>
+    				<RB.Row>
+					    <RB.Col sm={12} md={8}>
+					    	<RB.Panel header={this.props.data.title}>
+					    	<div style={{whiteSpace: 'pre-wrap'}}>{this.props.data.content}</div>
+						    </RB.Panel>
+						</RB.Col>
+						<RB.Col sm={12} md={4}>
+						<PersonDisplay data={{'VUS_slug': this.props.data.ownerData.username, 'VUS_avatarImg': this.props.data.ownerData.picture , 'POS_entryDate': this.props.data.entryDate }} key={this.props.data.ownerData.id +'_'+ this.props.data.entryDate}/>
+						</RB.Col>
+				    </RB.Row>
+
+				</RB.Well>);
+		},
+
+		showExchange: function()
+		{
+			document.location.href = VOICE.linkPrefix('messages/'+this.props.data.recipientId);
+		},
+	});

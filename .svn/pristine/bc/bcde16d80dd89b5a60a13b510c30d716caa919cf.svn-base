@@ -1,0 +1,57 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import $ from 'jquery';
+var RB = require('react-bootstrap');
+
+export default React.createClass({ //ProfileCompletenessComp
+  getInitialState: function() {
+  	return {
+	    counter: this.props.data.counter,
+      tips: this.props.data.tips,
+      color: this.props.data.color
+    };
+  },
+  
+  render: function() { //function that returns a tree of React components that will eventually render to HTML
+  	var percentage = this.state.counter, 
+  		  color = this.state.color;
+
+    var barColor;
+    switch ( color ) {
+    	case 'red': barColor = 'danger'; break;
+    	case 'orange': barColor = 'warning'; break;
+    	case 'blue': barColor = 'info'; break;
+    	case 'green': barColor = 'success'; break;
+    }
+
+    if(this.state.tips) {
+      var tipArr = this.state.tips;
+      var tips = [];
+      for(var i=0; i<tipArr.length; i++) {
+        tips.push(
+          <div className="tip">
+            <a href={VOICE.linkPrefix('profile/edit#'+tipArr[i].bookmark)}><i className="fa fa-hand-o-right"></i> <strong>{tipArr[i].tip}</strong></a>
+          </div>
+        );
+      }
+    }
+
+    return (
+      <span>
+        <RB.ProgressBar bsStyle={barColor} now={percentage} />
+        {
+          tips.length !== 0 ?
+            <div className="panel panel-default">
+              <div className="panel-heading tipCollapse">
+                <a data-toggle="collapse" data-target="#tips" href="javascript:void(0)">Tips For Completion</a>
+              </div>
+              <div id="tips" className="panel-body panel-collapse collapse in">
+                {tips}
+              </div>
+            </div> : null
+        }
+      </span>
+    );
+  }
+  
+});

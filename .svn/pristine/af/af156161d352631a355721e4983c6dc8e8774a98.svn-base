@@ -1,0 +1,134 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import MessagesBoxComp from './MessagesBoxComp';
+import LoadingComp from './LoadingComp';
+var RB = require('react-bootstrap');
+
+export default React.createClass({ //ContentSectionsComp
+
+	/*
+		Properties
+		1. contentId (mandatory)
+		2. data (result of VO_Content::getContent())
+	*/
+
+	getDefaultProps: function() {
+		return {
+			data: {},
+			contentId: '',
+			editable: false
+		};
+	},
+
+	getInitialState: function() {
+		return { 
+			data: {},
+			loading: false,
+			showAddButton: true,
+			showSectionForm: false
+		}
+	},
+
+	onPlusClick: function() {
+		this.setState({ 
+			showSectionForm: true,
+			showAddButton: false
+		});  
+	},
+
+	componentDidMount: function() {
+		if(Object.keys(this.props.data).length === 0) {
+			var data = {
+				id: this.props.contentId
+			};
+			VOICE.ajaxCall(VOICE.linkPrefix('api/contents/getContent'), 'POST', data, this, this.handleGetContent);
+			return {
+				loading: false,
+				data: {}
+			}	
+		}
+		else {
+			return {
+				loading: false,
+				data: this.props.data
+			}
+		}
+		
+	},
+
+	handleGetContent: function(result) {
+		console.log('handleGetContent: ', result);
+		if(result.getContentOk)
+		this.setState({
+			data: result.getContent.sections
+		});
+	},
+
+	handleSave: function() {
+	    
+	},
+
+	cbHandleSave: function(result) {
+		if(result.ideaEditedOk === true) {
+  		
+			this.refs.msgBox.clearErrors();
+			this.refs.msgBox.addSuccess('Your content sections were saved successully!', false);
+			setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+		}
+		else {
+			this.refs.msgBox.addError(result.errors);
+		}
+		this.setState({
+	      loading: false
+	    });
+	},
+
+    render: function() {
+	  	var results = this.props.data;
+	  	console.log('CONTENT SECTIONS: ', results);
+		//var memberSince = moment.utc(result.IDE_effectiveDate, 'YYYYMMDDhhmmss').fromNow();
+	  	return (
+			<div>
+				<RB.Row>
+					{
+						results.map(function(result) {
+							return (
+								<Section key={result.id} result={result}></Section>
+							)
+						})
+					}
+				</RB.Row>
+				<RB.Row>
+					{
+						this.props.editable === true ?
+				            <center>
+				            	{
+				           			this.state.loading === false ?
+				              			<RB.Button bsStyle="success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save Sections</RB.Button> :
+				              			<LoadingComp loadingText="Saving Sections..."></LoadingComp>
+				         	    }
+				            </center> : null
+		            }
+				</RB.Row><br/>
+				<RB.Row>
+					<RB.Col md={12}>
+						<MessagesBoxComp ref="msgBox"/>
+					</RB.Col>
+				</RB.Row>
+			</div>
+	    );
+    }
+}); //ContentSectionsComp
+
+var Section = React.createClass({
+	render: function() {
+		var data = this.props.result;
+		return (
+			<span>
+				Section {data.title}<br/>
+			</span>
+		);
+	}
+});

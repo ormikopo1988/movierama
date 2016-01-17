@@ -1,0 +1,82 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import ContentMainComp from './ContentMainComp';
+import ContentAuthorsComp from './ContentAuthorsComp';
+import ContentTagsComp from './ContentTagsComp';
+import ContentSectionsComp from './ContentSectionsComp';
+
+import MessagesBoxComp from './MessagesBoxComp';
+import LoadingComp from './LoadingComp';
+
+export default React.createClass({ //ContentComp
+
+	/*
+		Properties
+		1. contentId | 
+		2. data (result of VO_Content::getContent())
+		3. editable (boolean)
+	*/
+
+	getDefaultProps: function() {
+		return {
+			data: {},
+			contentId: '',
+			editable: false
+		};
+	},
+
+	getInitialState: function() {
+		return { 
+			data: this.props.data
+		}
+	},
+
+	componentDidMount: function() {
+		if(Object.keys(this.props.data).length === 0) {
+			var data = {
+				id: this.props.contentId
+			};
+			VOICE.ajaxCall(VOICE.linkPrefix('api/contents/getContent'), 'POST', data, this, this.handleGetContent);
+		}
+	},
+
+	handleGetContent: function(result) {
+		console.log('ContentComp.handleGetContent: ', result);
+		if(result.getContentOk)
+		this.setState({
+			data: result.getContent
+		});
+	},
+
+	render: function() {
+		
+		if(Object.keys(this.state.data).length === 0) {
+			return null;
+		}
+
+		var data = this.state.data;
+		//console.log('INIT DATA:', data);
+
+		var isPartOfIdea = data.main.isPartOfIdea;
+
+		return (
+			<span>
+				<hr/>
+				<span>{data.main.contentTypeDVCode}</span> &nbsp;&nbsp;
+				<span>( {data.main.contentVisibilityDVCode} )</span>
+				<ContentMainComp editable={this.props.editable} contentId={data.main.id} lookUps={this.props.lookUps} data={data.main} isPartOfIdea={isPartOfIdea}></ContentMainComp>
+				<hr/>
+				<ContentTagsComp editable={this.props.editable} contentId={data.main.id} data={data.tags} isPartOfIdea={isPartOfIdea}></ContentTagsComp>
+				<hr/>
+				{
+					data.main.isPartOfIdea == '0' ?
+					<ContentAuthorsComp editable={this.props.editable} contentId={data.main.id} data={data.authors} isPartOfIdea={isPartOfIdea}></ContentAuthorsComp>
+					:
+					null
+				}
+				<hr/>
+				<ContentSectionsComp editable={this.props.editable} contentId={data.main.id} lookUps={this.props.lookUps} data={data.sections} isPartOfIdea={isPartOfIdea}></ContentSectionsComp>
+			</span>
+		)
+	}
+}); //ContentComp

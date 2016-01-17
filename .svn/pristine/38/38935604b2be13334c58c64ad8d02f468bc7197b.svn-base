@@ -1,0 +1,111 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+
+export default React.createClass({
+  
+  //properties
+  //data of the object
+  //isType of the object
+
+  getInitialState: function() {
+    return {
+      showFlagText: false
+    }
+  },
+
+  showFlagText: function() {
+    this.setState({
+      showFlagText: true
+    });
+  },
+
+  handleReport: function() {
+    var whatId;
+    var whatType;
+    var flagText = ReactDOM.findDOMNode(this.refs.flagText).value.trim();
+    
+
+    if(!flagText) {
+      alert('Please fill in the required fields!');
+      return;
+    }
+
+    var data = this.props.data;
+
+    switch(this.props.isType) {
+      case 'PRS':
+        whatId = data.VUS_id;
+        whatType = this.props.isType;
+        break;
+      case 'ORG':
+        whatId = data.id;
+        whatType = this.props.isType;
+        break;
+      case 'DIS':
+        whatId = data.id;
+        whatType = this.props.isType;
+        break;
+      case 'TEA':
+        whatId = data.id;
+        whatType = this.props.isType; 
+        break;
+      case 'IDE':
+        whatId = data.IDE_id;
+        whatType = this.props.isType;
+        break;
+      case 'CNT':
+        whatId = data.CNT_id;
+        whatType = this.props.isType;
+        break;
+    }
+
+    var data = {
+      whatId: whatId,
+      whatType: whatType,
+      flagText: flagText
+    };
+
+    //TODO - SEND DATA TO SERVER
+    var url = VOICE.linkPrefix('api/social/flagItem');
+
+    VOICE.ajaxCall(url, 'POST', data, this, this.cbHandleFlag);
+
+  },
+
+  cbHandleFlag: function(result) {
+    if(result.flagItemOk === true) {
+      this.setState({
+        showFlagText: false
+      })
+    }
+    else {
+      alert(result.errors);
+    }
+  },
+
+  closeFlagText: function() {
+    this.setState({
+      showFlagText: false
+    });
+  },
+
+  render: function() { 
+    return (
+      <span>
+        {
+          !this.state.showFlagText ?
+            <a href="javascript:void(0)" onClick={this.showFlagText}>
+              <i className="fa fa-flag smallFa isType"></i><i>Report</i>
+            </a> : 
+            <span>
+              <input type="text" className="form-control" placeholder="Type what to report..." aria-describedby="basic-addon-13" ref="flagText" /><br/>
+              <center>
+                <button type="button" className="btn btn-success" onClick={this.handleReport}>Submit</button> <button type="button" className="btn btn-default" onClick={this.closeFlagText}>Reset</button> 
+              </center>
+            </span>
+        }
+      </span>
+    );
+  }
+  
+});

@@ -1,0 +1,33 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+
+export default React.createClass({
+  
+  //properties
+  //sharing url
+
+  render: function() { 
+
+    var url = VOICE.globals.startURL + this.props.url;
+
+    return (
+      <div className="pull-right socialPostHolder"> 
+          <ul className="socialPost">
+              <li>
+                <a target="_blank" href={'https://www.facebook.com/sharer/sharer.php?u='+url} className="articleSocial"><i className="fa fa-facebook"></i></a>
+              </li>
+              <li>
+                <a target="_blank" href={'https://twitter.com/intent/tweet?url='+url} className="articleSocial"><i className="fa fa-twitter"></i></a>
+              </li>
+              <li>
+                <a target="_blank" href={'https://plus.google.com/share?url='+url} className="articleSocial"><i className="fa fa-google-plus"></i></a>
+              </li>
+              <li>
+                <a target="_blank" href={'https://pinterest.com/pin/create/button/?url='+url} className="articleSocial"><i className="fa fa-pinterest-p"></i></a>
+              </li>
+          </ul>
+      </div>
+    );
+  }
+  
+});

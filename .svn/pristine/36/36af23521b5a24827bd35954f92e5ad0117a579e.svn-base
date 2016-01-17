@@ -1,0 +1,59 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import $ from 'jquery';
+var RB = require('react-bootstrap');
+
+export default React.createClass({ //ProfileCompletenessComp
+  getInitialState: function() {
+  	return {
+		  data: this.props.data,
+      tips: this.props.tips
+    };
+  },
+  
+  render: function() { //function that returns a tree of React components that will eventually render to HTML
+  	var percentage = this.state.data;
+
+    var barColor;
+    if(percentage >= 0 && percentage <= 35) {
+      barColor = 'danger';
+    }
+    else if(percentage > 35 && percentage <= 70) {
+      barColor = 'warning';
+    }
+    else if(percentage > 70 && percentage <= 99) {
+      barColor = 'info';
+    }
+    else {
+      barColor = 'success';
+    }
+
+    if(this.state.tips) {
+      var tipArr = this.state.tips;
+      var tips = [];
+      for(var i=0; i<tipArr.length; i++) {
+        tips.push(
+          <a href={VOICE.linkPrefix('profile/edit')}><i className="fa fa-hand-o-right"></i> <strong>{tipArr[i]}</strong><hr/></a>
+        );
+      }
+    }
+
+    return (
+      <span>
+        <RB.ProgressBar active bsStyle={barColor} now={percentage} />
+        {
+          tips.length !== 0 ?
+            <div className="panel panel-default">
+              <div className="panel-heading">
+                Tips For Completion
+              </div>
+              <div className="panel-body">
+                {tips}
+              </div>
+            </div> : null
+        }
+      </span>
+    );
+  }
+  
+});

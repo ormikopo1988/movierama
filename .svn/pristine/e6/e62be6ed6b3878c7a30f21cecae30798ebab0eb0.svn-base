@@ -1,0 +1,58 @@
+<?php
+/* The VOICE Application Class */
+
+class VO_App extends VO_TblAbstract {
+	const _ECP = 'APP';	// Error Code Prefix
+	
+    public $userId;				// VOICE User Id
+    public $personProfileId;	// VOICE Person Profile Id
+    public $userSlug;			// First Name, Last Name
+    public $userAvatarImgURL;
+    public $isUserRegistered;
+    public $isUserProfileOk;
+
+    public
+    function initFor( WOOOF $wo ) {
+    	$wooofUserId = $wo->userData['id'];
+    	
+    	if ( !$wo->hasContent($wooofUserId) ) {
+    		$wo->logError(self::_ECP."0010 No value found for 'wooofUserId'");
+    		return false;
+    	}
+    	
+    	if ( $wooofUserId === '0123456789' ) {
+    		return true;
+    	}
+    	
+    	$voicePersonRow = $wo->db->getRowByColumn('v_voice_persons', 'VUS_userId', $wooofUserId );
+    	if ( $voicePersonRow === FALSE ) { return FALSE; }
+    	
+    	if ( $voicePersonRow === NULL ) {
+    		$wo->logError(self::_ECP."0020 User [$wooofUserId] should not be logged-in");
+    		return false;
+    	}
+    	
+    	$this->userId 			= $voicePersonRow['VUS_id'];
+    	$this->personProfileId 	= $voicePersonRow['VUS_personProfileId'];
+    	$this->userSlug			= $voicePersonRow['PROF_firstName'] . ' ' . $voicePersonRow['PROF_lastName'];
+    	
+    	$exFileObj = WOOOF_ExternalFiles::getFileObject( $wo, $voicePersonRow['VUS_avatarImg'] );
+    	if ( $exFileObj !== FALSE ) {
+	    	$this->userAvatarImgURL = $wo->imagesURL . $exFileObj['fileName'];
+    	}
+    		
+    	$this->isUserRegistered = !$wo->hasContent($voicePersonRow['VUS_verificationToken']);
+    	
+    	$this->isUserProfileOk  = (
+    		$wo->hasContent($voicePersonRow['PROF_lastName']) and
+    		$voicePersonRow['PROF_lastName'] != '?' and
+    		$voicePersonRow['PROF_birthYear'] > '1900' and 
+    		$wo->hasContent($voicePersonRow['PROF_gender']) and
+    		$voicePersonRow['PROF_gender'] != '?'
+    	);
+
+    	return $this->userId;
+    		 
+    }	// initFor
+
+}  // VO_App

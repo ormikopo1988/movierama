@@ -1,0 +1,164 @@
+<?php
+
+	// ajaxCall.php
+	
+	require_once '../setup.inc.php';
+	
+	$requestedAction='viewUncontroled';
+	$pageLocation='3';
+	$browserTitle='Tests';
+	
+	$timers = array();
+	
+	function returnJSON( $ok, $data, $errorMsg = '', $goOn = FALSE ) {
+		$jsonString = json_encode( $data );
+		if ( $jsonString === FALSE ) {
+			echo json_encode(
+				array(
+					'ok' 		=> false,
+					'errorMsg'	=> 'Failed to encode data!',
+					'data'		=> array()
+				)	
+			);
+		}
+		else {
+			echo json_encode(
+					array(
+							'ok' 		=> $ok,
+							'errorMsg'	=> $errorMsg,
+							'data'		=> $data
+					)
+			);
+		}
+		
+		if ( !$goOn ) {
+			die();
+		}
+
+		return true;
+	}
+	
+	
+	$wo = new WOOOF();
+	if ( !$wo->constructedOk ) { $wo->handleShowStopperError( "1000 Failed to init WOOOF." ); }
+	
+	// TODO: Accept mutliple whats and params (posted)
+	// and execute in sequence.
+	// Extra param for stopping or not in case of error.
+	
+	$paramNames = array(
+			'what', 
+			'doTransaction',
+			'param1', 'param2', 'param3', 'param4',  
+			'param5', 'param6', 'param7', 'param8',  
+	);
+	$in = $wo->getMultipleGetPost( $paramNames );
+	
+	$what = $in['what'];
+	$doTransaction = ( $in['doTransaction'] != '0' );	// CAUTION: Opposite from _tests.php
+	
+	if ( !WOOOF::hasContent($what) ) {
+		returnJSON( false, array(), "ajaxCall.php: Need to specify a 'what' parameter..." );
+	}
+
+
+	
+	$debugString = "Action: $what Params: ";
+	for( $i=1; $i<=8; $i++ ) {
+		$debugString .= "$i: [". $in['param'.$i] . "] ";
+	}
+	$debugString .= " . ";
+	$debugString .= ( $doTransaction ? "Transaction is ON" : "No Transaction" );
+	
+	$ok			= true;
+	$retData 	= array();
+	$errorMsg 	= '';
+	
+	$retData['ajaxCall.php Debug'] = $debugString; 
+	
+	switch ( $what ) {
+		case 'checkEmailRegister':
+			//api/registration/checkEmail/ $in['param1']
+			$retData = [
+				'isUnique' => true,
+				'hasOrg' => false,
+				'orgInfo' => [
+					"title" => "AIT", 
+					"author"=> "orestis", 
+					"description" => "Athens Information Technology"
+				],
+				'hasAdmin' => false
+			];
+			break;
+		
+		case 'calculateAmount':
+			$res = Registration::calculateAmount( $wo, $in['param1'], $in['param2'] );
+			if ( $res === FALSE ) {
+				$ok = FALSE;
+				$errorMsg = '?';
+			}
+			else {
+				$retData['amount'] = $res;
+			}
+			break;
+			
+		case 'approveApplication':
+		case 'rejectApplication':
+			$action = ( $what == 'approveApplication' ? 'approve' : 'reject' );
+			$res = Registration::approveApplication( $wo, $in['param1'], $action );
+			
+			if ( $res === FALSE ) {
+				$ok = FALSE;
+				$errorMsg = $wo->getErrorsAsStringAndClear();
+			}
+			else {
+				//$retData['amount'] = $res;
+			}
+			break;
+			
+			
+		case 'updateApplicationAmount':
+			$res = Registration::updateApplicationAmount( $wo, $in['param1'] );
+			
+			if ( $res === FALSE ) {
+				$ok = FALSE;
+				$errorMsg = $wo->getErrorsAsStringAndClear();
+			}
+			else {
+				$retData['amount'] = $res;
+			}
+			break;
+			
+		case 'saveNewRegistration':
+			$res = Registration::saveRegistration($wo, $_POST, $errorsArray);
+			
+			if ( $res === FALSE ) {
+				$ok = FALSE;
+				$errorMsg = '';
+				$retData['formErrors'] = implode( '<br>',  $errorsArray );
+			}
+			else {
+				$retData['newAppId'] = $res;
+			}
+            break;
+		default:
+			returnJSON( false, $retData, "ajaxCall.php [$what]: Provided 'What' is not known." );
+            break;
+	}	// which what
+	
+	if ( $doTransaction ) {
+		if ( $ok ) { $wo->db->commit(); }
+		else { $wo->db->rollback(); }
+	}
+	
+	if ( $ok === FALSE ) {
+		$errorMsg = "ajaxCall.php [$what] failed: $errorMsg.";
+	}
+
+	returnJSON( $ok, $retData, $errorMsg );
+		
+	// UNREACHEABLE
+	
+	
+
+// End of file genericList.php

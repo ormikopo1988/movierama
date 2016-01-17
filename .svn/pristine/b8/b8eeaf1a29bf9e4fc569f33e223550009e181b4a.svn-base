@@ -1,0 +1,475 @@
+<?php
+
+
+
+class VO_CtrlProfile {
+	const _ECP = 'CPR';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	public static function profileEdit( WOOOF $wo ) {
+	
+		$requestedAction='viewUncontroled';	// TODO: should be edit
+		$pageLocation='3';
+		$browserTitle='VOICE Edit User Profile';
+
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		$lookUps = WOOOF_Domains::getMultipleDomains($wo, 
+			array(
+				array('ADDRESS_TYPE','PRS'),
+				'DEGREE_TYPE',
+				'PERSON_TITLE',
+				'SOCIAL_ACCOUNT',
+				'PROFICIENCY_TYPE',
+				'WORK_RELATION_TYPE'
+			))
+		;
+		if ( $lookUps === FALSE ) { $wo->handleShowStopperError(); }
+		
+		$areas = VO_Various::getAreasLookUp($wo);
+		if($areas === FALSE) { $wo->handleShowStopperError(); }
+		
+		$lookUps['AREA'] = $areas; 
+		
+		
+		$lookUps['SERVICES'] = VO_Tags::getServicesLookup($wo);
+		if($lookUps['SERVICES'] === FALSE) { return false; }
+		
+		$lookUps = json_encode($lookUps);
+		
+		$ranges = [
+			'birthYear' 	=> VO_Registration::getYearRangeFor($wo, 'BIRTH' ),
+			'lastCentury'	=> VO_Registration::getYearRangeFor($wo, 'LAST_CENTURY' ),
+		];
+		$ranges = json_encode($ranges);
+		
+		// TODO: complete getdata
+        $data = VO_Users::getFull($wo, $wo->app->userId);
+        if ( $data === FALSE ) { $wo->handleShowStopperError(); }
+		$data = json_encode( $data );
+		
+		//TODO: take formats from person profile
+		$dateShowFormat = 'DD/MM/YYYY';
+		
+        $content = "
+		<div id='content-main'></div>
+
+		<script>
+        	var data = $data;
+        	var lookUps = $lookUps;
+        	var ranges = $ranges;
+        	var dateShowFormat = '$dateShowFormat';
+        	ReactDOM.render(
+        		React.createElement(
+        			ProfileEdit, 
+        			{ data: data, lookUps: lookUps, ranges: ranges }
+        		), 
+        		document.getElementById('content-main')
+        	);
+			/*ReactDOM.render(
+				<ProfileEdit data={data} lookUps = {lookUps}/>,
+				document.getElementById('voice-user-profile-edit')
+			);*/
+		</script>
+		";
+	
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	}	//profileEdit
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	public static function profileView( WOOOF $wo, $voiceUserId = '' ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE User Profile Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if(!$wo->hasContent($voiceUserId)) {
+			$voiceUserId = $wo->app->userId;
+		} 
+		$data = VO_Users::getFull($wo, $voiceUserId);
+		if ( $data === FALSE ) { $wo->handleShowStopperError(); }
+		
+		$data = json_encode( $data );
+		
+		$content = <<<EOH
+		<div id='content-main'></div>
+
+		<script>
+			ReactDOM.render(
+				React.createElement(
+					ProfileView, 
+					{ data: $data }
+				), 
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+	;
+	
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+		
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//profileView
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return [ 'saveOk' => bool, 'userId' => id, 'errors' => array ]
+	 */
+	public static 
+	function mainInfoSave( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		$res =  VO_Users::saveMainInfo($wo, $in);
+		
+		$avatarRec = $wo->db->getRowByColumn('voice_users', 'personProfileId', $res);
+		if($avatarRec === FALSE) { return false; }
+		
+		$cvFileRec = $wo->db->getRow('person_profiles', $res);
+		if($cvFileRec === FALSE) { return false; }
+		
+		$cvFileObj = $wo->db->getRow('__externalFiles', $cvFileRec['cvFile']);
+		if($cvFileObj === FALSE) { return false; }
+		
+		if ( $res === FALSE ) {
+			$out = [
+				'saveOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+		
+		else {
+			$out = [
+				'saveOk'	=> true,
+				'userId'	=> $res,
+				'avatarImg' => $avatarRec['avatarImg'],
+				'cvFile'	=> [
+					'externalFileId'   => $cvFileObj['id'],
+					'fileName'		   => $cvFileObj['fileName'],
+					'originalFileName' => $cvFileObj['originalFileName']
+				]
+			];
+			$wo->db->commit();
+		}
+		
+		return $out;
+	}	// mainInfoSave
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return [ 'saveOk' => bool, 'addressId' => id, 'errors' => array ]
+	 */
+	public static
+	function saveAddresses( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+
+		if ( $wo->hasContentArrayEntry($in, 'list') ) {
+			$res =  VO_Addresses::saveAddresses(
+				$wo, $in['list'], $in['genericType'], $in['genericId']
+			);
+		}
+		else {
+			$res = true;	// let's say
+		}
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'saveOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'saveOk'	=> true,
+				'addressId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// saveAddresses
+	
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return [ 'saveOk' => bool, 'educationId' => id, 'errors' => array ]
+	 */
+	public static
+	function saveEducations( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$res = VO_Educations::saveEducations($wo, $in, $wo->app->personProfileId);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'saveOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'saveOk'	=> true,
+				'educationId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// saveEducations
+	
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return [ 'saveOk' => bool, 'accountId' => id, 'errors' => array ]
+	 */
+	public static
+	function saveAccounts( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$res = VO_Accounts::saveAccounts($wo, $in, $wo->app->personProfileId);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'saveOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'saveOk'	=> true,
+				'accountId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// saveAccounts
+	
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return [ 'saveOk' => bool, 'skillId' => id, 'errors' => array ]
+	 */
+	public static
+	function saveSkills( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		$res = VO_Skills::saveSkills($wo, $in, $wo->app->personProfileId);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'saveOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'saveOk'	=> true,
+				'skillId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// saveSkills
+	
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return [ 'saveOk' => bool, 'experienceId' => id, 'errors' => array ]
+	 */
+	public static
+	function saveExperiences( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$res = VO_Experiences::saveExperiences($wo, $in, $wo->app->personProfileId);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'saveOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'saveOk'	=> true,
+				'experienceId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// saveExperiences
+	
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return [ 'saveOk' => bool, 'experienceId' => id, 'errors' => array ]
+	 */
+	public static
+	function invitePeopleToVoice( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$emails = explode(',', $in);
+		
+		$res = VO_Users::createInvitationRequests($wo, $emails, $wo->app->userId);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'inviteOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'inviteOk'	=> true,
+				'inviteAction'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// invitePeopleToVoice
+	
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return [ 'sendOk' => bool, 'sendResult' => bool, 'errors' => array ]
+	 */
+	public static
+	function sendUserInvitations( WOOOF $wo, $voiceUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$res = VO_Users::sendInvitations($wo, $voiceUserId);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'sendOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'sendOk'		=> true,
+				'sendResult'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// sendUserInvitations
+	
+}	// VO_CtrlProfile

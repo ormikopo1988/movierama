@@ -1,0 +1,14 @@
+<?php
+/* Class [VO_TblUserFriendships] for table [voice_user_friendships] */
+
+class VO_TblUserFriendships extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'voice_user_friendships';
+
+    public $id;
+    public $isDeleted;
+    public $createdDateTime;
+    public $thisId;
+    public $isFriendsWithId;
+
+}  // VO_TblUserFriendships

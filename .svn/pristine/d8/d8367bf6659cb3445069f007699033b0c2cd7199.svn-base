@@ -1,0 +1,349 @@
+<?php
+
+class VO_Users {
+	const _ECP = 'USE';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param VO_TblUser $obj
+	 * @param bool $fetchBack
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static 
+	function save( WOOOF $wo, VO_TblUser &$obj, $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	    
+		$t1 = new WOOOF_dataBaseTable($wo->db, 'voice_users');
+		if ( !$t1->constructedOk ) { return false; }
+		
+		if ( !$wo->hasContent($obj->userId) ) {
+			$wo->logError(self::_ECP."0010 No value provided for [userId]" );
+			return false;
+		}
+		
+		if ( $wo->hasContent($obj->id) ) {
+			// update
+			$res = $t1->updateRowFromArraySimple( $obj->toArray() );
+			if ( $res === FALSE ) { return FALSE; }
+		}
+		else {
+			// insert
+			$verificationToken		= WOOOF::randomString(255);
+			 
+			$obj->isDeleted			= '0';
+			$obj->isActive			= '1';
+			$obj->isVerified		= '0';
+			$obj->verificationToken = $verificationToken;
+			$obj->createdDateTime 	= WOOOF::currentGMTDateTime();
+			$obj->updatedDateTime	= $obj->createdDateTime;
+			
+			$newId = $t1->insertRowFromArraySimple( $obj->toArray() );
+			if ( $newId === FALSE ) { return false; }
+			$obj->id = $newId;
+			
+			$succ = self::handleVerificationToken($wo, $obj->id, $obj->username, $verificationToken );
+			if ( $succ === FALSE ) { return FALSE; }
+		}
+
+		if ( $fetchBack ) {
+			// Get back into $obj based on id
+			// TODO:
+		}
+	  
+		return $obj->id;
+	}	// save
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $voiceUserId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getFull( WOOOF $wo, $voiceUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  $voiceUserId" );
+		 
+		if(!$wo->hasContent($voiceUserId)) {
+			$wo->logError(self::_ECP."0011 No value provided for [voiceUserId]");
+			return false;
+		}
+		
+		//----------------- GET MAIN INFO -----------------------------------
+		//2os tropos xwris na xreiastei na kataskeuaseis ton pinaka
+		$voiceUser = $wo->db->getRow('voice_users', $voiceUserId); //fernei olo to row
+		if($voiceUser === FALSE) { return false; }
+		$main['voiceUserId'] = $voiceUser['personProfileId'];
+		
+		//$avatarImg = WOOOF_ExternalFiles::getFileObject($wo, $voiceUser['avatarImg']);
+		//if($avatarImg === FALSE) {return false;}
+		$main['avatarImgObject'] = $voiceUser['avatarImg'];
+		
+		$voiceUserProfile = $wo->db->getRow('person_profiles', $voiceUser['personProfileId']); //fernei olo to row
+		if($voiceUserProfile === FALSE) { return false; }
+		
+		$cvFile = WOOOF_ExternalFiles::getFileObject($wo, $voiceUserProfile['cvFile']);
+		if($cvFile === FALSE) {return false;}
+		$main['cvFileObject'] = $cvFile;
+		
+		$mainElems = ['firstName', 'lastName', 'middleName', 'gender', 'birthYear'];
+		
+		WOOOF_Util::filterOnKeys($main, $mainElems, $voiceUserProfile);
+		//-----------------------------------------------------------------------
+		
+		//---------------------- GET ADDRESSES -------------------------------------
+		$addresses = []; //array to be sent to react element
+		$addresses['genericType'] = 'PRS';
+		$addresses['genericId'] = $voiceUser['personProfileId'];
+		$addresses['list'] = [];
+		$addressElems = ['id', 'areaId', 'addressTypeDVId', 'addressText', 'fromDate', 'toDate'];
+		
+		$v_person = new WOOOF_dataBaseTable($wo->db, 'v_person_profile_addresses');
+		if ( !$v_person->constructedOk ) { return false; }
+		
+		$res = $v_person->getResult(
+			[
+				'PROF_id' => $voiceUser['personProfileId']
+			],
+			'fromDate',
+			'', '', '',
+			true, false
+		);
+		if ( $res === FALSE ) { return false; }
+		
+		if ( $res['totalRows'] != 0 ) {
+			foreach($v_person->resultRows as $v_address) {
+				$address = [];
+				WOOOF_Util::filterOnKeys($address, $addressElems, $v_address);
+				$addresses['list'][] = $address;
+			}
+		}
+
+		//------------------------------------------------------------------------
+		
+		//---------------------- GET EDUCATIONS -------------------------------------
+		$educations = []; //array to be sent to react element
+		$educationElems = ['id', 'fromDate', 'toDate', 'title', 'degreeTypeDVId', 'organisationId'];
+		
+		$personEducationTbl = new WOOOF_dataBaseTable($wo->db, 'person_profile_educations');
+		if ( !$personEducationTbl->constructedOk ) { return false; }
+		
+		$res = $personEducationTbl->getResult(
+			[
+				'personProfileId' => $voiceUser['personProfileId']
+			],
+			'fromDate',
+			'', '', '',
+			true, false
+		);
+		if ( $res === FALSE ) { return false; }
+		
+		if ( $res['totalRows'] != 0 ) {
+			foreach($personEducationTbl->resultRows as $v_education) {
+				$education = [];
+				WOOOF_Util::filterOnKeys($education, $educationElems, $v_education);
+				array_push($educations, $education);
+			}
+		}
+		//------------------------------------------------------------------------
+		
+		return [
+			'main' => $main,
+			'addresses' => $addresses,
+			'educations' => $educations
+		];
+		
+	}	// getFull
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $voiceUserId
+	 * @param string $token
+	 * @return bool
+	 */
+	public static
+	function handleVerificationToken( WOOOF $wo, $voiceUserId, $emailTo, $token )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		
+		$route = 'register/verify?token='.$token;
+		
+		$fragmentParams = array( 'URL' => $wo->fullURL($route) );
+		$fragments = $wo->fetchApplicationFragment('registrationVerificationEmail.php', $fragmentParams );
+		
+		$content = $fragments['formTop'];
+		
+		$emailAddress	= $emailTo;
+		$subject		= $fragments['subject'];
+		$message		= $fragments['messageText'];
+		$replyTo 		= '';
+		$cc		 		= '';
+		$htmlMessage	= $fragments['messageHTML'];
+		$files			= null;
+		
+		$res = $wo->sendMail('',$emailAddress,$subject,$message,$replyTo,$cc,$htmlMessage,$files);
+		
+		if ( $res === FALSE ) {
+			$wo->logError( self::_ECP."0020 Failed to send registration verification email to [$emailTo]" );
+			return FALSE;
+		}
+		
+		return true;
+		
+	}	// handleVerificationToken
+	
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static 
+	function saveMainInfo( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+		
+		if(!$wo->hasContent($in['voiceUserId'])) {
+			$wo->logError(self::_ECP."0011 No value provided for [voiceUserId]");
+			return false;
+		}
+		
+		if(!$wo->hasContent($in['firstName'])) {
+			$wo->logError(self::_ECP."0012 No value for first name");
+			return false;
+		}
+		
+		if(!$wo->hasContent($in['lastName'])) {
+			$wo->logError(self::_ECP."0014 No value for last name");
+			return false;
+		}
+		
+		$voiceUser = $wo->db->getRowByColumn('voice_users', 'userId', $wo->userData['id']); //fernei olo to row
+		if($voiceUser === FALSE) { return false; }
+		
+		$tblVoiceUser = new VO_TblUser($voiceUser);
+		 
+		$t1 = new WOOOF_dataBaseTable($wo->db, 'voice_users');
+		//$tblVoiceUser->avatarImg = $t1->handlePictureUpload('avatarImg', $voiceUser['id']);
+		//if($tblVoiceUser->avatarImg === FALSE) { return false; }
+		
+		$res = self::save($wo, $tblVoiceUser);
+		if($res === FALSE) { return false; }
+		
+		$voiceUserProfile = $wo->db->getRow('person_profiles', $voiceUser['personProfileId']); //fernei olo to row
+		if($voiceUserProfile === FALSE) { return false; }
+		
+		$tblProfile = new VO_TblPersonProfile($voiceUserProfile);
+		$tblProfile->firstName = $in['firstName'];
+		$tblProfile->lastName = $in['lastName'];
+		$tblProfile->middleName = $in['middleName'];
+		$tblProfile->birthYear = $in['birthYear'];
+		$tblProfile->gender = $in['gender'];
+		
+		$t2 = new WOOOF_dataBaseTable($wo->db, 'person_profiles');
+		
+		$tblProfile->cvFile = $t2->handleFileUpload('cvFile', $tblProfile->cvFile);
+		if($tblProfile->cvFile === FALSE) { return false; }
+		
+		$res2 = VO_PersonProfiles::save($wo, $tblProfile);
+		if($res2 === FALSE) { return false; }
+		
+		return $res2;
+	}	// saveMainInfo
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | id
+	 * Returns actually saved $obj
+	 */
+	public static
+	function saveEducations( WOOOF $wo, $in, $personProfileId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	
+		if(!$wo->hasContent($in)) {
+			$wo->logError(self::_ECP."0032 No value provided for educations");
+			return false;
+		}
+	
+		foreach ($in as $education) {
+			$status = $education['_status'];
+				
+			//find specific row for cases 'U' and 'D'
+			if($status !== 'I' && $status !== 'R') {
+				$oldEducation = $wo->db->getRow('person_profile_educations', $education['id']);
+				if($oldEducation === FALSE) { return false; }
+			}
+				
+			//if status === 'R' continue;
+			if($status !== 'R') {
+	
+				//case 'I'
+				if($status === 'I') {
+					$tblEducationInsert = new VO_TblEducationGeneric($education);
+					$tblEducationInsert->id = '';
+					$tblEducationInsert->personProfileId = $personProfileId;
+						
+					$res = VO_Educations::save($wo, $tblEducationInsert);
+					if($res === FALSE) { return false; }
+				}
+	
+				//case 'U'
+				elseif($status === 'U') {
+					$tblEducationUpdate = new VO_TblEducationGeneric($oldEducation);
+					
+					$tblEducationUpdate->fromDate = $education['fromDate'];
+					$tblEducationUpdate->toDate = $education['toDate'];
+					$tblEducationUpdate->title = $education['title'];
+					$tblEducationUpdate->degreeTypeDVId = $education['degreeTypeDVId'];
+					$tblEducationUpdate->organisationId = $education['organisationId'];
+						
+					$res = VO_Educations::save($wo, $tblEducationUpdate);
+					if($res === FALSE) { return false; }
+				}
+	
+				//case 'D'
+				else {
+					$res = $tblEducationDelete->deleteRow($oldEducation['id']);
+					if($res === FALSE) { return false; }
+				}
+			}
+				
+			//case 'R'
+			else {
+				continue;
+			}
+		}
+	
+		return true;
+	}	// saveEducations
+	
+}	// VO_Users

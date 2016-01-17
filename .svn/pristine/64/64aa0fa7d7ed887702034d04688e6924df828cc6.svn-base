@@ -1,0 +1,181 @@
+body { 
+	padding-bottom: 70px;
+	font-size: 17px; 
+  background-color: #e4e4e4;
+}
+
+.formInlineStyle {
+	/*width: 600px;
+    padding: 10px;*/
+}
+
+#selectBox {
+	padding: 0.2em 0.6em 0.3em;
+}
+
+#basic-addon {
+	padding-bottom: 5px;
+}
+
+.table-responsive
+{
+    overflow-x: auto;
+}
+
+#addAddress {
+	float: right !important;
+}
+
+#addEducation {
+  float: right !important;
+}
+
+#addAccount {
+  float: right !important;
+}
+
+#addSkill {
+  float: right !important;
+}
+
+#addExperience {
+  float: right !important;
+}
+
+.fa:not(.smallFa) {
+	font: x-large/1 FontAwesome !important;
+}
+
+.endorse-item-name {
+    border-radius: 0 3px 3px 0;
+}
+
+.endorse-item-name, .endorse-count {
+    float: left;
+    line-height: 24px;
+}
+
+.endorse-item-name {
+    background-color: #f0f0f0;
+    padding-right: 10px;
+    border-bottom: 1px solid #ddd;
+    border-radius: 0 3px 3px 0;
+    border-right: 1px solid #ddd;
+    color: #333;
+    font-size: 15px;
+    font-weight: normal;
+    line-height: 30px;
+    padding: 0 15px;
+    position: relative;
+    margin: 0px 10px;
+    right: 20px;
+}
+
+.endorse-item-name-text {
+	font-weight: bold;
+}
+
+.endorsed-by-viewer .endorse-count, .has-endorsements .endorse-count {
+    min-width: 18px;
+    padding: 0 2px;
+}
+.skill-pill .endorse-count, .skill-pill .endorse-item-name {
+    float: left;
+    line-height: 24px;
+}
+.endorse-count {
+    transition: background-color 0.2s ease 0s;
+}
+.endorse-count {
+    background-color: #1ba8e5;
+    border-bottom: 1px solid #1ba8e5;
+    border-radius: 3px 0 0 3px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: normal;
+    line-height: 30px;
+    text-align: center;
+    text-shadow: 0 1px 0 #666;
+    transition: min-width 0.2s linear 0s;
+    width: 45px;
+    margin: 20px 10px;
+}
+
+.circle {
+  display: block;
+  width: 200px;
+  height: 200px;
+  margin: 0px -10px;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center center;
+  border: 3px solid #eee;
+  box-shadow: 0 2px 1px rgba(0, 0, 0, 0.3);  
+}
+
+.circle-header {
+  display: inline-block;
+  width: 23px;
+  height: 23px;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center center;
+  box-shadow: 0 2px 1px rgba(0, 0, 0, 0.3); 
+}
+
+.userName {
+    position: relative;
+    padding-right: 0px;
+    bottom: 5px;
+}
+
+.homeLink {
+    position: relative;
+    padding-right: 0px;
+    bottom: -1px;
+}
+
+.profile-name {
+  padding: 40px;
+}
+
+.fa-2x {
+    padding-right: 20px;
+}
+
+.well-agency {padding:10px;margin-bottom:0;margin:10px 0;}
+.well-agency:hover {background:#fff;}
+.well-agency a {text-decoration:none;}
+.well-service .lead, .well-agency .lead, .well-civic-official .lead {display:block;margin-bottom:5px;font-size:18px;line-height:22px;}
+.well-agency img {border-radius:0px;max-width:150px;float:left;margin:0 10px 10px 0; }
+
+.well-service img {margin-bottom:5px;}
+.well-service a {display:block;}
+
+.well-agency .lead {margin-top:10px;}
+.well-agency hr {margin-top: 0;margin-bottom: 0px;clear: both;padding-top: 10px;}
+
+.sub-info {
+  font-size: 16px;
+}
+
+._55bh::after {
+    background: rgba(0, 0, 0, 0.1) none repeat scroll 0 0;
+    content: "";
+    height: 20px;
+    left: -2px;
+    position: absolute;
+    top: 13px;
+    width: 1px;
+}
+._55bh {
+    position: relative;
+}
+
+.container-fluid, .navbar-fixed-bottom {
+  background: #D9EDF7 !important;
+}
+
+.loading {
+  margin: 4px !important;
+}

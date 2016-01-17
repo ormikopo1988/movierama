@@ -1,0 +1,581 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import $ from 'jquery';
+var RB = require('react-bootstrap');
+
+import MessagesBoxComp from './MessagesBoxComp';
+
+export default React.createClass({ //ProfileEdit
+  
+  getInitialState: function() {
+    return {
+    	data: {
+    	   main : this.props.data.main,
+    	   addresses : this.props.data.addresses,
+    	   education : [
+    	       {
+    	    	   id: '433344',
+    	    	   title: 'Computer Engineering',
+    	    	   degreeType: 'BSc',
+    	    	   fromDate: '09/2006',
+    	    	   toDate: '12/2011'
+    	       },
+    	       {
+    	    	   id: '2223443',
+    	    	   title: 'Computer Engineering',
+    	    	   degreeType: 'MSc',
+    	    	   fromDate: '02/2013',
+    	    	   toDate: '03/2014'
+    	       }
+    	   ],
+    	   experience : [
+    	       {
+    	    	   position: 'Software Developer',
+    	    	   relationType: 'employed by',
+    	    	   comments: '',
+    	    	   fromDate: '',
+    	    	   toDate: ''
+    	       }
+    	   ],
+    	   skills : []
+    	   
+		}
+    };
+  },
+  
+  render: function() { //function that returns a tree of React components that will eventually render to HTML
+    return (
+      <div className="profileBox">
+          <h1>Edit Profile</h1>
+          <Main data={this.state.data.main} />
+          <Addresses data={this.state.data.addresses} lookUps = {this.props.lookUps}/>
+          <Education data={this.state.data.education} />
+          <Skills data={this.state.data.skills} />
+          <Experience data={this.state.data.experience} />
+      </div>
+    );
+  }
+  
+});	// ProfileBox
+
+/*************************************************************************************************************/
+
+var Main = React.createClass({
+  getInitialState: function() {
+    var tmpMainView = this.props.data; //for reseting purposes
+
+    this.initialState = JSON.stringify(tmpMainView);
+  
+    return {
+	  mainView: tmpMainView
+    };
+  },
+  
+  handleChange: function(event) {
+	  var tmp = this.state.mainView;
+	  tmp[event.target.name] = event.target.value;
+	  
+	  this.setState({
+		  mainView: tmp
+	  });
+  },
+  
+  handleReset: function() {
+	  var resetView = JSON.parse(this.initialState);
+	  this.setState({mainView: resetView});
+  },
+  
+  handleSave: function(e) {
+	  e.preventDefault();
+
+	  var fd = new FormData(); //api ths javascript
+
+	  var data = this.state.mainView;
+	  
+	  if(ReactDOM.findDOMNode(this.refs.cvFile).value !== '') {
+	  	fd.append('cvFile', ReactDOM.findDOMNode(this.refs.cvFile).files[0]);
+	  }
+
+	  if(ReactDOM.findDOMNode(this.refs.avatarImg).value !== '') {
+	  	fd.append('avatarImg', ReactDOM.findDOMNode(this.refs.avatarImg).files[0]);
+	  }
+	  	
+
+	  fd.append('data', JSON.stringify(data));
+	  
+	  var url = VOICE.linkPrefix('api/profile/mainInfoSave');
+	  //data to send to server!
+	  VOICE.ajaxCallWithFiles(url, 'POST', fd, this, this.cbHandleSave);
+
+	  // if successully saved
+	  this.initialState = JSON.stringify(this.state.mainView);
+	  //console.log(data);
+	  this.setState({mainView: data});
+  },
+
+  cbHandleSave: function(result) {
+  	console.log(result);
+  	if(result.saveOk === true) {
+  		this.refs.msgBox.clearErrors();
+	  	this.refs.msgBox.addSuccess('Your information was saved successully!', false);
+	  	setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+  	}
+  	else {
+  		this.refs.msgBox.addError(result.errors);
+  	}
+  },
+
+  render: function() {
+	var mainInfo = this.state.mainView;
+	
+	var avatarURL = VOICE.imgPrefix(mainInfo.avatarImgObject.fileName);
+	console.log(mainInfo.avatarImgObject.fileName);
+	var avatarDivStyle = {
+		backgroundImage: 'url(' + avatarURL + ')'
+	};
+	var cvFileURL = VOICE.filePrefix(mainInfo.cvFileObject.fileName);
+
+	var male;
+	if (mainInfo.gender === 'M') 
+		male = true; 
+	else 
+		male=false;
+	
+    return (
+	  <RB.Well>
+	    <center><h4>Personal Details</h4></center>
+	    <RB.Row>
+			<RB.Col md={12}>
+				<a href={avatarURL} target="_blank">
+					<div className="circle" style={avatarDivStyle}></div>
+				</a>
+				<center>
+					<label>
+						<i className="fa fa-camera"></i>
+					</label>
+		  			<input type="file" id="input-1" ref="avatarImg" name="avatarImg" />
+				</center>
+			</RB.Col>
+		</RB.Row><br/>
+      	<RB.Row>
+      		<RB.Col md={4}>
+				<RB.Input type="text" addonBefore="My First Name" placeholder="Your First Name..." value={mainInfo.firstName} ref="firstName" name="firstName" onChange={this.handleChange} />
+			</RB.Col>
+			<RB.Col md={4}>
+				<RB.Input type="text" addonBefore="My Middle Name" placeholder="Your Middle Name..." value={mainInfo.middleName} ref="middleName" name="middleName" onChange={this.handleChange} />
+			</RB.Col>
+			<RB.Col md={4}>
+				<RB.Input type="text" addonBefore="My Last Name" placeholder="Your Last Name..." value={mainInfo.lastName} ref="lastName" name="lastName" onChange={this.handleChange} />
+			</RB.Col>
+		</RB.Row><br/>
+		<RB.Row>
+			<RB.Col md={4}>
+				<RB.Input type="radio" label="Male" name="gender" ref="gender" checked={male ? 'checked' : null} value="M" onChange={this.handleChange} />
+				<RB.Input type="radio" label="Female" name="gender" ref="gender" checked={!male ? 'checked' : null} value="F" onChange={this.handleChange} />
+			</RB.Col>
+			<RB.Col md={4}>
+				<RB.Input type="select" label="Birth Year" value={mainInfo.birthYear} placeholder="Select Year of Birth" ref="birthYear" name="birthYear" onChange={this.handleChange}>
+					<option value="1988">1988</option>
+				    <option value="2003">2003</option>
+				    <option value="2004">2004</option>
+				    <option value="2005">2005</option>
+			    </RB.Input>
+			</RB.Col>
+  			<RB.Col md={4}>
+  				<label>
+					<i className="fa fa-file"> CV File: <a href={cvFileURL} target="_blank">{mainInfo.cvFileObject.originalFileName}</a></i>
+				</label>
+				<input type="file" id="input-2" ref="cvFile" name="cvFile" />
+			</RB.Col>
+		</RB.Row><br/>
+		<RB.Row>
+			<RB.Col md={1} mdOffset={5}>
+				<RB.Button bsStyle="success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save</RB.Button>
+			</RB.Col>
+			<RB.Col md={1}>
+				<RB.Button onClick={this.handleReset}><i className="glyphicon glyphicon-repeat"></i> Reset</RB.Button>
+			</RB.Col>
+		</RB.Row><br/>
+		<RB.Row>
+			<RB.Col md={12}>
+				<MessagesBoxComp ref="msgBox"/>
+			</RB.Col>
+		</RB.Row>
+      </RB.Well>
+    );
+  }
+});	// Main
+
+
+/*************************************************************************************************************/
+
+var Addresses = React.createClass({
+	
+  getInitialState: function() {
+	  var tmp = {}; //for reseting purposes
+	  for(var i=0; i<this.props.data.length; i++) {
+		  var temp = this.props.data[i];
+		  temp._status = 'R';
+		  tmp[ this.props.data[i].id ] = temp;
+	  }
+	  
+	  this.initialState = JSON.stringify(tmp);
+	  
+	  return {
+		  addresses: tmp,
+		  showAddressForm: false,
+		  showAddButton: true,
+		  showSaveAddrButton: true
+	  };
+  },
+  
+  handleSave: function(e) {
+	  e.preventDefault();
+	  
+	  //TAKE OUT the TRASH ("_status = T") before send to server
+	  for (var key in this.state.addresses) {
+		  if (this.state.addresses.hasOwnProperty(key)) {
+		  //Now, this.state.addresses[key] is the current value of the address object
+			  if (this.state.addresses[key]._status === 'T') {
+				  delete this.state.addresses[key]
+			  }
+		  }
+	  }
+	  
+	  //console.log(this.state.addresses); //this will be send to server via AJAX (all except the trash - T which are inserted and deleted at once without being saved)
+	  var url = VOICE.linkPrefix('api/profile/saveAddresses');
+	  //data to send to server!
+	  VOICE.ajaxCall(url, 'POST', this.state.addresses, this, this.cbHandleSave);
+
+	  //After send to server update the status of all inserted to "R" from "I"
+	  for (var addr in this.state.addresses) {
+	     if (this.state.addresses.hasOwnProperty(addr)) {
+	         var obj = this.state.addresses[addr];
+	          for (var prop in obj) {
+	            // important check that this is objects own property 
+	            // not from prototype prop inherited
+	            if(obj.hasOwnProperty(prop)){
+	              if(prop === '_status' && (obj[prop] === 'I' || obj[prop] === 'U')) {
+	            	  obj[prop] = 'R';  	
+	              }
+	            }
+	         }
+	      }
+	  }
+	  
+	  this.initialState = JSON.stringify(this.state.addresses);
+	  this.setState({addresses: this.state.addresses});
+  },
+
+  cbHandleSave: function() {
+  	alert('Addresses saved!');
+  },
+  
+  handleReset: function() {
+	  var resetView = JSON.parse(this.initialState);
+	  this.setState({addresses: resetView});
+  },
+  
+  handleAddressSubmit: function(newAddress) {
+	var addresses = this.state.addresses;
+	var id = Math.floor((Math.random() * 10000000000) + 1000000000);
+	newAddress.id = id;
+	addresses[id] = newAddress;
+	
+	this.setState({
+		addresses: addresses,
+		showAddressForm: false,
+		showAddButton: true,
+		showSaveAddrButton: true
+	});
+  },
+  
+  handleChange: function(addressId, event) {
+  	  // addressId is passed from caller!
+	  //var addressId = $(event.target).attr("data-address-id"); //get id of the address changed
+	  console.log(addressId);
+	  console.log(event);
+	  var exists = false, 
+	  	  newAddresses = this.state.addresses;
+	  
+	  exists = this.state.addresses.hasOwnProperty(addressId);
+	  //console.log(newAddresses);
+	  if(exists) {
+		  //console.log(event.target.name);
+		  if(event.target.name === 'area') {
+			  newAddresses[addressId][event.target.name] = {
+			      areaId: newAddresses[addressId][event.target.name].id,
+				  areaText: event.target.value
+			  }
+		  }
+		  else
+			  newAddresses[addressId][event.target.name] = event.target.value;
+	  }
+	  else {
+		  var tempObj = {};
+		  tempObj['id'] = addressId;
+		  if(event.target.name === 'area') {
+			  tempObj[event.target.name] = {
+			      areaId: tempObj[event.target.name].id,
+			      areaText: event.target.value
+			  }
+		  }
+		  else {
+			  tempObj[event.target.name] = event.target.value;
+		  }
+
+		  newAddresses[addressId] = tempObj;
+	  }
+	  
+	  if(newAddresses[addressId]._status !== 'I') {
+	      // Insertions remain insertions even after (re)editing them.
+		  newAddresses[addressId]._status = 'U';
+	  }
+	  
+	  this.setState({
+		  addresses: newAddresses
+	  });
+  },
+  
+  onPlusClick: function() {
+	  this.setState({ 
+		  showAddressForm: true,
+		  showAddButton: false,
+		  showSaveAddrButton: false
+	  });  
+  },
+  
+  onDeleteClick: function(addressId, event) {
+  	  // addressId is passed from caller!
+	  //var addressId = $(event.target).attr("data-address-id"); //get id of the address you want to delete
+	  
+	  if(this.state.addresses[addressId]._status === 'I') {
+		  this.state.addresses[addressId]._status = 'T'; //trash status (inserted and then updated)
+	  }
+	  else {
+		  this.state.addresses[addressId]._status = 'D'; //update status
+	  }
+	  
+	  this.setState({
+		  addresses: this.state.addresses
+	  }); //update view
+	  
+  },
+  
+  handleCancelClick: function(newView) {
+    this.setState(newView);
+  },
+
+  render: function() {
+	var tds = [];
+	var keys = Object.keys(this.state.addresses);
+	//console.log(this.state.addresses);
+	for(var i=0; i < keys.length; i++ ) {
+		var addr = this.state.addresses[keys[i]];
+
+		// partial call to callback. Pass addr.id as parameter
+		// (this helps us avoid the need for the hack: 'data-address-id="123" and corresponding: var addressId = $(event.target).attr("data-address-id");')
+		var cb1  = this.handleChange.bind(null,addr.id);	
+
+		tds.push(
+			<tr key={addr.id} id={addr.id} className={(addr._status === 'D' || addr._status === 'T') ? 'hidden' : null}>
+				<td>
+					<select className="form-control" value={addr.addressType} ref="addressType" name="addressType" onChange={cb1} >
+					    {VOICE.renderOptions(this.props.lookUps.ADDRESS_TYPE)}
+				    </select>
+				</td>
+				<td><input type="text" className="form-control" value={addr.area.areaText} ref="area" name="area" onChange={cb1} /></td>
+				<td><input type="text" className="form-control" value={addr.addressText} ref="addressText" name="addressText" onChange={cb1} /></td>
+				<td><input type="text" className="form-control" value={addr.fromDate} ref="fromDate" name="fromDate" onChange={cb1} /></td>
+				<td><input type="text" className="form-control" value={addr.toDate} ref="toDate" name="toDate" onChange={cb1} /></td>
+				<td><a href="javascript:void(0)"><i className="fa fa-ban" data-address-id={addr.id} onClick={this.onDeleteClick.bind(null, addr.id)}></i></a></td>
+			</tr>
+		);
+	}
+	
+    return (
+      <div className="well well-large formInlineStyle">
+	  	<div className="panel panel-default">
+		  <div className="panel-heading">
+		  	My Addresses 
+		  	<span id="addAddress">{ this.state.showAddButton ? <a href="javascript:void(0)"><i className="fa fa-plus-circle" onClick={this.onPlusClick}></i></a> : null }</span>
+		  </div>
+	  		  <div className="table-responsive">
+				  <table className="table table-hover">
+					<thead>
+						<tr>
+						    <th>Address Type</th>
+						    <th>Area</th>
+						    <th>Address Text</th>
+						    <th>From Date</th>
+						    <th>To Date</th>
+						    <th>Options</th>
+					    </tr>
+					</thead>
+					<tbody>
+					    {tds}
+					</tbody>
+				  </table>
+			  </div>
+		  </div>
+		  <div className="row">
+			  <div className="col-md-1 col-md-offset-5">
+			    { this.state.showSaveAddrButton ? <button type="button" className="btn btn-success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save</button> : null }
+			  </div>
+			  <div className="col-md-1">
+			    { this.state.showSaveAddrButton ? <button type="button" className="btn btn-default" onClick={this.handleReset}><i className="glyphicon glyphicon-repeat"></i> Reset</button> : null }
+			  </div>
+		  </div><br/>
+		  <div className="row">
+		  	<div className="col-md-12">
+		  		{ this.state.showAddressForm ? <AddressForm {...this.props} onAddressSubmit={this.handleAddressSubmit} onCancelClick={this.handleCancelClick} /> : null }
+		  	</div>
+		  </div>
+      </div>
+	  
+    );
+  }
+});	// Addresses
+
+
+/*************************************************************************************************************/
+
+var AddressForm = React.createClass({  
+  handleSubmit: function(e) {
+    e.preventDefault();
+    var addressTypeForm = ReactDOM.findDOMNode(this.refs.addressTypeForm).value.trim();
+    var areaForm = ReactDOM.findDOMNode(this.refs.areaForm).value.trim();
+    var addressTextForm = ReactDOM.findDOMNode(this.refs.addressTextForm).value.trim();
+    var fromDateForm = ReactDOM.findDOMNode(this.refs.fromDateForm).value.trim();
+    var toDateForm = ReactDOM.findDOMNode(this.refs.toDateForm).value.trim();
+    
+    if (!addressTypeForm || !areaForm || !addressTextForm || !fromDateForm || !toDateForm) {
+    	alert('Please fill all the input fields!');
+        return;
+    }
+    
+	this.props.onAddressSubmit({
+		//id: 'newAddress',
+		addressType: addressTypeForm,
+		area: {
+			areaId: Math.floor((Math.random() * 10000000000) + 1000000000),
+			areaText: areaForm
+		},
+		addressText: addressTextForm,
+		fromDate: fromDateForm,
+		toDate: toDateForm,
+		_status: 'I'
+	});
+	
+    // TODO: send request to the server
+    ReactDOM.findDOMNode(this.refs.addressTypeForm).value = '';
+    ReactDOM.findDOMNode(this.refs.areaForm).value = '';
+    ReactDOM.findDOMNode(this.refs.addressTextForm).value = '';
+    ReactDOM.findDOMNode(this.refs.fromDateForm).value = '';
+    ReactDOM.findDOMNode(this.refs.toDateForm).value = '';
+    return;
+  },
+  
+  handleCancel: function() {
+	ReactDOM.findDOMNode(this.refs.addressTypeForm).value = '';
+	ReactDOM.findDOMNode(this.refs.areaForm).value = '';
+	ReactDOM.findDOMNode(this.refs.addressTextForm).value = '';
+	ReactDOM.findDOMNode(this.refs.fromDateForm).value = '';
+	ReactDOM.findDOMNode(this.refs.toDateForm).value = '';
+	
+	this.props.onCancelClick({
+		showAddressForm: false,
+		showAddButton: true,
+		showSaveAddrButton: true
+	});
+	
+	return;
+  },
+  
+  render: function() {
+    return (
+	  <form className="addressForm">
+	    <div className="row">
+			<div className="col-md-4">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-5">Address Type</span>
+					<select className="form-control" aria-describedby="basic-addon-5" ref="addressTypeForm">
+					    {VOICE.renderOptions(this.props.lookUps.ADDRESS_TYPE)}
+				    </select>
+			    </div>
+			</div>
+			<div className="col-md-4">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-10">Area</span>
+					<input type="text" className="form-control" placeholder="Area..." aria-describedby="basic-addon-10" ref="areaForm" />
+				</div>
+			</div>
+			<div className="col-md-4">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-13">Address Text</span>
+					<input type="text" className="form-control" placeholder="Address Text..." aria-describedby="basic-addon-13" ref="addressTextForm" />
+				</div>
+			</div>
+		</div><br/>
+		<div className="row">
+			<div className="col-md-6">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-14">From Date</span>
+					<input type="text" className="form-control" placeholder="From Date..." aria-describedby="basic-addon-14" ref="fromDateForm" />
+				</div>
+			</div>
+			<div className="col-md-6">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-15">To Date</span>
+					<input type="text" className="form-control" placeholder="To Date..." aria-describedby="basic-addon-15" ref="toDateForm" />
+				</div>
+			</div>
+		</div><br/>
+		<div className="row">
+			<div className="col-md-1 col-md-offset-5">
+				<button type="button" className="btn btn-default" onClick={this.handleSubmit}>Add to List</button>
+			</div>
+			<div className="col-md-1">
+				<button type="button" onClick={this.handleCancel} className="btn btn-default">Cancel</button>
+			</div>
+		</div>
+      </form>
+    );
+  } 
+});	// AddressForm
+
+
+/*************************************************************************************************************/
+
+// TODO: put in separate files!!!!
+//
+
+var Education = React.createClass({
+  render: function() {
+    return (
+      <div className="well well-large formInlineStyle">
+	      ...
+      </div>
+    );
+  }
+});
+
+var Skills = React.createClass({
+  render: function() {
+    return (
+      <div className="well well-large formInlineStyle">
+	      ...
+      </div>
+    );
+  }
+});
+
+var Experience = React.createClass({
+  render: function() {
+    return (
+      <div className="well well-large formInlineStyle">
+	      ...
+      </div>
+    );
+  }
+});

@@ -1,0 +1,168 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+
+// MessagesBoxComp
+
+export default React.createClass({
+	getInitialState: function() {
+		var
+			errors 		= 	this.props.errors 		|| [], 
+			warnings 	= 	this.props.warnings 	|| [], 
+			successes 	= 	this.props.successes 	|| [],
+			infos   	=	this.props.infos 		|| [] 
+		;
+
+		if ( this.props.allMessages !== undefined ) {
+			var howMany = this.props.allMessages.length;
+			for (var i = 0; i < howMany; i++) {
+				var aMsg = this.props.allMessages[i];
+				switch( aMsg.messageType ) {
+					case 'S': successes.push( aMsg.messageText ); break;
+					case 'I': infos.push( aMsg.messageText ); break;
+					case 'W': warnings.push( aMsg.messageText ); break;
+					case 'E': errors.push( aMsg.messageText ); break;
+					default: infos.push( aMsg.messageText ); break;
+				}
+			}
+		}
+
+		return {
+			messages: { 
+				errors: 	errors, 
+				warnings: 	warnings,
+				successes: 	successes,
+				infos: 		infos
+			}
+		};
+	},
+	
+	// public
+	clearAll: function() {
+		this.setState( 
+			{ messages: { errors: [], warnings: [], successes: [], infos: [] } } 
+		);
+	}
+	,
+	
+	clearSome: function(type) {
+		var newAll = this.state.messages;
+		newAll[type] = [];
+		this.setState( 
+			{ messages: newAll } 
+		);
+	}
+	,
+	
+	add: function(msg, type, clear) {
+		clear = clear || true;	// def value
+
+		console.log('add msg:', msg, clear );
+
+		var newAll = this.state.messages;
+
+		var newMsgArray = [];
+
+		if ( clear ) { this.clearAll(); }
+		else {
+			newMsgArray = this.state.messages[type]
+		}
+		
+		if ( Array.isArray(msg) ) {
+			newMsgArray = newMsgArray.concat(msg);
+    	}
+    	else {
+    		newMsgArray.push(msg);
+    	}
+		
+    	newAll[type] = newMsgArray;
+		this.setState( { messages: newAll } );
+	},
+
+	// public
+	addError: function(msg, clear) {
+		this.add(msg, 'errors', clear );
+	},
+
+	// public
+	addWarning: function(msg, clear) {
+		this.add(msg, 'warnings', clear );
+	},
+
+	// public
+	addInfo: function(msg, clear) {
+		this.add(msg, 'infos', clear );
+	}
+	,
+
+	// public
+	addSuccess: function(msg, clear) {
+		this.add(msg, 'successes', clear );
+	}
+	,
+
+	// public
+	clearErrors: function() {
+		this.clearSome('errors');
+	}
+	,
+	// public
+	clearWarnings: function() {
+		this.clearSome('warnings');
+	}
+	,
+	// public
+	clearSuccesses: function() {
+		this.clearSome('successes');
+	}
+	,
+	// public
+	clearInfos: function() {
+		this.clearSome('infos');
+	}
+	,
+
+	renderMsg: function(msg, index) {
+		return (
+			<MessageItem message={msg} key={index}> </MessageItem>
+		);
+	}
+	,
+
+	render: function() {
+		console.log(this.state);
+		var errorsHidden	= ( this.state.messages.errors.length == 0 ? 'hidden' : '' ); 
+		var warningsHidden	= ( this.state.messages.warnings.length == 0 ? 'hidden' : '' ); 
+		var successesHidden	= ( this.state.messages.successes.length == 0 ? 'hidden' : '' ); 
+		var infosHidden		= ( this.state.messages.infos.length == 0 ? 'hidden' : '' ); 
+
+		return (
+			<div id="messagesBox">
+				<div id="errorMessages" className={'alert alert-danger ' + errorsHidden} role="alert" >
+					{this.state.messages.errors.map(this.renderMsg)}
+				</div>
+				<div id="warningMessages" className={'alert alert-warning ' + warningsHidden} role="alert" >
+					{this.state.messages.warnings.map(this.renderMsg)}
+				</div>
+				<div id="successMessages" className={'alert alert-success ' + successesHidden} role="alert" >
+					{this.state.messages.successes.map(this.renderMsg)}
+				</div>
+				<div id="infoMessages" className={'alert alert-info ' + infosHidden} role="alert" >
+					{this.state.messages.infos.map(this.renderMsg)}
+				</div>
+			</div>
+		);
+	}
+});
+
+var MessageItem = React.createClass({
+	rawMarkup: function() {
+		return { __html: this.props.message}
+	}
+	,
+	render: function() {
+		return (
+			<div dangerouslySetInnerHTML={this.rawMarkup()} />
+		);
+	}
+});
+

@@ -1,0 +1,175 @@
+<?php
+
+class VO_Skills {
+	const _ECP = 'SKI';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param VO_TblSkillGeneric $obj
+	 * @param bool $fetchBack
+	 * @param array $skill
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static 
+	function save( WOOOF $wo, VO_TblSkillGeneric &$obj, $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	    
+		if ( !$wo->hasContent($obj->tagId) ) {
+			$wo->logError(self::_ECP."0295 No value provided for [tagId]" );
+			return false;
+		}
+		
+		$tblSkillGeneric = new WOOOF_dataBaseTable($wo->db, 'person_profile_skills');
+		if($tblSkillGeneric === FALSE) { return false; }
+		
+		if ( $wo->hasContent($obj->id) ) {
+			// update
+			
+			$res = $tblSkillGeneric->updateRowFromArraySimple( $obj->toArray() );
+			if ( $res === FALSE ) { return FALSE; }
+		}
+		else {
+			// insert
+			
+			$newId = $tblSkillGeneric->insertRowFromArraySimple( $obj->toArray() );
+			if ( $newId === FALSE ) { return false; }
+			$obj->id = $newId;
+		}
+
+		if ( $fetchBack ) {
+			// Get back into $obj based on id
+			// TODO:
+		}
+	  
+		return $obj->id;
+	}	// save
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $id
+	 * @return bool
+	 */
+	public static
+	function delete( WOOOF $wo, $id )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+			
+		if ( !$wo->hasContent($id) ) {
+			$wo->logError(self::_ECP."0179 No value provided for [id]" );
+			return false;
+		}
+	
+		$tblSkillGeneric = new WOOOF_dataBaseTable($wo->db, 'person_profile_skills');
+		if($tblSkillGeneric === FALSE) { return false; }
+	
+		$res = $tblSkillGeneric->deleteRow($id);
+		if($res === FALSE) { return false; }
+			
+		return true;
+	}	// delete
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | no of affectedRows
+	 * Returns actually saved $obj
+	 */
+	public static
+	function saveSkills( WOOOF $wo, $in, $personProfileId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	
+		if(!$wo->hasContent($in)) {
+			$wo->logError(self::_ECP."0042 No value provided for skills");
+			return false;
+		}
+		
+		$affectedRows = 0;
+		
+		foreach ($in as $skill) {
+			$status = $skill['_status'];
+		
+			if($status === 'R') {
+				continue;
+			}
+			
+			$affectedRows++;
+		
+			//find specific row for cases 'U' and 'D'
+			if($status === 'U') {
+				$oldSkill = $wo->db->getRow('person_profile_skills', $skill['id']);
+				if($oldSkill === FALSE) { return false; }
+				if($oldSkill === NULL) {
+					$wo->logError(self::_ECP."0568 No row with id [$skill] found!");
+					return false;
+				}
+			}
+		
+			//if status !== 'R'
+			//case 'I'
+			if($status === 'I') {
+				$tblSkillInsert = new VO_TblSkillGeneric($skill);
+				$tblSkillInsert->id = '';
+				$tblSkillInsert->personProfileId = $personProfileId;
+		
+				$res = self::save($wo, $tblSkillInsert);
+				if($res === FALSE) { return false; }
+			}
+		
+			//case 'U'
+			elseif($status === 'U') {
+				$tblSkillUpdate = new VO_TblSkillGeneric($oldSkill);
+		
+				$tblSkillUpdate->tagId = $skill['tagId'];
+				$tblSkillUpdate->fromYear = $skill['fromYear'];
+				$tblSkillUpdate->proficiencyTypeDVId = $skill['proficiencyTypeDVId'];
+				$tblSkillUpdate->comments = $skill['comments'];
+				$tblSkillUpdate->organisationId = $skill['organisationId'];
+		
+				$res = self::save($wo, $tblSkillUpdate);
+				if($res === FALSE) { return false; }
+			}
+		
+			//case 'D'
+			elseif($status === 'D') {
+				$res = self::delete($wo, $skill['id']);
+				if($res === FALSE) { return false; }
+			}
+		
+			else {
+				$wo->logError(self::_ECP."0560 Wrong status [$status]");
+				return false;
+			}
+		
+		}
+		
+		if ( $affectedRows > 0 ) {
+			$usActId = VO_Users::saveAction( $wo, 'PR1', null, null, 'skills' );
+		}
+		
+		return $affectedRows;
+	}	// saveSkills
+	
+
+}	// VO_Skills

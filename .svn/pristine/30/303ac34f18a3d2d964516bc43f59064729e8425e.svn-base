@@ -1,0 +1,62 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import AutoCompleteComp from './AutoCompleteComp';
+
+export default React.createClass({ //UserList
+  
+  render: function() {
+  	var li_s = [];
+
+  	for(var i=0; i<this.props.data.length; i++) {
+  		var result = this.props.data[i];
+
+	  	var avatarImg = result.VUS_avatarImg || 'profile_none.png';
+		var avatarURL = '';
+		
+		if(avatarImg !== 'profile_none.png') {
+			avatarURL = VOICE.imgPrefix(avatarImg);
+		}
+		else {
+			avatarURL = VOICE.systemImgPrefix(avatarImg);
+		}
+
+		var memberSince = moment(result.VUS_createdDateTime, 'YYYYMMDDhhmmss').fromNow();
+
+		li_s.push(
+			<div className="col-md-12 col-sm-12">
+				<div className="well well-sm well-agency">           
+					<img src={avatarURL}/>
+					<a className="lead agency-name" href="#">
+						{ result.PROF_gender === 'M' ? <i className="fa fa-mars"></i> : 
+						  result.PROF_gender === 'F' ? <i className="fa fa-venus"></i> : null} {result.PROF_firstName} {result.PROF_lastName}
+					</a><br/>
+					<div className="sub-info">
+						<p><i className="fa fa-registered smallFa"> {result.ORG_shortName}</i></p>
+						<p>
+							{ result.PROF_birthYear !== '0' ? <i className="fa fa-birthday-cake smallFa"> {result.PROF_birthYear}</i> : null}
+						</p>
+						<p><i className="fa fa-clock-o smallFa"> Member Since: {memberSince}</i></p>
+						<hr/>
+						<a className="btn btn-default btn-sm btn-link" href="#"><i className="fa fa-share fa-lg"></i> Follow</a>
+						<a className="btn btn-default btn-sm btn-link " href="#"><span className="agency-phone"><i className="fa fa-envelope fa-lg"></i> Send Message</span></a>  
+						<a className="btn btn-default btn-sm btn-link" href="#"><span className="agency-facebook"><i className="fa fa-plus fa-lg"></i> Send Friend Request</span></a>
+					</div>
+				</div>
+			</div>
+		);
+  	}
+  	console.log(this.props.data);
+    return (
+		<div classNameName="container">
+			<center><h1>Users List</h1></center>
+			<AutoCompleteComp placeholder="Search User..." url="api/getUser/"  />
+			<div className="row">
+				{li_s}
+			</div>
+		</div>
+    );
+  }
+  
+});

@@ -1,0 +1,67 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import ContentMainComp from './ContentMainComp';
+import ContentAuthorsComp from './ContentAuthorsComp';
+import ContentTagsComp from './ContentTagsComp';
+import ContentSectionsComp from './ContentSectionsComp';
+
+export default React.createClass({ //ContentComp
+
+	/*
+		Properties
+		1. contentId | 
+		2. data (result of VO_Content::getContent())
+	*/
+
+	getDefaultProps: function() {
+		return {
+			data: {},
+			contentId: '',
+			editable: false
+		};
+	},
+
+	getInitialState: function() {
+		return { 
+			data: {}
+		}
+	},
+
+	componentDidMount: function() {
+		if(Object.keys(this.props.data).length === 0) {
+			var data = {
+				id: this.props.contentId
+			};
+			VOICE.ajaxCall(VOICE.linkPrefix('api/contents/getContent'), 'POST', data, this, this.handleGetContent);
+		}
+	},
+
+	handleGetContent: function(result) {
+		console.log('ContentComp.handleGetContent: ', result);
+		if(result.getContentOk)
+		this.setState({
+			data: result.getContent
+		});
+	},
+
+	render: function() {
+		
+		if(Object.keys(this.state.data).length === 0) {
+			return null;
+		}
+		var data = this.state.data;
+		//console.log('INIT DATA:', data);
+		return (
+			<span>
+				<hr/>
+				<ContentMainComp editable={this.props.editable} contentId={data.main.id} data={data.main}></ContentMainComp>
+				<hr/>
+				{/*<ContentTagsComp editable={this.props.editable} contentId={data.main.id} data={data.tags}></ContentTagsComp>*/}
+				<hr/>
+				<ContentAuthorsComp editable={this.props.editable} contentId={data.main.id} data={data.authors}></ContentAuthorsComp>
+				<hr/>
+				<ContentSectionsComp editable={this.props.editable} contentId={data.main.id} lookUps={this.props.lookUps} data={data.sections}></ContentSectionsComp>
+			</span>
+		)
+	}
+}); //ContentComp

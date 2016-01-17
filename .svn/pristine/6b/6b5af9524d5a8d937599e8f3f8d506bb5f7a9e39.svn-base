@@ -1,0 +1,161 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import MessagesBoxComp from './MessagesBoxComp';
+import LoadingComp from './LoadingComp';
+import YearInputComp from './YearInputComp';
+
+var RB = require('react-bootstrap');
+
+export default React.createClass({ //EvaluationEdit
+
+  render: function() {
+  	var data = this.props.data;
+  	
+  	return (
+      <div classNameName="container">
+		<div className="row">
+        	<Evaluation key={data.id} data={data} lookUps={this.props.lookUps}></Evaluation>
+	    </div>
+      </div>
+    );
+  } 
+});
+
+var Evaluation = React.createClass({
+
+	getInitialState: function() {
+		var isEvalRunning;
+		this.props.data.isRunning === '0' ? isEvalRunning = false : isEvalRunning = true;
+		
+		return {
+			loading: false,
+			isRunning: isEvalRunning
+		}
+	},
+
+	handleOpen: function() {
+	    var duration = this.refs.duration.getValue() || '';
+
+	    if(!duration) {
+	      alert('You must fill all the required input fields!');
+	      return;
+	    }
+
+		var data = {
+	      id: this.props.data.id,
+	      duration: duration,
+	      evalTemplateId: this.props.data.evalTemplateId,
+	      whatId: this.props.data.whatId,
+	      whatType: this.props.data.whatType
+	    }
+	  
+	    var url = VOICE.linkPrefix('api/evaluation/open');
+	    //data to send to server!
+	    this.setState({
+	      loading: true
+	    });
+	    
+	    VOICE.ajaxCall(url, 'POST', data, this, this.cbHandleOpen);
+	},
+
+	cbHandleOpen: function(result) {
+		if(result.evaluationOpenedOk === true) {
+	    	this.refs.msgBox.clearErrors();
+			this.refs.msgBox.addSuccess('Your evaluation started!', false);
+			setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+			this.setState({
+				isRunning: true
+		    });
+		}
+		else {
+			this.refs.msgBox.addError(result.errors);
+		}
+		this.setState({
+			loading: false
+	    });
+	},
+
+	handleClose: function() {
+	    var data = {
+	      id: this.props.data.id,
+	      evalTemplateId: this.props.data.evalTemplateId,
+	      whatId: this.props.data.whatId,
+	      whatType: this.props.data.whatType
+	    }
+	  
+	    var url = VOICE.linkPrefix('api/evaluation/close');
+	    //data to send to server!
+	    this.setState({
+	      loading: true
+	    });
+	    
+	    VOICE.ajaxCall(url, 'POST', data, this, this.cbHandleClose);
+	},
+
+	cbHandleClose: function(result) {
+		if(result.evaluationClosedOk === true) {
+	    	this.refs.msgBox.clearErrors();
+			this.refs.msgBox.addSuccess('Your evaluation is closed!', false);
+			setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+			
+			this.setState({
+				isRunning: false
+		    });
+		}
+		else {
+			this.refs.msgBox.addError(result.errors);
+		}
+		this.setState({
+			loading: false
+	    });
+	},
+
+	render: function() {
+		var data = this.props.data;
+		console.log('EvaluationEdit.render: props:', this.props);
+		
+		return (
+			<RB.Well>
+				<span>
+					<a href={VOICE.linkPrefix('evaluations/view/'+data.whatType+'/'+data.whatId)}><i className="fa fa-eye"></i> View Evaluations</a>
+					<br/><br/>
+				</span>
+				<center><h3>Edit Evaluation</h3></center>
+				<hr/>
+				<RB.Row>
+					<center>
+						{
+							this.state.loading === false ?
+				  			<span>
+				  				{
+				  					this.state.isRunning === false ?
+				  						<span>
+				  							<RB.Col md={12}>
+												{/*<RB.Input type="text" addonBefore="Evaluation Duration [in days] (*)" ref="duration" name="duration" ></RB.Input>*/}
+												<YearInputComp placeholder="Select Days" addonBefore="Evaluation Duration (*)"
+													ref="duration" name="duration" 
+													min={1} max={30}>
+												</YearInputComp>
+											</RB.Col>
+											<br/>
+					  						<RB.Button bsStyle="success" onClick={this.handleOpen}><i className="fa fa-play smallFa"></i> Open Evaluation</RB.Button>
+					  						<span> </span>
+				  						</span> : 
+				  						<RB.Button bsStyle="danger" onClick={this.handleClose}><i className="fa fa-stop smallFa"></i> Close Evaluation</RB.Button>
+				  				}
+				  			</span> :
+				  			<LoadingComp loadingText="Please Wait..."></LoadingComp>
+					    }
+					</center>
+				</RB.Row><br/>
+				<RB.Row>
+					<RB.Col md={12}>
+					  <MessagesBoxComp ref="msgBox"/>
+					</RB.Col>
+				</RB.Row>
+	        </RB.Well>
+		)
+	}
+});

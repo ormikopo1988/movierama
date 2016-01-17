@@ -1,0 +1,81 @@
+// HOW TO USE DATEPICKER
+
+1) Put at the start of the jsx file the following lines: 
+
+import DatePicker from 'react-datepicker';
+import moment from 'moment';
+
+2) Pass date show format properties to the Component in render function from lookUps
+
+render: function() { //function that returns a tree of React components that will eventually render to HTML
+    return (
+      <div className="profileBox">
+          <h1>Edit Profile</h1>
+          <AddressesBoxComp data={this.state.data.addresses} lookUps= {this.props.lookUps} dateShowFormat={this.props.dateShowFormat} />
+          <Education data={this.state.data.education} lookUps= {this.props.lookUps} dateShowFormat={this.props.dateShowFormat} />
+      </div>
+    );
+  }
+  
+3) In the component we want to add the calendar make a function for handling date changes
+handleDateChange: function(source, educationId, momentObj) {
+  	  var exists = false, 
+	  	  newEducation = this.state.education;
+	  
+	  exists = this.state.education.hasOwnProperty(educationId);
+	  if(exists) {
+	  	   	newEducation[educationId][source] = (momentObj === null ? '' : momentObj.format(VOICE.globals.dateF));
+	  }
+	  else {
+		  var tempObj = {};
+		  tempObj['id'] = educationId;
+		  tempObj[source] = (momentObj === null ? '' : momentObj.format(VOICE.globals.dateF));
+		  
+		  newEducation[educationId] = tempObj;
+	  }
+	  
+	  ...
+  },
+
+4) In render function of the component we want to add the calendar we manipulate the date formatted data we get from the server
+
+var mFrom = (edu.fromDate === '' ? '' : moment(edu.fromDate, VOICE.globals.dateF));
+var mTo = (edu.toDate === '' ? '' : moment(edu.toDate, VOICE.globals.dateF));
+
+VOICE.globals.dateF are defined in voice.js -> VOICE.globals.dateF = 'YYYYMMDD000000'; VOICE.globals.dateTimeF = 'YYYYMMDDhhmmss';
+
+5) Pass callbacks to the datepicker onchange events 
+var cbFromDate = this.handleDateChange.bind(null, 'fromDate', edu.id);
+var cbToDate = this.handleDateChange.bind(null, 'toDate', edu.id);
+
+6) Put the component whereever you want
+<DatePicker className="form-control" selected={mFrom} dateFormat={this.props.dateShowFormat} dateFormatCalendar={this.props.dateShowFormat} onChange={cbFromDate} />	
+
+7)
+//take values from form
+  handleOnChange: function(source, date) {
+  	if (date === undefined || date === null) {
+        if(source === 'fromYear') {
+    		this.fromYear = '';
+    	}
+		else if(source === 'toYear') {
+			this.toYear = '';
+		}
+    }
+    else {
+    	if(source === 'fromYear') {
+    		this.fromYear = date.format(VOICE.globals.dateF);
+    	}
+		else if(source === 'toYear') {
+			this.toYear = date.format(VOICE.globals.dateF);
+		}
+
+    }
+  },
+  
+  var fromYearForm = this.fromYear === '' ? '' : this.fromYear;
+	var toYearForm = this.toYear === '' ? '' : this.toYear;
+	
+//END DATEPICKER
+
+////////////////////////////////////////////////////////////////////////////////////////////

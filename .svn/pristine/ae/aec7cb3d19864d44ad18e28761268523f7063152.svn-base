@@ -1,0 +1,16 @@
+<?php
+/* Class [VO_TblPostPostBoxes] for table [post_post_boxes] */
+
+class VO_TblPostPostBoxes extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'post_post_boxes';
+
+    public $id;
+    public $isDeleted;
+    public $boxId;
+    public $postId;
+    public $associationReason;
+
+}  // VO_TblPostPostBoxes
+
+?>

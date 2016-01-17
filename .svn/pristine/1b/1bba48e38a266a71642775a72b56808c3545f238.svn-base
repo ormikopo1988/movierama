@@ -1,0 +1,1287 @@
+<?php
+
+class VO_Social {
+	const _ECP = 'SOC';	// Error Code Prefix
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param VO_TblUserBookmarks $obj
+	 * @param bool $fetchBack
+	 * @return false | type of bookmarked object
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static
+	function saveUserBookmark( WOOOF $wo, VO_TblUserBookmarks &$obj, $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+			
+		if ( !$wo->hasContent($obj->voiceUserId) ) {
+			$wo->logError(self::_ECP."3001 No value provided for [voiceUserId]" );
+			return false;
+		}
+	
+		if ( !$wo->hasContent($obj->thisId) ) {
+			$wo->logError(self::_ECP."3002 No value provided for [thisId]" );
+			return false;
+		}
+	
+		if($obj->voiceUserId === $obj->thisId) {
+			$wo->logError(self::_ECP."3003 Id's cannot be the same");
+			return false;
+		}
+	
+		$tblUserBookmark = new WOOOF_dataBaseTable($wo->db, 'voice_user_bookmarks');
+		if($tblUserBookmark === FALSE) { return false; }
+	
+		// insert
+		$obj->createdDateTime = WOOOF::getCurrentDateTime();
+			
+		$newId = $tblUserBookmark->insertRowFromArraySimple( $obj->toArray() );
+		if ( $newId === FALSE ) { return false; }
+		$obj->id = $newId;
+	
+		if ( $fetchBack ) {
+			// Get back into $obj based on id
+			// TODO:
+		}
+			
+		return $obj->targetType;
+	
+	}	// saveUserBookmark
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param VO_TblUserFollow $obj
+	 * @param bool $fetchBack
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static
+	function saveUserFollow( WOOOF $wo, VO_TblUserFollow &$obj, $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+		 
+		if ( !$wo->hasContent($obj->followsId) ) {
+			$wo->logError(self::_ECP."1001 No value provided for [followsId]" );
+			return false;
+		}
+		
+		if ( !$wo->hasContent($obj->thisId) ) {
+			$wo->logError(self::_ECP."1002 No value provided for [thisId]" );
+			return false;
+		}
+		
+		if($obj->followsId === $obj->thisId) {
+			$wo->logError(self::_ECP."1003 Id's cannot be the same");
+			return false;
+		}
+		
+		$tblUserFollow = new WOOOF_dataBaseTable($wo->db, 'voice_user_followings');
+		if($tblUserFollow === FALSE) { return false; }
+		
+		// insert
+		$obj->createdDateTime = WOOOF::getCurrentDateTime();
+		
+		//Check for Peers
+		$fromId = $obj->followsId;
+		$toId = $obj->thisId;
+		
+		$res = $tblUserFollow->getResult(
+			[
+				'followsId' => $toId,
+				'thisId'	=> $fromId
+			],
+			'', '', '', '', false, true
+		);
+		
+		if ( $res === FALSE ) { return false; }
+		
+		$hasPeer = $res['totalRows'] != 0; 
+		
+		if(!$hasPeer) {
+			$obj->isPeer = '0';
+		}
+		
+		else {
+			$obj->isPeer = '1';
+			foreach( $tblUserFollow->resultRows as &$aRow ) {
+				$aRow['isPeer'] = '1';
+				$res = $tblUserFollow->updateRowFromResults($aRow['id']);
+				if($res === FALSE) { return false; }
+			}
+		}
+			
+		$newId = $tblUserFollow->insertRowFromArraySimple( $obj->toArray() );
+		if ( $newId === FALSE ) { return false; }
+		$obj->id = $newId;
+		
+		$usActId = VO_Users::saveAction($wo, 
+			($obj->targetType == 'PRS' ? 'FU1' : 'FO1'), 
+			$obj->thisId, null, null, $obj->followsId 
+		);
+		
+		if ( $fetchBack ) {
+			// Get back into $obj based on id
+			// TODO:
+		}
+			
+		return $obj->id;
+		
+	}	// saveUserFollow
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param VO_TblUserFriendRequests $obj
+	 * @param bool $fetchBack
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static
+	function saveUserFriendRequests( WOOOF $wo, VO_TblUserFriendRequests &$obj, $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	
+		if ( !$wo->hasContent($obj->fromUserId) ) {
+			$wo->logError(self::_ECP."1011 No value provided for [fromUserId]" );
+			return false;
+		}
+			
+		if ( !$wo->hasContent($obj->toUserId) ) {
+			$wo->logError(self::_ECP."1012 No value provided for [toUserId]" );
+			return false;
+		}
+			
+		if($obj->fromUserId === $obj->toUserId) {
+			$wo->logError(self::_ECP."1013 Id's cannot be the same");
+			return false;
+		}
+			
+		$tblFriendRequest = new WOOOF_dataBaseTable($wo->db, 'voice_user_friend_requests');
+		if($tblFriendRequest === FALSE) { return false; }
+		
+		if ( $wo->hasContent($obj->id) ) {
+			// update
+			$res = $tblFriendRequest->updateRowFromArraySimple( $obj->toArray() );
+			if ( $res === FALSE ) { return FALSE; }
+		}
+
+		else {
+			// insert
+			$obj->statusDateTime = WOOOF::getCurrentDateTime();
+			$obj->status = 'P';
+			
+			$newId = $tblFriendRequest->insertRowFromArraySimple( $obj->toArray() );
+			if ( $newId === FALSE ) { return false; }
+			$obj->id = $newId;
+		}
+
+		if ( $fetchBack ) {
+			// Get back into $obj based on id
+			// TODO:
+		}
+		
+		$usActId = VO_Users::saveAction(
+			$wo, 'FR1', $obj->toUserId,
+			null, null, $obj->fromUserId
+		);
+			
+		return $obj->id;
+	
+	}	// saveUserFriendRequests
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param VO_TblUserFriendships $obj
+	 * @param bool $fetchBack
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static
+	function saveUserFriendships( WOOOF $wo, VO_TblUserFriendships &$obj, $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	
+		if ( !$wo->hasContent($obj->thisId) ) {
+			$wo->logError(self::_ECP."1021 No value provided for [thisId]" );
+			return false;
+		}
+			
+		if ( !$wo->hasContent($obj->isFriendsWithId) ) {
+			$wo->logError(self::_ECP."1022 No value provided for [isFriendsWithId]" );
+			return false;
+		}
+		
+		if($obj->thisId === $obj->isFriendsWithId) {
+			$wo->logError(self::_ECP."1003 Id's cannot be the same");
+			return false;
+		}
+
+		$tblFriendship = new WOOOF_dataBaseTable($wo->db, 'voice_user_friendships');
+		if($tblFriendship === FALSE) { return false; }
+		
+		$obj->createdDateTime = WOOOF::getCurrentDateTime();
+			
+		$newId = $tblFriendship->insertRowFromArraySimple( $obj->toArray() );
+		if ( $newId === FALSE ) { return false; }
+		$obj->id = $newId;
+		
+		$usActId = VO_Users::saveAction($wo,
+				($obj->targetType == 'PRS' ? 'FU2' : 'FO2'),
+				$rowToDelete['thisId'], null, null, $rowToDelete['followsId'] 
+		);
+		
+		
+		return $obj->id;
+	
+	}	// saveUserFriendships
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $id for record to be deleted
+	 * @return bool
+	 */
+	public static
+	function deleteUserBookmark( WOOOF $wo, $id )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+			
+		if ( !$wo->hasContent($id) ) {
+			$wo->logError(self::_ECP."1909 No value provided for [id]" );
+			return false;
+		}
+	
+		$tblUserBookmark = new WOOOF_dataBaseTable($wo->db, 'voice_user_bookmarks');
+		if($tblUserBookmark === FALSE) { return false; }
+	
+		$res = $tblUserBookmark->deleteRow($id);
+		if($res === FALSE) { return false; }
+			
+		return $id;
+	
+	}	// deleteUserBookmark
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $id for record to be deleted
+	 * @return bool
+	 */
+	public static
+	function deleteUserFollow( WOOOF $wo, $id )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+			
+		if ( !$wo->hasContent($id) ) {
+			$wo->logError(self::_ECP."1159 No value provided for [id]" );
+			return false;
+		}
+		
+		$tblUserFollow = new WOOOF_dataBaseTable($wo->db, 'voice_user_followings');
+		if($tblUserFollow === FALSE) { return false; }
+		
+		$rowToDelete = $tblUserFollow->getRow($id, true, false );
+		if ( $rowToDelete === FALSE ) { return FALSE; }
+		if ( $rowToDelete === NULL ) {
+			$wo->logError(self::_ECP."1163 No voice_user_followings with id [$id] was found");
+			return false;
+		}
+		
+		$res = $tblUserFollow->deleteRow($id);
+		if($res === FALSE) { return false; }
+			
+		$usActId = VO_Users::saveAction($wo, 
+			($obj->targetType == 'PRS' ? 'FU2' : 'FO2'), 
+			$rowToDelete['thisId'], null, null, $rowToDelete['followsId'] 
+		);
+		
+		return $id;
+		
+	}	// deleteUserFollow
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $id for record to be deleted
+	 * @return bool
+	 */
+	public static
+	function deleteUserFriendRequests( WOOOF $wo, $id )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+			
+		if ( !$wo->hasContent($id) ) {
+			$wo->logError(self::_ECP."1160 No value provided for [id]" );
+			return false;
+		}
+	
+		$tblFriendRequest = new WOOOF_dataBaseTable($wo->db, 'voice_user_friend_requests');
+		if($tblFriendRequest === FALSE) { return false; }
+
+		$res = $tblFriendRequest->deleteRow($id);
+		if($res === FALSE) { return false; }
+		
+		$rowToDelete = $tblFriendRequest->getRow($id, true, false );
+		if ( $rowToDelete === FALSE ) { return FALSE; }
+		if ( $rowToDelete === NULL ) {
+			$wo->logError(self::_ECP."1163 No voice_user_friend_requests with id [$id] was found");
+			return false;
+		}
+		
+		$usActId = VO_Users::saveAction(
+			$wo, 'FR5', $rowToDelete['fromUserId'],
+			null, null, $rowToDelete['toUserId']
+		);
+		
+		return $id;
+	
+	}	// deleteUserFriendRequests
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $id for record to be deleted
+	 * @return bool
+	 */
+	public static
+	function deleteUserFriendships( WOOOF $wo, $id )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+			
+		if ( !$wo->hasContent($id) ) {
+			$wo->logError(self::_ECP."1161 No value provided for [id]" );
+			return false;
+		}
+	
+		$tblFriendship = new WOOOF_dataBaseTable($wo->db, 'voice_user_friendships');
+		if($tblFriendship === FALSE) { return false; }
+
+		$res = $tblFriendship->deleteRow($id);
+		if($res === FALSE) { return false; }
+
+		$rowToDelete = $tblFriendship->getRow($id, true, false );
+		if ( $rowToDelete === FALSE ) { return FALSE; }
+		if ( $rowToDelete === NULL ) {
+			$wo->logError(self::_ECP."1163 No voice_user_friend_requests with id [$id] was found");
+			return false;
+		}
+		
+		$usActId = VO_Users::saveAction(
+			$wo, 'FR4', $rowToDelete['isFriendsWithId'],
+			$rowToDelete['thisId'], null, $wo->app->userId
+		);
+		
+		return $id;
+	
+	}	// deleteUserFriendships
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param id $fromUserId
+	 * @param id $toUserId
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static 
+	function userFollows( WOOOF $wo, $fromUserId, $toUserId, $targetType='PRS' )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+		
+		$tblUserFollowInsert = new VO_TblUserFollow();
+		$tblUserFollowInsert->followsId = $fromUserId;
+		$tblUserFollowInsert->thisId = $toUserId;
+		$tblUserFollowInsert->targetType = $targetType;
+		
+		$res = self::saveUserFollow($wo, $tblUserFollowInsert);
+		if($res === FALSE) { return false; }
+		
+		return $res;
+		
+	}	// userFollows
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $fromUserId
+	 * @param id $toUserId
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static
+	function userUnFollows( WOOOF $wo, $fromUserId, $toUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+		
+		//Find the ID you want to delete
+		$sql =  "select id ";
+		$sql .=	"from voice_user_followings ";
+		$sql .= "where followsId = '$fromUserId' and thisId = '$toUserId' ";
+		
+		$deleteRow = $wo->db->getResultByQuery($sql, true, false);
+		if ( $deleteRow === FALSE ) { return FALSE; }
+		
+		$deleteRow = $wo->db->resultRows;
+		
+		foreach( $deleteRow as $aRow ) {
+			$res = self::deleteUserFollow($wo, $aRow['id']);
+			if($res === FALSE) { return false; }
+		}
+		
+		//After the delete check if they were peers so as to update the isPeer value to '0'
+		$sql =  "select * ";
+		$sql .=	"from voice_user_followings ";
+		$sql .= "where followsId = '$toUserId' and thisId = '$fromUserId' ";
+		
+		$rows = $wo->db->getResultByQuery($sql, true, false);
+		if ( $rows === FALSE ) { return FALSE; }
+		
+		$rows = $wo->db->resultRows;
+		
+		foreach( $rows as $aRow ) {
+			$tblUserFollowUpdate = new VO_TblUserFollow($aRow);
+			$tblUserFollowUpdate->isPeer = '0';
+			$tblUserFollow = new WOOOF_dataBaseTable($wo->db, 'voice_user_followings');
+			if($tblUserFollow === FALSE) { return false; }
+			$res = $tblUserFollow->updateRowFromArraySimple( $tblUserFollowUpdate->toArray() );
+			if($res === FALSE) { return false; }
+		}
+		
+		return $res;
+	
+	}	// userUnFollows
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $fromUserId
+	 * @param id $toUserId
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static
+	function userRequestFriendship( WOOOF $wo, $fromUserId, $toUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	
+		$tblUserFriendRequest = new VO_TblUserFriendRequests();
+		$tblUserFriendRequest->fromUserId = $fromUserId;
+		$tblUserFriendRequest->toUserId = $toUserId;
+		
+		$res = self::saveUserFriendRequests($wo, $tblUserFriendRequest);
+		if($res === FALSE) { return false; }
+		
+		return $res;
+	
+	}	// userRequestFriendship
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $requestId
+	 * @param char $reply ('A' accept, 'R' reject)
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static
+	function userAnswerFriendShip( WOOOF $wo, $requestId, $reply )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	
+		//TODO
+		
+		// Find the request in the table
+		$friendRequest = $wo->db->getRow('voice_user_friend_requests', $requestId);
+		if($friendRequest === FALSE) { return false; }
+		if($friendRequest === NULL) {
+			$wo->logError(self::_ECP."1355 No row with id [$requestId] found!");
+			return false;
+		}
+		
+		//If rejected then update status and statusdatetime
+		if($reply === "R") {
+			$tblFriendRequestUpdate = new VO_TblUserFriendRequests($friendRequest);
+			
+			$tblFriendRequestUpdate->status = $reply;
+			$tblFriendRequestUpdate->statusDateTime = WOOOF::getCurrentDateTime();
+			
+			$res = self::saveUserFriendRequests($wo, $tblFriendRequestUpdate);
+			if($res === FALSE) { return false; }
+			
+			return $reply;
+		}
+		
+		//If request accepted then delete the friend request row and update the voice_user_friendships table
+		else if($reply === "A") {
+			//update the friendships table add it there as friendship
+			$tblFriendshipsInsert = new VO_TblUserFriendships();
+			$tblFriendshipsInsert->thisId = $friendRequest['fromUserId'];
+			$tblFriendshipsInsert->isFriendsWithId = $friendRequest['toUserId'];
+			
+			$friendInsert = self::saveUserFriendships($wo, $tblFriendshipsInsert);
+			if($friendInsert === FALSE) { return false; }
+			
+			//delete the request from friend_requests table
+			$deleteReq = self::deleteUserFriendRequests($wo, $requestId);
+			if($deleteReq === FALSE) { return false; }
+			
+			return $reply;
+		}
+		else {
+			$wo->logError(self::_ECP."1357 Unknown reply type [$reply]");
+			return false;
+		}
+		
+		$usActId = VO_Users::saveAction( $wo,
+				( $reply == 'A' ? 'FR2' : 'FR3' ), $friendRequest['toUserId'],
+				null, null, $friendRequest['fromUserId']
+		);
+			
+	}	// userAnswerFriendShip
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $fromUserId
+	 * @param id $toUserId
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static
+	function userDeleteFriendShip( WOOOF $wo, $fromUserId, $toUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	
+		//Find the ID you want to delete
+		$sql =  "select id ";
+		$sql .=	"from voice_user_friendships ";
+		$sql .= "where thisId = '$fromUserId' and isFriendsWithId = '$toUserId' or thisId = '$toUserId' and isFriendsWithId = '$fromUserId' ";
+	
+		$deleteFriendShip = $wo->db->getResultByQuery($sql, true, false);
+		if ( $deleteFriendShip === FALSE ) { return FALSE; }
+	
+		$deleteFriendShip = $wo->db->resultRows;
+	
+		foreach( $deleteFriendShip as $aRow ) {
+			$res = self::deleteUserFriendships($wo, $aRow['id']);
+			if($res === FALSE) { return false; }
+		}
+	
+		return $res;
+	
+	}	// userDeleteFriendShip
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $fromUserId
+	 * @param id $toUserId
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static
+	function userBookmarks( WOOOF $wo, $fromUserId, $toUserId, $targetType='PRS' )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	
+		$tblUserBookmarkInsert = new VO_TblUserBookmarks();
+		$tblUserBookmarkInsert->voiceUserId = $fromUserId;
+		$tblUserBookmarkInsert->thisId = $toUserId;
+		$tblUserBookmarkInsert->targetType = $targetType;
+	
+		$res = self::saveUserBookmark($wo, $tblUserBookmarkInsert);
+		if($res === FALSE) { return false; }
+	
+		return $res;
+	
+	}	// userBookmarks
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $fromUserId
+	 * @param id $toUserId
+	 * @return false | unbookmarked object type
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static
+	function userUnBookmarks( WOOOF $wo, $fromUserId, $toUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	
+		//Find the ID you want to delete
+		$sql =  "select id, targetType ";
+		$sql .=	"from voice_user_bookmarks ";
+		$sql .= "where voiceUserId = '$fromUserId' and thisId = '$toUserId' ";
+	
+		$deleteRow = $wo->db->getResultByQuery($sql, true, false);
+		if ( $deleteRow === FALSE ) { return FALSE; }
+	
+		$deleteRow = $wo->db->resultRows;
+	
+		foreach( $deleteRow as $aRow ) {
+			$unBookmarkedObjType = $aRow['targetType'];
+			$res = self::deleteUserBookmark($wo, $aRow['id']);
+			if($res === FALSE) { return false; }
+		}
+	
+		return $unBookmarkedObjType;
+	
+	}	// userUnBookmarks
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @return false | array[ ]
+	 */
+	public static
+	function getBookmarks( WOOOF $wo )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place: Bookmarks Page" );
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$bookmarks = []; //array to be sent to react element
+		$bookmarkElems = ['id', 'createdDateTime', 'voiceUserId', 'thisId', 'targetType'];
+	
+		$voiceUserBookmarks = new WOOOF_dataBaseTable($wo->db, 'voice_user_bookmarks');
+		if ( !$voiceUserBookmarks->constructedOk ) { return false; }
+	
+		$res = $voiceUserBookmarks->getResult(
+			[
+				'voiceUserId' => $wo->app->userId
+			],
+			'createdDateTime',
+			'', '', '',
+			true, false
+		);
+		if ( $res === FALSE ) { return false; }
+	
+		if ( $res['totalRows'] != 0 ) {
+			foreach($voiceUserBookmarks->resultRows as $v_bookmark) {
+				$bookmark = [];
+				WOOOF_Util::filterOnKeys($bookmark, $bookmarkElems, $v_bookmark);
+				array_push($bookmarks, $bookmark);
+			}
+		}
+	
+		if ( $res['totalRows'] == 0 ) {
+			return NULL;
+		}
+
+		return $bookmarks;
+	} //getBookmarks
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $voiceUserId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getFollowers( WOOOF $wo, $voiceUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  $voiceUserId" );
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if(!$wo->hasContent($voiceUserId)) {
+			$wo->logError(self::_ECP."2222 You must provide a [voiceUserId]");
+			return false;
+		}
+		
+		$followers = []; //array to be sent to react element
+		$followerElems = ['id', 'createdDateTime', 'followsId', 'thisId', 'isPeer', 'targetType'];
+	
+		$voiceUserFollowers = new WOOOF_dataBaseTable($wo->db, 'voice_user_followings');
+		if ( !$voiceUserFollowers->constructedOk ) { return false; }
+	
+		$res = $voiceUserFollowers->getResult(
+			[
+				'thisId' => $voiceUserId
+			],
+			'createdDateTime',
+			'', '', '',
+			true, false
+		);
+		if ( $res === FALSE ) { return false; }
+	
+		if ( $res['totalRows'] != 0 ) {
+			foreach($voiceUserFollowers->resultRows as $v_follower) {
+				$follower = [];
+				WOOOF_Util::filterOnKeys($follower, $followerElems, $v_follower);
+				array_push($followers, $follower);
+			}
+		}
+		
+		if ( $res['totalRows'] == 0 ) {
+			return NULL;
+		}
+	
+		return $followers;
+	} //getFollowers
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $voiceUserId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getFollowings( WOOOF $wo, $voiceUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  $voiceUserId" );
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if(!$wo->hasContent($voiceUserId)) {
+			$wo->logError(self::_ECP."2223 You must provide a [voiceUserId]");
+			return false;
+		}
+		
+		$followings = []; //array to be sent to react element
+		$followingElems = ['id', 'createdDateTime', 'followsId', 'thisId', 'isPeer', 'targetType'];
+	
+		$voiceUserFollowings = new WOOOF_dataBaseTable($wo->db, 'voice_user_followings');
+		if ( !$voiceUserFollowings->constructedOk ) { return false; }
+	
+		$res = $voiceUserFollowings->getResult(
+			[
+				'followsId' => $voiceUserId
+			],
+			'createdDateTime',
+			'', '', '',
+			true, false
+		);
+		if ( $res === FALSE ) { return false; }
+		
+		if ( $res['totalRows'] != 0 ) {
+			foreach($voiceUserFollowings->resultRows as $v_following) {
+				$following = [];
+				WOOOF_Util::filterOnKeys($following, $followingElems, $v_following);
+				array_push($followings, $following);
+			}
+		}
+		
+		if ( $res['totalRows'] == 0 ) {
+			return NULL;
+		}
+
+		return $followings;
+	} //getFollowings
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $voiceUserId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getPeers( WOOOF $wo, $voiceUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  $voiceUserId" );
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if(!$wo->hasContent($voiceUserId)) {
+			$wo->logError(self::_ECP."2224 You must provide a [voiceUserId]");
+			return false;
+		}
+	
+		$peers = []; //array to be sent to react element
+		$peerElems = ['id', 'createdDateTime', 'followsId', 'thisId', 'isPeer'];
+	
+		$voiceUserPeers = new WOOOF_dataBaseTable($wo->db, 'voice_user_followings');
+		if ( !$voiceUserPeers->constructedOk ) { return false; }
+	
+		$res = $voiceUserPeers->getResult(
+			[
+				'followsId' => $voiceUserId,
+				'isPeer'	=> '1'
+			],
+			'createdDateTime',
+			'', '', '',
+			true, false
+		);
+		if ( $res === FALSE ) { return false; }
+	
+		if ( $res['totalRows'] != 0 ) {
+			foreach($voiceUserPeers->resultRows as $v_peer) {
+				$peer = [];
+				WOOOF_Util::filterOnKeys($peer, $peerElems, $v_peer);
+				array_push($peers, $peer);
+			}
+		}
+		
+		if ( $res['totalRows'] == 0 ) {
+			return NULL;
+		}
+	
+		return $peers;
+	} //getPeers
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $voiceUserId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getFriends( WOOOF $wo, $voiceUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  $voiceUserId" );
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if(!$wo->hasContent($voiceUserId)) {
+			$wo->logError(self::_ECP."2225 You must provide a [voiceUserId]");
+			return false;
+		}
+	
+		$friends = []; //array to be sent to react element
+		$friendElems = ['id', 'createdDateTime', 'thisId', 'isFriendsWithId'];
+	
+		$voiceUserFriends = new WOOOF_dataBaseTable($wo->db, 'voice_user_friendships');
+		if ( !$voiceUserFriends->constructedOk ) { return false; }
+	
+		$sql =  "select * ";
+		$sql .=	"from voice_user_friendships ";
+		$sql .= "where thisId = '$voiceUserId' or isFriendsWithId = '$voiceUserId' ";
+		
+		$friendRows = $wo->db->query($sql);
+		
+		if ( $friendRows === FALSE ) { return FALSE; }
+		
+		if (!$wo->db->getNumRows($friendRows))
+		{
+			//no error no results
+			return 0;
+		}
+		else
+		{
+			//no error with results
+			while($row = $wo->db->fetchAssoc($friendRows))
+			{
+				$friendRows->resultRows[] = $row;
+			}
+		}
+		
+		foreach( $friendRows as $aFriendRow ) {
+			$friend = [];
+			WOOOF_Util::filterOnKeys($friend, $friendElems, $aFriendRow);
+			array_push($friends, $friend);
+		}
+	
+		return $friends;
+	} //getFriends
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $voiceUserId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getFriendRequests( WOOOF $wo, $voiceUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  $voiceUserId" );
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if(!$wo->hasContent($voiceUserId)) {
+			$wo->logError(self::_ECP."2227 You must provide a [voiceUserId]");
+			return false;
+		}
+	
+		$friendRequests = []; //array to be sent to react element
+		$friendRequestElems = ['id', 'statusDateTime', 'fromUserId', 'toUserId', 'status'];
+	
+		$voiceUserFriendRequests = new WOOOF_dataBaseTable($wo->db, 'voice_user_friend_requests');
+		if ( !$voiceUserFriendRequests->constructedOk ) { return false; }
+	
+		$sql =  "select * ";
+		$sql .=	"from voice_user_friend_requests ";
+		$sql .= "where (fromUserId = '$voiceUserId' or toUserId = '$voiceUserId') and status = 'P' ";
+	
+		$friendRequestRows = $wo->db->query($sql);
+	
+		if ( $friendRequestRows === FALSE ) { return FALSE; }
+	
+		if (!$wo->db->getNumRows($friendRequestRows))
+		{
+			//no error no results
+			return 0;
+		}
+		else
+		{
+			//no error with results
+			while($row = $wo->db->fetchAssoc($friendRequestRows))
+			{
+				$friendRequestRows->resultRows[] = $row;
+			}
+		}
+	
+		foreach( $friendRequestRows as $aFriendRequest ) {
+			$friendRequest = [];
+			WOOOF_Util::filterOnKeys($friendRequest, $friendRequestElems, $aFriendRequest);
+			array_push($friendRequests, $friendRequest);
+		}
+	
+		return $friendRequests;
+	} //getFriendRequests
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $requestorUserId
+	 * @param array $targetIds
+	 * @return false | array[ ]
+	 */
+	public static
+	function getConnectionInfo( WOOOF $wo, $requestorUserId, $targetIds )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  $requestorUserId" );
+	
+		if(!$wo->hasContent($requestorUserId)) {
+			$wo->logError(self::_ECP."2235 You must provide a [requestorUserId]");
+			return false;
+		}
+		
+		if(!$wo->hasContent($targetIds)) {
+			$wo->logError(self::_ECP."2236 You must provide [targetIds]");
+			return false;
+		}
+	
+		$voiceUserFollowStats = new WOOOF_dataBaseTable($wo->db, 'voice_user_followings');
+		if ( !$voiceUserFollowStats->constructedOk ) { return false; }
+		
+		$voiceUserBookmarkStats = new WOOOF_dataBaseTable($wo->db, 'voice_user_bookmarks');
+		if ( !$voiceUserBookmarkStats->constructedOk ) { return false; }
+		
+		$voiceUserFriendStats = new WOOOF_dataBaseTable($wo->db, 'voice_user_friendships');
+		if ( !$voiceUserFriendStats->constructedOk ) { return false; }
+		
+		$voiceUserFriendRequestsStats = new WOOOF_dataBaseTable($wo->db, 'voice_user_friend_requests');
+		if ( !$voiceUserFriendRequestsStats->constructedOk ) { return false; }
+	
+		$statuses = [];
+		
+		foreach ($targetIds as $aTarget) {
+			$status = [];
+			
+			// BUILD followStatus array
+			
+			// First check if the requestor follows the target user
+			$follower = $voiceUserFollowStats->getResult(
+				[
+					'followsId' => $requestorUserId,
+					'thisId'	=> $aTarget
+				],
+				'', '', '', '', false, true
+			);
+			
+			if ( $follower === FALSE ) { return false; }
+			
+			$requestorFollowsTarget = $follower['totalRows'] != 0;
+			
+			// Then check if the target user follows the requestor
+			$following = $voiceUserFollowStats->getResult(
+				[
+					'followsId' => $aTarget,
+					'thisId'	=> $requestorUserId
+				],
+				'', '', '', '', false, true
+			);
+				
+			if ( $following === FALSE ) { return false; }
+				
+			$targetFollowingRequestor = $following['totalRows'] != 0;
+			
+			//noone follows anyone
+			if(!$requestorFollowsTarget && !$targetFollowingRequestor) {
+				$status['followStatus'] = 'N';
+				$status['followLink'] = 'api/social/followUser/'.$aTarget;
+			}
+			
+			//requestor does follow target
+			else if($requestorFollowsTarget && !$targetFollowingRequestor) {
+				$status['followStatus'] = 'F1';
+				$status['followLink'] = 'api/social/unFollowUser/'.$aTarget;
+			}
+			
+			//target follows requestor
+			else if(!$requestorFollowsTarget && $targetFollowingRequestor) {
+				$status['followStatus'] = 'F2';
+				$status['followLink'] = 'api/social/followUser/'.$aTarget;
+			}
+			
+			//peers
+			else if($requestorFollowsTarget && $targetFollowingRequestor) {
+				$status['followStatus'] = 'P';
+				$status['followLink'] = 'api/social/unFollowUser/'.$aTarget;
+			}
+			
+			// BUILD bookmarkStatus array
+				
+			// First check if the requestor has already bookmarked the target user
+			$bookmarker = $voiceUserBookmarkStats->getResult(
+				[
+					'voiceUserId' => $requestorUserId,
+					'thisId'	=> $aTarget
+				],
+				'', '', '', '', false, true
+			);
+				
+			if ( $bookmarker === FALSE ) { return false; }
+				
+			$requestorBookmarksTarget = $bookmarker['totalRows'] != 0;
+				
+			// Then check if the target user has already bookmarked the requestor
+			$bookmarking = $voiceUserBookmarkStats->getResult(
+				[
+					'voiceUserId' => $aTarget,
+					'thisId'	=> $requestorUserId
+				],
+				'', '', '', '', false, true
+			);
+			
+			if ( $bookmarking === FALSE ) { return false; }
+			
+			$targetBookmarkingRequestor = $bookmarking['totalRows'] != 0;
+				
+			//noone bookmarks anyone
+			if(!$requestorBookmarksTarget && !$targetBookmarkingRequestor) {
+				$status['bookmarkStatus'] = 'N';
+				$status['bookmarkLink'] = 'api/social/bookmarkUser/'.$aTarget;
+			}
+				
+			//requestor does bookmark target
+			else if($requestorBookmarksTarget && !$targetBookmarkingRequestor) {
+				$status['bookmarkStatus'] = 'B1';
+				$status['bookmarkLink'] = 'api/social/unBookmarkUser/'.$aTarget;
+			}
+				
+			//target bookmarks requestor
+			else if(!$requestorBookmarksTarget && $targetBookmarkingRequestor) {
+				$status['bookmarkStatus'] = 'B2';
+				$status['bookmarkLink'] = 'api/social/bookmarkUser/'.$aTarget;
+			}
+				
+			//peers
+			else if($requestorBookmarksTarget && $targetBookmarkingRequestor) {
+				$status['bookmarkStatus'] = 'P';
+				$status['bookmarkLink'] = 'api/social/unBookmarkUser/'.$aTarget;
+			}
+			
+			// BUILD friendStatus array
+				
+			// First check if the requestor is friend with the targetId
+			$sql =  "select id ";
+			$sql .=	"from voice_user_friendships ";
+			$sql .= "where (thisId = '$requestorUserId' and isFriendsWithId = '$aTarget') or (thisId = '$aTarget' and isFriendsWithId = '$requestorUserId') ";
+			
+			$rows = $wo->db->getResultByQuery($sql, true, false);
+			if ( $rows === FALSE ) { return FALSE; }
+			
+			$rows = $wo->db->resultRows;
+			
+			if(!$wo->hasContent($rows)) {
+				$isFriendsWith = false;
+			}
+			
+			else {
+				$isFriendsWith = true;
+			}
+			
+			//Then check for any friend requests between them
+			$madeRequest = $voiceUserFriendRequestsStats->getResult(
+				[
+					'fromUserId' => $requestorUserId,
+					'toUserId'	=> $aTarget
+				],
+				'', '', '', '', false, true
+			);
+				
+			if ( $madeRequest === FALSE ) { return false; }
+				
+			$requestorFriendedTarget = $madeRequest['totalRows'] != 0;
+			
+			foreach( $voiceUserFriendRequestsStats->resultRows as $aRow ) {
+				$status['madefriendRequestId'] = $aRow['id'];
+			}
+			
+			$gotRequested = $voiceUserFriendRequestsStats->getResult(
+				[
+					'fromUserId' => $aTarget,
+					'toUserId'	=> $requestorUserId
+				],
+				'', '', '', '', false, true
+			);
+			
+			if ( $gotRequested === FALSE ) { return false; }
+			
+			$targetFriendedRequestor = $gotRequested['totalRows'] != 0;
+			
+			foreach( $voiceUserFriendRequestsStats->resultRows as $aRow ) {
+				$status['gotfriendRequestId'] = $aRow['id'];
+			}
+			
+			//they are friends
+			if($isFriendsWith) {
+				$status['friendStatus'] = 'Y';
+				$status['friendLink'] = 'api/social/deleteFriendship/'.$aTarget;
+			}
+			
+			else {
+				//no friends - no requests
+				if(!$requestorFriendedTarget && !$targetFriendedRequestor) {
+					$status['friendStatus'] = 'N';
+					$status['friendLink'] = 'api/social/requestFriendship/'.$aTarget;
+				}
+				
+				//requestor did a pending requested
+				else if($requestorFriendedTarget && !$targetFriendedRequestor) {
+					$status['friendStatus'] = 'R1';
+					$status['friendLink'] = 'api/social/resetFriendRequest/'.$status['madefriendRequestId'];
+				}
+				
+				//target follows requestor
+				else if(!$requestorFriendedTarget && $targetFriendedRequestor) {
+					$status['friendStatus'] = 'R2';
+					$status['friendLinkAccept'] = 'api/social/answerFriendship/'.$status['gotfriendRequestId'].'/A';
+					$status['friendLinkReject'] = 'api/social/answerFriendship/'.$status['gotfriendRequestId'].'/R';
+				}	
+			}
+			
+			$status['targetId'] = $aTarget;
+			$statuses[$aTarget] = $status;
+		}
+	
+		return $statuses;
+	} //getConnectionInfo
+	
+	
+}	// VO_SOCIAL

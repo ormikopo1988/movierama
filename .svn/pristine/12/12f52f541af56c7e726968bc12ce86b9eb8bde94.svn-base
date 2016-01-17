@@ -1,0 +1,38 @@
+# Run as
+# http://localhost/apf/create_class_v4.0/site/create_view_columns.php?f=c:\xampp\htdocs\voice\util\voice_views.yml
+
+ProjectInfo:
+    project_description: 'VOICE'
+    db_name: voice_2
+    server_name: localhost
+    user_name: root
+    user_password: 
+    directory: ''
+    # NO FILE IS CREATED! Copy-pase output from browser!
+
+Table_Aliases:
+    - { name: address_generic, alias: adrgen }
+    - { name: areas, alias: area }
+    - { name: person_profiles, alias: prof }
+    - { name: sys_domains, alias: sdom }
+    - { name: sys_domain_values, alias: sdomval }
+    - { name: voice_users, alias: vus }
+    - { name: organisations, alias: org }
+
+
+Groups:
+    v_person_profile_addresses:
+        - { name: person_profiles }
+        - { name: address_generic }
+        - { name: areas }
+
+    #v_sys_domain_values:
+    #    - { name: sys_domains }
+    #    - { name: sys_domain_values }
+
+    v_voice_persons:
+        - { name: voice_users }
+        - { name: organisations }
+        - { name: person_profiles }
+#  g:
+#    - { name: , alias:  }

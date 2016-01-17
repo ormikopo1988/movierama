@@ -1,0 +1,608 @@
+<?php
+
+class VO_ProfileData {
+	const _ECP = 'PRD';	// Error Code Prefix
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $voiceUserId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getMainInfo( WOOOF $wo, $voiceUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  [$voiceUserId]" );
+		
+		//TODO - take elems from v_voice_persons
+	
+		$main = [];
+		
+		if ( $voiceUserId == $wo->app->userId ) {
+			$voiceUser = $wo->app->voicePersonRow;
+			$main['isSelf'] = true;
+		}
+		else {
+			$voiceUser = $wo->db->getRowByColumn('v_voice_persons', 'VUS_id', $voiceUserId);
+			if($voiceUser === FALSE || $voiceUser === NULL) { return false; }
+			$main['isSelf'] = false;
+		}
+		
+		$main['personProfileId']		= $voiceUser['VUS_personProfileId'];
+		$main['voiceUserId']			= $voiceUser['VUS_id'];
+		$main['isOrganisationAdmin']	= $voiceUser['VUS_isOrganisationAdmin'];
+		$main['isActive']				= $voiceUser['VUS_isActive'];
+		$main['ORG_name']				= $voiceUser['ORG_name'];
+		$main['ORG_shortName']			= $voiceUser['ORG_shortName'];
+		$main['ORG_id']					= $voiceUser['ORG_id'];
+		$main['VUS_oneLiner'] 			= $voiceUser['VUS_oneLiner'];
+		
+		$main['isLoggedIn'] = true;	// TODO: Not used ???
+		
+		$main['isType'] = 'PRS';
+		
+		$main['avatarImg'] = $voiceUser['VUS_avatarImg'];
+	
+		$main['postBoxId'] = $voiceUser['POB_id'];	
+		
+		$cvFile = WOOOF_ExternalFiles::getFileObject($wo, $voiceUser['PROF_cvFile']);
+		if($cvFile === FALSE) {return false;}
+		$main['cvFileObject'] = $cvFile;
+	
+		$main['personTitleDesc'] = $voiceUser['PROF_personTitleDescr'];
+		
+		$mainElems = ['PROF_firstName', 'PROF_lastName', 'PROF_middleName', 'PROF_gender', 'PROF_birthYear', 'PROF_personTitleDVId', 'PROF_shortDescription' ];
+		
+		WOOOF_Util::filterOnKeys($main, $mainElems, $voiceUser, 'PROF_');
+		
+		//var_dump($main);
+		
+		//GET SERVICES FROM VOICE_USER_SERVICES
+		$main['srvDesc']	= [];
+		$main['services']	= [];
+		
+		if ( $wo->hasContent($voiceUserId) ) {
+			$sql = "select tagId, tagPhrase from v_voice_user_services where voiceUserId = '$voiceUserId'";
+			$res = $wo->db->getResultByQuery( $sql, true, false );
+			if ( $res === FALSE ) { return FALSE; }	
+			foreach( $wo->db->resultRows as $aRow ) {
+				$main['services'][] = $aRow['tagId'];
+				$main['srvDesc'][]	= $aRow['tagPhrase'];
+			}
+		
+			$main['services'] = implode(',', $main['services']);
+			
+			$main['voiceRolesIds'] = $voiceUser['VUS_voiceRolesIds'];
+			if($wo->hasContent($voiceUser['VUS_voiceRolesIds'])) {
+				$inIds = WOOOF_Util::sqlListFromArray(explode(',', $voiceUser['VUS_voiceRolesIds']));
+			
+				$sql = "select SDOMVAL_description 
+						from __v_domain_values
+						where SDOMVAL_id IN $inIds
+						order by 1";
+				$res = $wo->db->getResultByQuery( $sql, true, false );
+				if ( $res === FALSE ) { return FALSE; }
+				
+				foreach( $wo->db->resultRows as $aRow ) {
+					$main['rolesDesc'][]	= $aRow['SDOMVAL_description'];
+				}
+			}
+			
+			$main['postBox'] = VO_PostBox::getPostBox($wo, $voiceUserId, 'PRS');
+		}
+		else {
+			$main['services'] = $main['rolesDesc'] = $main['postBox'] = [];
+		}
+		
+		return $main;
+	} //getMainInfo
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $voiceUserId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getStatsInfo( WOOOF $wo, $voiceUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  $voiceUserId" );
+	
+		$statsElems = ['id', 'lastLoginDateTime', 'noOfLogins', 'noOfPosts', 'noOfFollowers', 'noOfFollowings', 'noOfFriends', 'userId', 'noOfTeams', 'noOfDGs', 'noOfShares', 'validForDateTime'];
+	
+		$v_userStats = new WOOOF_dataBaseTable($wo->db, 'voice_user_stats');
+		if ( !$v_userStats->constructedOk ) { return false; }
+	
+		$res = $v_userStats->getResult(
+			[
+				'userId' => $voiceUserId,
+				'isDeleted'   => '0'
+			],
+			'userId',
+			'', '', '',
+			true, false
+		);
+		if ( $res === FALSE ) { return false; }
+	
+		if ( $res['totalRows'] != 0 ) {
+			foreach($v_userStats->resultRows as $v_stat) {
+				$stat = [];
+				WOOOF_Util::filterOnKeys($stat, $statsElems, $v_stat);
+				$stats[] = $stat;
+			}
+		}
+		else {
+			$stats = [];
+		}
+		
+		return $stats;
+	} //getStatsInfo
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $voiceUserId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getAddressesInfo( WOOOF $wo, $voiceUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  $voiceUserId" );
+		
+		$voiceUser = $wo->db->getRow('voice_users', $voiceUserId); //fernei olo to row
+		if($voiceUser === FALSE) { return false; }
+		
+		$addresses = []; //array to be sent to react element
+		$addresses['genericType'] = 'PRS';
+		$addresses['genericId'] = $voiceUser['personProfileId'];
+		$addresses['list'] = [];
+		$addressElems = ['id', 'areaId', 'addressTypeDVId', 'addressText', 'fromYear', 'toYear', 'areaText', 'addressTypeDesc'];
+		
+		$v_person = new WOOOF_dataBaseTable($wo->db, 'v_person_profile_addresses');
+		if ( !$v_person->constructedOk ) { return false; }
+		
+		$res = $v_person->getResult(
+			[
+				'PROF_id' => $voiceUser['personProfileId']
+			],
+			'fromYear',
+			'', '', '',
+			true, false
+		);
+		if ( $res === FALSE ) { return false; }
+		
+		if ( $res['totalRows'] != 0 ) {
+			foreach($v_person->resultRows as $v_address) {
+				$address = [];
+				WOOOF_Util::filterOnKeys($address, $addressElems, $v_address);
+				$addresses['list'][] = $address;
+			}
+		}
+	
+		return $addresses;
+	} //getAddressesInfo
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $voiceUserId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getEducationInfo( WOOOF $wo, $voiceUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  $voiceUserId" );
+	
+		$voiceUser = $wo->db->getRow('voice_users', $voiceUserId); //fernei olo to row
+		if($voiceUser === FALSE) { return false; }
+	
+		$educations = []; //array to be sent to react element
+		$educationElems = ['id', 'fromYear', 'toYear', 'title', 'degreeTypeDVId', 'organisationId'];
+		
+		$personEducationTbl = new WOOOF_dataBaseTable($wo->db, 'person_profile_educations');
+		if ( !$personEducationTbl->constructedOk ) { return false; }
+		
+		$res = $personEducationTbl->getResult(
+			[
+				'personProfileId' => $voiceUser['personProfileId']
+			],
+			'fromYear',
+			'', '', '',
+			true, false
+		);
+		if ( $res === FALSE ) { return false; }
+		
+		if ( $res['totalRows'] != 0 ) {
+			foreach($personEducationTbl->resultRows as $v_education) {
+				$education = [];
+				WOOOF_Util::filterOnKeys($education, $educationElems, $v_education);
+				
+				$degreeType = $wo->db->getRow('__domain_values', $education['degreeTypeDVId']); //fernei olo to row
+				$education['degreeTypeDesc'] = $degreeType['description'];
+				
+				$organisation = $wo->db->getRow('organisations', $education['organisationId']); //fernei olo to row
+				$education['organisation'] = $organisation['name'];
+				
+				array_push($educations, $education);
+			}
+		}
+		
+		return $educations;
+	} //getEducationInfo
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $voiceUserId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getSocialAccounts( WOOOF $wo, $voiceUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  $voiceUserId" );
+	
+		$voiceUser = $wo->db->getRow('voice_users', $voiceUserId); //fernei olo to row
+		if($voiceUser === FALSE) { return false; }
+	
+		$socialAccounts = []; //array to be sent to react element
+		$socialAccountElems = ['id', 'socialAccountDVId', 'url', 'credentials'];
+	
+		$personSocialTbl = new WOOOF_dataBaseTable($wo->db, 'person_profile_social_accounts');
+		if ( !$personSocialTbl->constructedOk ) { return false; }
+	
+		$res = $personSocialTbl->getResult(
+			[
+				'personProfileId' => $voiceUser['personProfileId']
+			],
+			'socialAccountDVId',
+			'', '', '',
+			true, false
+		);
+		if ( $res === FALSE ) { return false; }
+	
+		if ( $res['totalRows'] != 0 ) {
+			foreach($personSocialTbl->resultRows as $v_social) {
+				$social = [];
+				WOOOF_Util::filterOnKeys($social, $socialAccountElems, $v_social);
+	
+				$accountType = $wo->db->getRow('__domain_values', $social['socialAccountDVId']); //fernei olo to row
+				$social['socialAccountDesc'] = $accountType['description'];
+				$social['socialAccountIcon'] = $accountType['iconFont'];
+	
+				array_push($socialAccounts, $social);
+			}
+		}
+	
+		return $socialAccounts;
+	} //getSocialAccounts
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $voiceUserId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getSkills( WOOOF $wo, $voiceUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  $voiceUserId" );
+	
+		$voiceUser = $wo->db->getRow('voice_users', $voiceUserId); //fernei olo to row
+		if($voiceUser === FALSE) { return false; }
+	
+		$skills = []; //array to be sent to react element
+		$skillElems = ['id', 'tagId', 'fromYear', 'proficiencyTypeDVId', 'comments', 'organisationId'];
+	
+		$personSkillsTbl = new WOOOF_dataBaseTable($wo->db, 'person_profile_skills');
+		if ( !$personSkillsTbl->constructedOk ) { return false; }
+		
+		$res = $personSkillsTbl->getResult(
+			[
+				'personProfileId' => $voiceUser['personProfileId']
+			],
+			'fromYear',
+			'', '', '',
+			true, false
+		);
+		
+		if ( $res === FALSE ) { return false; }
+		
+		if ( $res['totalRows'] != 0 ) {
+			foreach($personSkillsTbl->resultRows as $v_skill) {
+				
+				$skill = [];
+				WOOOF_Util::filterOnKeys($skill, $skillElems, $v_skill);
+				
+				$proficiency = $wo->db->getRow('__domain_values', $skill['proficiencyTypeDVId']); //fernei olo to row
+				if($proficiency === FALSE) { return false; }
+				$skill['proficiency'] = $proficiency['domainValueCode'];
+				
+				$tag = $wo->db->getRow('tags', $skill['tagId']); //fernei olo to row
+				if($tag === FALSE) { return false; }
+				$skill['name'] = $tag['tagPhrase'];
+				$skill['categoryTypeVal'] = $tag['categoryType'];
+				
+				$belongsTo = $wo->db->getRow('tags', $tag['belongsToTagId']); //fernei olo to row
+				if($belongsTo === FALSE) { return false; }
+				
+				$skill['belongsTo'] = [
+					'id' => $belongsTo['id'],
+					'tagPhrase' => $belongsTo['tagPhrase'],
+					'synonyms' => $belongsTo['synonyms'],
+					'categoryType' => $belongsTo['categoryType']
+				];
+	
+				array_push($skills, $skill);
+			}
+		}
+	
+		return $skills;
+	} //getSkills
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $voiceUserId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getExperiences( WOOOF $wo, $voiceUserId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  $voiceUserId" );
+	
+		$voiceUser = $wo->db->getRow('voice_users', $voiceUserId); //fernei olo to row
+		if($voiceUser === FALSE) { return false; }
+	
+		$experiences = []; //array to be sent to react element
+		$experienceElems = ['id', 'fromYear', 'toYear', 'position', 'workRelationTypeDVId', 'comments', 'organisationId'];
+	
+		$personExperiencesTbl = new WOOOF_dataBaseTable($wo->db, 'person_profile_experiences');
+		if ( !$personExperiencesTbl->constructedOk ) { return false; }
+	
+		$res = $personExperiencesTbl->getResult(
+			[
+				'personProfileId' => $voiceUser['personProfileId']
+			],
+			'fromYear',
+			'', '', '',
+			true, false
+		);
+	
+		if ( $res === FALSE ) { return false; }
+	
+		if ( $res['totalRows'] != 0 ) {
+			foreach($personExperiencesTbl->resultRows as $v_experience) {
+	
+				$experience = [];
+				WOOOF_Util::filterOnKeys($experience, $experienceElems, $v_experience);
+	
+				$relationType = $wo->db->getRow('__domain_values', $experience['workRelationTypeDVId']); //fernei olo to row
+				if($relationType === FALSE) { return false; }
+
+				$experience['relation'] = $relationType['description'];
+	
+				$organisation = $wo->db->getRow('organisations', $experience['organisationId']); //fernei olo to row
+				$experience['organisation'] = $organisation['name'];
+				$experience['organisationId'] = $organisation['id'];
+	
+				array_push($experiences, $experience);
+			}
+		}
+	
+		return $experiences;
+	} //getExperiences
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $voiceUserId
+	 * @return false | array[ counter => (int 0 to 100), tips => array[string ], color => string ]
+	 */
+	public static
+	function getProfileCompletion( WOOOF $wo, $main, $addresses, $educations, $socialAccounts, $skills, $experiences )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  'getProfileCompletion'" );
+		
+		$counter = 0;
+		$completeness['tips'] = [];
+		
+		//Check for main info filled
+		if($wo->hasContent($main)) {
+			$completeness['hasFilledMainInfo'] = true;
+			$counter = $counter + 5;
+		}
+		else {
+			$completeness['hasFilledMainInfo'] = 'mainComp';
+			$completeness['tips'][] = [
+				'tip' => 'Fill in your personal information',
+				'bookmark' => 'mainComp'
+			];
+		}
+		
+		//Check for one liner filled
+		if($wo->hasContent($main['VUS_oneLiner'])) {
+			$completeness['hasFilledOneLiner'] = true;
+			$counter = $counter + 5;
+		}
+		else {
+			$completeness['hasFilledOneLiner'] = 'mainComp';
+			$completeness['tips'][] = [
+				'tip' => 'Fill in your one liner',
+				'bookmark' => 'mainComp'
+			];
+		}
+		
+		//check for cv file uploaded
+		if($wo->hasContent($main['cvFileObject']['externalFileId'])) {
+			$completeness['hasUploadedCV'] = true;
+			$counter = $counter + 10;
+		}
+		else {
+			$completeness['hasUploadedCV'] = 'mainComp';
+			$completeness['tips'][] = [
+				'tip' => 'Upload your CV',
+				'bookmark' => 'mainComp'
+			];
+		}
+		
+		//check for avatar image uploaded
+		if($wo->hasContent($main['avatarImg'])) {
+			$completeness['hasUploadedImage'] = true;
+			$counter = $counter + 15;
+		}
+		else {
+			$completeness['hasUploadedImage'] = 'mainComp';
+			$completeness['tips'][] = [
+				'tip' => 'Upload a profile picture',
+				'bookmark' => 'mainComp'
+			];
+		}
+		
+		//check for services filled
+		if($wo->hasContent($main['services'])) {
+			$completeness['hasFilledServices'] = true;
+			$counter = $counter + 10;
+		}
+		else {
+			$completeness['hasFilledServices'] = 'mainComp';
+			$completeness['tips'][] = [
+				'tip' => 'Choose some services that you provide',
+				'bookmark' => 'mainComp'
+			];
+		}
+		
+		//check for roles filled
+		if($wo->hasContent($main['voiceRolesIds'])) {
+			$completeness['hasFilledRoles'] = true;
+			$counter = $counter + 10;
+		}
+		else {
+			$completeness['hasFilledRoles'] = 'mainComp';
+			$completeness['tips'][] = [
+				'tip' => 'Choose some roles of you',
+				'bookmark' => 'mainComp'
+			];
+		}
+		
+		//check for addresses filled
+		if($wo->hasContent($addresses)) {
+			$completeness['hasFilledAddresses'] = true;
+			$counter = $counter + 10;
+		}
+		else {
+			$completeness['hasFilledAddresses'] = 'addressComp';
+			$completeness['tips'][] = [
+				'tip' => 'Fill in your addresses section',
+				'bookmark' => 'addressComp'
+			];
+		}
+		
+		//check for educations filled
+		if($wo->hasContent($educations)) {
+			$completeness['hasFilledEducations'] = true;
+			$counter = $counter + 5;
+		}
+		else {
+			$completeness['hasFilledEducations'] = 'educationComp';
+			$completeness['tips'][] = [
+				'tip' => 'Fill in your education section',
+				'bookmark' => 'educationComp'
+			];
+		}
+		
+		//check for accounts filled
+		if($wo->hasContent($socialAccounts)) {
+			$completeness['hasFilledAccounts'] = true;
+			$counter = $counter + 10;
+		}
+		else {
+			$completeness['hasFilledAccounts'] = 'accountComp';
+			$completeness['tips'][] = [
+				'tip' => 'Fill in your social accounts / contact section',
+				'bookmark' => 'accountComp'
+			];
+		}
+		
+		//check for skills filled
+		if($wo->hasContent($skills)) {
+			$completeness['hasFilledSkills'] = true;
+			$counter = $counter + 10;
+		}
+		else {
+			$completeness['hasFilledSkills'] = 'skillComp';
+			$completeness['tips'][] = [
+				'tip' => 'Provide your skills',
+				'bookmark' => 'skillComp'
+			];
+		}
+		
+		//check for experiences filled
+		if($wo->hasContent($experiences)) {
+			$completeness['hasFilledExperiences'] = true;
+			$counter = $counter + 10;
+		}
+		else {
+			$completeness['hasFilledExperiences'] = 'experienceComp';
+			$completeness['tips'][] = [
+				'tip' => 'Fill in your work experience section',
+				'bookmark' => 'experienceComp'
+			];
+		}
+		
+		// Compeletion %
+		$completeness['counter'] = $counter;
+		
+		// Color
+		if ( $counter < 35 ) {
+			$completeness['color'] = 'red';
+		}
+		elseif ( $counter < 70 ) {
+			$completeness['color'] = 'orange';
+		}
+		elseif ( $counter < 100 ) {
+			$completeness['color'] = 'blue';
+		}
+		else {
+			$completeness['color'] = 'green';
+		}
+		
+		return $completeness;
+	} //getProfileCompletion
+	
+}	// VO_ProfileData

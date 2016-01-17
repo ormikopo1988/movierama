@@ -1,0 +1,66 @@
+// delete from areas, areas_belongs_to
+// fix areas table (isoCode2/3) -> recreate view v_person_profile_addresses
+// load TSV file: GeoNamesCountriesLoad.txt
+
+insert into areas (
+  id, name, areaType
+)
+select
+  distinct continent, continent, 'CONTINENT'
+from
+  _load_countries
+;
+
+
+insert into areas (
+  id, name, isocode2, isocode3, areaType
+)
+select
+  isoalpha, name, iso, isoalpha, 'COUNTRY'
+from
+  _load_countries
+;
+
+insert into areas_belongs_to (
+  id, areaId, belongsToAreaId
+)
+select
+  concat( isoalpha, '_', continent ), isoalpha, continent
+from
+  _load_countries
+where
+  continent is not null
+;
+
+
+/* Proper names to Continents */
+
+UPDATE `areas` SET
+`name` = 'Africa'
+WHERE `id` = 'AF'
+;
+
+UPDATE `areas` SET
+`name` = 'Asia'
+WHERE `id` = 'AS'
+;
+
+UPDATE `areas` SET
+`name` = 'Europe'
+WHERE `id` = 'EU'
+;
+
+UPDATE `areas` SET
+`name` = 'North America'
+WHERE `id` = 'NA'
+;
+
+UPDATE `areas` SET
+`name` = 'South America'
+WHERE `id` = 'SA'
+;
+
+UPDATE `areas` SET
+`name` = 'Antarctica'
+WHERE `id` = 'AN'
+;

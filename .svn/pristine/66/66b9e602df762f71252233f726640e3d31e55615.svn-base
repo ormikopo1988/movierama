@@ -1,0 +1,141 @@
+<?php
+
+class VO_CtrlIdeas {
+	const _ECP = 'CID';	// Error Code Prefix
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function createIdeaViewForm( WOOOF $wo ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE Idea Creation Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$userId = $wo->app->userId;
+		
+		$lookUps = WOOOF_Domains::getMultipleDomains($wo,
+			array(
+				'IDEA_TYPE'
+			)
+		);
+		
+		if ( $lookUps === FALSE ) { $wo->handleShowStopperError(); }
+		$lookUps = json_encode($lookUps);
+		
+		//GET ALL TEAMS OF USER
+		$sql = "SELECT GRO_id, GRO_title 
+			FROM v_voice_user_groups 
+			WHERE VUG_voiceUserId='$userId' and GRO_groupType='TEA' and VUG_isActive='1' and VUG_isDeleted='0'";
+		$result = $wo->db->query($sql);
+		if ( $result === FALSE ) { return false; } 
+		
+		$groups = [];
+		
+		if (!$wo->db->getNumRows($result))
+		{
+			//no error no results
+			return [];
+		}
+		
+		else 
+		{
+			//no error results
+			while($row = $wo->db->fetchAssoc($result))
+			{
+				$groups[] = [
+					'id'    => $row['GRO_id'],
+					'title' => $row['GRO_title']
+				];
+			}
+		}
+		
+		$groups = json_encode($groups);
+		
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var lookUps = $lookUps;
+			var groups = $groups;
+			ReactDOM.render(
+				React.createElement(
+					CreateIdeaForm,
+					{ data: '$userId', lookUps: lookUps, groups: groups }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+		;
+	
+		$tpl = array(
+			'browserTitle'	=> $browserTitle,
+			'content' 		=> $content,
+			'errorMessage'	=> '',
+			'message'		=> '',
+		);
+		
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//createGroupViewForm
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | [ 'ideaCreatedOk' => bool, 'ideaCreatedId' => id ]
+	 */
+	
+	public static function createIdea( WOOOF $wo, $in ) {
+		
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if( !$wo->hasContent($in) ) {
+			$wo->logError(self::_ECP."1346 You must provide data in order to create an idea!");
+			return false;
+		}
+		
+		$res = VO_Ideas::createIdea($wo, $in, $in['ownershipTo']);
+	
+		if($res === FALSE) {
+			$out = [
+				'ideaCreatedOk' => false,
+				'errors' 		=> $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'ideaCreatedOk'	=> true,
+				'ideaCreatedId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+
+	}	//createIdea
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+}	// VO_CtrlIdeas

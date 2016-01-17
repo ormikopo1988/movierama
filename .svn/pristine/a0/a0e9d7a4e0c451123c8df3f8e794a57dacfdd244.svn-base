@@ -1,0 +1,184 @@
+<?php
+
+class VO_Experiences {
+	const _ECP = 'EXP';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param VO_TblExperienceGeneric $obj
+	 * @param bool $fetchBack
+	 * @param array $experience
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static 
+	function save( WOOOF $wo, VO_TblExperienceGeneric &$obj, $i='', $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	    
+		if ( !$wo->hasContent($obj->workRelationTypeDVId) ) {
+			$wo->logError(self::_ECP."0470 [$i] No value provided for [workRelationTypeDVId]" );
+			return false;
+		}
+		
+		if ( $wo->hasContent($obj->fromYear) && $wo->hasContent($obj->toYear) &&
+				$obj->toYear < $obj->fromYear )
+		{
+			$wo->logError(self::_ECP."0471 [$i] 'To Year' must be greater than 'From Year'" );
+			return false;
+		}
+		
+		$tblExperienceGeneric = new WOOOF_dataBaseTable($wo->db, 'person_profile_experiences');
+		if($tblExperienceGeneric === FALSE) { return false; }
+		
+		if ( $wo->hasContent($obj->id) ) {
+			// update
+			
+			$res = $tblExperienceGeneric->updateRowFromArraySimple( $obj->toArray() );
+			if ( $res === FALSE ) { return FALSE; }
+		}
+		else {
+			// insert
+			
+			$newId = $tblExperienceGeneric->insertRowFromArraySimple( $obj->toArray() );
+			if ( $newId === FALSE ) { return false; }
+			$obj->id = $newId;
+		}
+
+		if ( $fetchBack ) {
+			// Get back into $obj based on id
+			// TODO:
+		}
+	  
+		return $obj->id;
+	}	// save
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $id
+	 * @return bool
+	 */
+	public static
+	function delete( WOOOF $wo, $id )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+			
+		if ( !$wo->hasContent($id) ) {
+			$wo->logError(self::_ECP."0199 No value provided for [id]" );
+			return false;
+		}
+	
+		$tblExperienceGeneric = new WOOOF_dataBaseTable($wo->db, 'person_profile_experiences');
+		if($tblExperienceGeneric === FALSE) { return false; }
+	
+		$res = $tblExperienceGeneric->deleteRow($id);
+		if($res === FALSE) { return false; }
+			
+		return true;
+	}	// delete
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | no of affectedRows
+	 * Returns actually saved $obj
+	 */
+	public static
+	function saveExperiences( WOOOF $wo, $in, $personProfileId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	
+		if(!$wo->hasContent($in)) {
+			$wo->logError(self::_ECP."1032 No value provided for experiences");
+			return false;
+		}
+		
+		$affectedRows = 0;
+		$i = 0;
+		foreach ($in as $experience) {
+			$i++;
+			$status = $experience['_status'];
+		
+			if ($status === 'R') {
+				continue;
+			}
+			
+			$affectedRows++;
+			
+			//find specific row for cases 'U' and 'D'
+			if($status === 'U') {
+				$oldExperience = $wo->db->getRow('person_profile_experiences', $experience['id']);
+				if($oldExperience === FALSE) { return false; }
+				if($oldExperience === NULL) {
+					$wo->logError(self::_ECP."1566 [$i] No row with id [$experience] found!");
+					return false;
+				}
+			}
+		
+					
+			//if status !== 'R'
+			//case 'I'
+			if($status === 'I') {
+				$tblExperienceInsert = new VO_TblExperienceGeneric($experience);
+				$tblExperienceInsert->id = '';
+				$tblExperienceInsert->personProfileId = $personProfileId;
+		
+				$res = self::save($wo, $tblExperienceInsert, $i);
+				if($res === FALSE) { return false; }
+			}
+		
+			//case 'U'
+			elseif($status === 'U') {
+				$tblExperienceUpdate = new VO_TblExperienceGeneric($oldExperience);
+		
+				$tblExperienceUpdate->workRelationTypeDVId = $experience['workRelationTypeDVId'];
+				$tblExperienceUpdate->position = $experience['position'];
+				$tblExperienceUpdate->fromYear = $experience['fromYear'];
+				$tblExperienceUpdate->toYear = $experience['toYear'];
+				$tblExperienceUpdate->comments = $experience['comments'];
+				$tblExperienceUpdate->organisationId = $experience['organisationId'];
+		
+				$res = self::save($wo, $tblExperienceUpdate, $i);
+				if($res === FALSE) { return false; }
+			}
+		
+			//case 'D'
+			elseif($status === 'D') {
+				$res = self::delete($wo, $experience['id'], $i);
+				if($res === FALSE) { return false; }
+			}
+		
+			else {
+				$wo->logError(self::_ECP."1161 [$i] Wrong status [$status]");
+				return false;
+			}
+		
+		}
+		
+		if ( $affectedRows > 0 ) {
+			$usActId = VO_Users::saveAction( $wo, 'PR1', null, null, 'experience' );
+		}
+		
+		return $affectedRows;
+	}	// saveExperiences
+	
+}	// VO_Experiences

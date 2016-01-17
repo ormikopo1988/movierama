@@ -1,0 +1,26 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import $ from 'jquery';
+var Select = require('react-select');
+
+export default React.createClass({
+	render: function() {
+		var self = this;
+		var getOptions = function(input, callback) {
+			VOICE.ajaxCall(self.props.url, 'GET', { input: input }, this, function(result) {
+				callback(null, {
+		            options: result,
+		            complete: true
+		        });
+			});
+		};
+
+		return (
+			<Select
+				{...this.props}
+			    asyncOptions={getOptions}
+			    autoload={false}
+			    multi={true} />
+		);
+	}
+});

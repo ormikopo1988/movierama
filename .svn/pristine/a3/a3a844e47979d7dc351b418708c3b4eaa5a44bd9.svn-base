@@ -1,0 +1,14 @@
+<?php
+/* Class [VO_TblOrgAccountGeneric] for table [organisation_social_accounts] */
+
+class VO_TblOrgAccountGeneric extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'organisation_social_accounts';
+
+    public $id;
+    public $isDeleted;
+    public $organisationId;
+    public $socialAccountDVId;
+    public $url;
+
+}  // VO_TblOrgAccountGeneric

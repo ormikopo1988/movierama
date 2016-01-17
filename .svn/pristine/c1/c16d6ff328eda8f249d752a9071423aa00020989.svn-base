@@ -1,0 +1,9 @@
+recreate Tbl Classes:
+  VoiceUserGroups
+  Ideas
+  IdeaVersions
+  IdeaOtherContents
+
+relevant tables / views changed!
+
+Use singular for class name!!!!

@@ -1,0 +1,50 @@
+<?php
+		// WOOOF search 
+
+		// $wo->db->getRow		
+		$voiceUserProfile = $wo->db->getRow('person_profiles', $voiceUser['personProfileId']);
+		if($voiceUserProfile === FALSE) { return false; }
+		
+		// $wo->db->getRowByColumn		
+		$voiceUser = $wo->db->getRowByColumn('voice_users', 'userId', $wo->userData['id']);
+		if($voiceUser === FALSE) { return false; }
+		
+		// $aTable->getResult
+		$v_person = new WOOOF_dataBaseTable($wo->db, 'v_person_profile_addresses');
+		if ( !$v_person->constructedOk ) { return false; }
+		
+		$res = $v_person->getResult(
+			[
+				'PROF_id' => $voiceUser['personProfileId']
+			],
+			'lastName', '', '', '', true, false
+			// 'orderbyexpression', 'limitStart', '$limitHowMany', 'extraWhereClause', 'serialRows = TRUE', 'associativeRows = TRUE', 'deletePreviousResults = TRUE'
+		);
+		if ( $res === FALSE ) { return false; }
+		
+		if ( $res['totalRows'] != 0 ) {
+			foreach($v_person->resultRows as $v_address) {
+				...
+			}
+		}
+
+
+		// raw results
+		$sql = 
+			"select messageText, messageType, fadeInSeconds from session_messages ";
+		
+		$where = 
+			"where sessionId = '$sid' " . 
+			( $messageType == 'ALL' ? '' : "messageType = '$messageType' ")
+		;
+		
+		$sql = $sql . $where . ' order by whenMicrotime';
+					
+		$res = $wo->db->getResultByQuery($sql, true, false);
+		if ( $res === FALSE ) { return FALSE; }
+		
+		$out = $wo->db->resultRows;
+
+		// raw query
+		
+?>

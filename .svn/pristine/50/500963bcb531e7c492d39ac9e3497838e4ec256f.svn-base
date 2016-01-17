@@ -1,0 +1,122 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var RB = require('react-bootstrap');
+import $ from 'jquery';
+
+import MessagesBoxComp from './MessagesBoxComp';
+
+export default React.createClass({ //BookmarkComp
+
+  getInitialState: function() {
+    var bookmarking;
+
+    if(this.props.connections.bookmarkStatus === 'N' || this.props.connections.bookmarkStatus === 'B2') {
+      bookmarking = 'false';
+    }
+    
+    else {
+      bookmarking = 'true';
+    }
+    
+    return {
+      connections: this.props.connections,
+      bookmarking: bookmarking,
+  	};
+  },
+
+  bookmarkUser: function(urlString) {
+    var url = VOICE.linkPrefix(urlString);
+    VOICE.ajaxCall(url, 'POST', {}, this, this.cbHandleBook);
+  },
+
+  cbHandleBook: function(result) {
+    console.log(result);
+    if(result.bookmarkOk) {
+      this.refs.msgBox.clearErrors();
+      this.refs.msgBox.addSuccess('Bookmark request successful!', false);
+      setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+      this.setState({
+        bookmarking: 'true'
+      });
+
+      var refreshData = {
+        requestorId: VOICE.globals.userId,
+        targetIds: [this.state.connections.targetId]
+      };
+      
+      VOICE.ajaxCall(VOICE.linkPrefix('api/social/getConnectionInfo'), 'POST', refreshData, this, this.refreshData);
+    }
+
+    else {
+      this.refs.msgBox.addError(result.errors);
+      setTimeout(this.refs.msgBox.clearErrors, 5000);
+    }
+  },
+
+  unbookmarkUser: function(urlString) {
+    var url = VOICE.linkPrefix(urlString);
+    VOICE.ajaxCall(url, 'POST', {}, this, this.cbHandleUnBook);
+  },
+
+  cbHandleUnBook: function(result) {
+    console.log(result);
+    if(result.unBookmarkOk) {
+      this.refs.msgBox.clearErrors();
+      this.refs.msgBox.addSuccess('Unbookmark request successful!', false);
+      setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+      this.setState({
+        bookmarking: 'false'
+      });
+
+      var refreshData = {
+        requestorId: VOICE.globals.userId,
+        targetIds: [this.state.connections.targetId]
+      };
+      
+      VOICE.ajaxCall(VOICE.linkPrefix('api/social/getConnectionInfo'), 'POST', refreshData, this, this.refreshData);
+    }
+
+    else {
+      this.refs.msgBox.addError(result.errors);
+      setTimeout(this.refs.msgBox.clearErrors, 5000);
+    }
+  },
+
+  refreshData: function(result) {
+    console.log('REFRESHED DATA: ', result);
+    this.setState({
+      connections: result.getConnections[0]
+    });
+  },
+
+  render: function() {
+     var con = this.state.connections;
+     console.log(con, con.bookmarkLink);
+
+     var cbBookmark = this.bookmarkUser.bind(null, con.bookmarkLink);
+     var cbUnbookmark = this.unbookmarkUser.bind(null, con.bookmarkLink);
+     
+     return (
+        <span>
+          {
+            VOICE.globals.userId !== con.targetId ?
+            <span className="socialActionsDiv">
+                {
+                  this.state.bookmarking === 'false' ? 
+                  <button type="button" className="btn btn-default btn-sm btn-link" 
+                    onClick={cbBookmark}>
+                      <span><i className="fa fa-bookmark fa-lg"></i> Bookmark</span>
+                  </button> :
+                  <button type="button" className="btn btn-default btn-sm btn-link" 
+                    onClick={cbUnbookmark}>
+                      <span><i className="fa fa-bookmark-o"></i> Unbookmark</span>
+                  </button>
+                }
+                <br/><br/>
+                <MessagesBoxComp ref="msgBox"/>
+             </span> : null
+           }
+         </span>
+      );
+  }
+}); //BookmarkComp

@@ -1,0 +1,154 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import AutoCompleteComp from './AutoCompleteComp';
+import SocialActionsComp from './SocialActionsComp';
+import BookmarkComp from './BookmarkComp';
+import GroupActionsComp from './GroupActionsComp';
+
+export default React.createClass({ //ActivityLogList
+  
+  /*
+	properties
+	autocompleteUrl: last part of api/autoComplete/
+	viewUrl: where to go e.g. profile/view | organisation/view etc.
+  */
+
+  getInitialState: function() {
+  	return {};
+  },
+
+  render: function() {
+  	console.log(this.props);
+  	
+  	if(this.props.data.length !== 0) {
+  		var results = this.props.data;
+  		var voiceUserId = this.props.data[0].VUN_userId || null;
+  	}
+  	
+  	return (
+      <div classNameName="container">
+		<center><a href={VOICE.linkPrefix('profile/view/'+voiceUserId)}><h1>{this.props.title}</h1></a></center>
+		{
+        	this.props.data.length !== 0 ? 
+	        	results.map(function(result) {
+	          		console.log('RESULT: ', result);
+	          		return (
+	          			result.isType === 'LIN' ?
+	          				<div className="row">
+		          				<Activity isType="LIN" key={result.VUN_id} result={result}></Activity>
+		          			</div> : 
+	          			result.isType === 'PRS' ?
+		          			<div className="row">
+		          				<Activity isType="PRS" key={result.VUN_id} result={result}></Activity>
+		          			</div> : 
+		          		result.isType === 'ORG' ?
+		          			<div className="row">
+		          				<Activity isType="ORG" key={result.VUN_id} result={result}></Activity>
+		          			</div> : 
+		          		result.isType === 'GRO' ?
+		          			<div className="row">
+		          				<Activity isType="GRO" key={result.VUN_id} result={result}></Activity>
+		          			</div> : null
+	          		); 
+	          	}) : null
+        }
+      </div>
+    );
+  } 
+});
+
+var Activity = React.createClass({
+
+	render: function() {
+		var result = this.props.result;
+		var isType = this.props.isType;
+
+		//CREATE TIME
+		var actionDateTime = moment.utc(result.VUN_whenDateTime, 'YYYYMMDDhhmmss').fromNow();
+
+		//////////////////////////////////////////////CREATE AVATARS/////////////////////////////////////
+		//CREATE USER'S ACTIVITY IMAGE
+		var userAvatarImg = result.VUS_avatarImg || 'profile_none.png';
+		var userAvatarURL = '';
+		if(userAvatarImg !== 'profile_none.png') {
+			userAvatarURL = VOICE.imgPrefix(userAvatarImg);
+		}
+		else {
+			userAvatarURL = VOICE.systemImgPrefix(userAvatarImg);
+		}
+
+		var userAvatarDivStyle = {
+			backgroundImage: 'url(' + userAvatarURL + ')'
+		};
+
+		//CREATE TARGET USER IMAGE
+		var targetUserAvatarImg = result.RELUS_avatarImg || 'profile_none.png';
+		var targetUserAvatarURL = '';
+		if(targetUserAvatarImg !== 'profile_none.png') {
+			targetUserAvatarURL = VOICE.imgPrefix(targetUserAvatarImg);
+		}
+		else {
+			targetUserAvatarURL = VOICE.systemImgPrefix(targetUserAvatarImg);
+		}
+
+		var targetUserAvatarDivStyle = {
+			backgroundImage: 'url(' + targetUserAvatarURL + ')'
+		};
+
+		//CREATE TARGET ORGANISATION IMAGE
+		var targetOrgAvatarImg = result.RELOR_logoImage || 'no_image_available.jpg';
+		var targetOrgAvatarURL = '';
+		if(targetOrgAvatarImg !== 'no_image_available.jpg') {
+			targetOrgAvatarURL = VOICE.imgPrefix(targetOrgAvatarImg);
+		}
+		else {
+			targetOrgAvatarURL = VOICE.systemImgPrefix(targetOrgAvatarImg);
+		}
+
+		var targetOrgAvatarDivStyle = {
+			backgroundImage: 'url(' + targetOrgAvatarURL + ')'
+		};
+
+		//CREATE TARGET GROUP IMAGE
+		var targetGroAvatarImg = result.RELGR_avatarImg || 'no_image_available.jpg';
+		var targetGroAvatarURL = '';
+		if(targetGroAvatarImg !== 'no_image_available.jpg') {
+			targetGroAvatarURL = VOICE.imgPrefix(targetGroAvatarImg);
+		}
+		else {
+			targetGroAvatarURL = VOICE.systemImgPrefix(targetGroAvatarImg);
+		}
+
+		var targetGroAvatarDivStyle = {
+			backgroundImage: 'url(' + targetGroAvatarURL + ')'
+		};
+		////////////////////////////////END CREATE AVATARS///////////////////////////////////////////////
+
+		return (
+			<div className="col-md-12 col-sm-12">
+				<div className="well well-sm well-agency">           
+					<i className="fa fa-clock-o smallFa"></i> - <strong><i>{actionDateTime}</i></strong><br/>		
+					{
+						isType === 'PRS' ?
+							<span>
+								<i className="fa fa-flag"></i> <strong>{result.VUN_infoText}</strong> 
+								{result.actionFromName} <div className="circle-header-2" style={targetUserAvatarDivStyle}></div> 
+							</span> : 
+						isType === 'ORG' ?
+							<span>
+								<i className="fa fa-flag"></i> <strong>{result.VUN_infoText}</strong>
+								<a href={VOICE.linkPrefix('organisation/view/'+result.VUN_relevantOrganisationId)}> {result.actionFromName} <div className="circle-header-2" style={targetOrgAvatarDivStyle}></div> </a> 
+							</span> : 
+						isType === 'GRO' ?
+							<span>
+								<i className="fa fa-flag"></i> <strong>{result.VUN_infoText}</strong> {result.RELUS_slug} <div className="circle-header-2" style={targetUserAvatarDivStyle}></div> 
+								<span> to </span><a href={VOICE.linkPrefix('group/joinRequests/'+result.RELGR_id)}> {result.actionFromName} <div className="circle-header-2" style={targetGroAvatarDivStyle}></div> </a> 
+							</span>: null
+					}
+				</div>
+			</div>
+		)
+	}
+});

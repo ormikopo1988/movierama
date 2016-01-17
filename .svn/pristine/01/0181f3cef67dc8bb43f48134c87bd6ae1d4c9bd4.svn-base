@@ -1,0 +1,727 @@
+<?php
+
+class VO_CtrlIdeas {
+	const _ECP = 'CID';	// Error Code Prefix
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function userIdeas( WOOOF $wo, $voiceUserId = '' ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE User Ideas Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$targetIds = VO_Ideas::getIdeasOfUser($wo, $voiceUserId);
+		if ( $targetIds === FALSE ) { return FALSE; }
+		
+		$list = VO_Ideas::getIdeas($wo, $targetIds, $wo->app->userId);
+		if($list === FALSE) { return false; }
+		$list = json_encode($list);
+	
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var list = $list;
+			var autocompleteUrl = 'ideas';
+			
+			ReactDOM.render(
+				React.createElement(
+					ObjectsList,
+					{ data: list, title: 'Ideas', isType: 'IDE',
+					autocompleteUrl: autocompleteUrl, viewUrl: 'idea/view'}
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+		;
+		
+		$tpl = array(
+			'browserTitle'	=> $browserTitle,
+			'content' 		=> $content,
+			'errorMessage'	=> '',
+			'message'		=> '',
+		);
+		
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//userIdeas
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $ideaId
+	 * @return false | [] | [] ta
+	 */
+	public static function viewIdea( WOOOF $wo, $ideaId ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE Idea View Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		$requestedIdea = $wo->db->getRowByColumn('v_ideas', 'IDE_id', $ideaId);
+		if($requestedIdea === FALSE) { return false; }
+		if($requestedIdea === NULL) {
+			$wo->logError(self::_ECP."5075 No row with id [$ideaId] found in ideas table!");
+			return false;
+		}
+	
+		$list = VO_Ideas::getIdeas($wo, [$ideaId], $wo->app->userId);
+		if($list === FALSE) { return false; }
+		$list = json_encode($list);
+		
+		//get all versions of idea
+		$tblIdeaVersions = new WOOOF_dataBaseTable($wo->db, 'idea_versions');
+		if(!$tblIdeaVersions->constructedOk) { return false; }
+		
+		//find other versions of idea
+		$res = $tblIdeaVersions->getResult(
+			[
+				'ideaId' => $ideaId,
+				'isDeleted' => '0',
+				'toDate!'	=> ''
+			],
+			'', '', '', '', false, true
+		);
+		
+		if ( $res === FALSE ) { return false; }
+		
+		$preVersions = [];
+		
+		foreach( $tblIdeaVersions->resultRows as $aOtherVersion ) {
+			$preVersions[] = [
+				'versionString' => $aOtherVersion['versionString'],
+				'versionName'   => $aOtherVersion['versionName'],
+				'versionId'     => $aOtherVersion['id'],
+				'ideaId'        => $aOtherVersion['ideaId']
+			];
+		}
+		
+		$preVersions = json_encode($preVersions);
+		
+		if ( VO_Ideas::isIdeaOwner($wo, $ideaId, $wo->app->userId) === '0' ) {
+			$usActId = VO_Users::saveAction( $wo, 'VII', null, null, null,
+											 $wo->app->userId, null, null, $ideaId );
+			$wo->db->commit();
+		}
+		
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var list = $list;
+			var preVersions = $preVersions;
+			
+			ReactDOM.render(
+				React.createElement(
+					IdeaView,
+					{ data: list, preVersions: preVersions }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+		;
+	
+		$tpl = array(
+			'browserTitle'	=> $browserTitle,
+			'content' 		=> $content,
+			'errorMessage'	=> '',
+			'message'		=> '',
+		);
+	
+	
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//viewIdea
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $ideaId
+	 * @param string $ideaVersionId
+	 * @return false | [] | [] ta
+	 */
+	public static function viewIdeaVersion( WOOOF $wo, $ideaId, $ideaVersionId ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE Idea Version View Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$requestedIdea = $wo->db->getRowByColumn('v_ideas', 'IDE_id', $ideaId);
+		if($requestedIdea === FALSE) { return false; }
+		if($requestedIdea === NULL) {
+			$wo->logError(self::_ECP."5075 No row with id [$ideaId] found in ideas table!");
+			return false;
+		}
+		
+		if( !$wo->hasContent($ideaVersionId) ) {
+			$wo->logError(self::_ECP."1399 You must provide ideaVersionId!");
+			return false;
+		}
+	
+		$list = VO_Ideas::getIdeaByVersion($wo, $ideaId, $wo->app->userId, $ideaVersionId);
+		if($list === FALSE) { return false; }
+		$list = json_encode($list);
+	
+		//get all versions of idea
+		$tblIdeaVersions = new WOOOF_dataBaseTable($wo->db, 'idea_versions');
+		if(!$tblIdeaVersions->constructedOk) { return false; }
+		
+		//find other versions of idea
+		$res = $tblIdeaVersions->getResult(
+			[
+				'ideaId' => $ideaId,
+				'isDeleted' => '0',
+				'toDate!'	=> ''
+			],
+			'', '', '', '', false, true
+		);
+		
+		if ( $res === FALSE ) { return false; }
+		
+		$preVersions = [];
+		
+		foreach( $tblIdeaVersions->resultRows as $aOtherVersion ) {
+			$preVersions[] = [
+				'versionString' => $aOtherVersion['versionString'],
+				'versionName'   => $aOtherVersion['versionName'],
+				'versionId'     => $aOtherVersion['id'],
+				'ideaId'        => $aOtherVersion['ideaId']
+			];
+		}
+		
+		$preVersions = json_encode($preVersions);
+		
+		if ( VO_Ideas::isIdeaOwner($wo, $ideaId, $wo->app->userId) === '0' ) {
+			$usActId = VO_Users::saveAction( $wo, 'VII', null, null, null,
+											 $wo->app->userId, null, null, $ideaId );
+			$wo->db->commit();
+		}
+		
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var list = $list;
+			var preVersions = $preVersions;
+			ReactDOM.render(
+				React.createElement(
+					IdeaView,
+					{ data: list, preVersions: preVersions }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+		;
+	
+		$tpl = array(
+				'browserTitle'	=> $browserTitle,
+				'content' 		=> $content,
+				'errorMessage'	=> '',
+				'message'		=> '',
+		);
+		
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+		
+		}	//viewIdeaVersion
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $ideaId
+	 * @return false | edit idea page
+	 */
+	public static function editIdeaViewForm( WOOOF $wo, $ideaId ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE Idea Edit Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		//TODO - SECURITY EDIT IDEA ONLY IF YOU ARE OWNER - SOS
+		//.............................
+		//.............................
+		//.............................
+		//.............................
+		//.............................
+		
+		$lookUps = WOOOF_Domains::getMultipleDomains($wo,
+			array(
+				'IDEA_TYPE',
+				'CNT_TEXT_TYPE',
+				'CNT_SECTION_TYPE',
+				'CNT_VISIBILITY_TYPE'
+			)
+		);
+		
+		if ( $lookUps === FALSE ) { $wo->handleShowStopperError(); }
+		
+		$templates = VO_Content::getTemplates($wo, 'IDEA' );
+		if ( $templates === FALSE ) { $wo->handleShowStopperError(); }
+		$lookUps['_TEMPLATES'] = $templates;
+		
+		$lookUps = json_encode($lookUps);
+	
+		$requestedIdea = $wo->db->getRowByColumn('v_ideas', 'IDE_id', $ideaId);
+		if($requestedIdea === FALSE) { return false; }
+		if($requestedIdea === NULL) {
+			$wo->logError(self::_ECP."5083 No row with id [$ideaId] found in ideas!");
+			return false;
+		}
+	
+		//check if you really have the edit privileges as member of the owner group of the idea
+		$tblVoiceUserGroups = new WOOOF_dataBaseTable($wo->db, 'voice_user_groups');
+		if(!$tblVoiceUserGroups->constructedOk) { return false; }
+	
+		$memberRec = $tblVoiceUserGroups->getResult(
+			[
+				'voiceUserId' => $wo->app->userId,
+				'groupId'	  => $requestedIdea['IDE_ownersGroupId'],
+				'isActive'	  => '1',
+				'isDeleted'   => '0'
+			],
+			'fromDate',
+			'', '', '',
+			true, false
+		);
+		if ( $memberRec === FALSE ) { return false; }
+	
+		$isIdeaOwnerGroupMember = ($memberRec['totalRows'] != 0);
+	
+		if(!$isIdeaOwnerGroupMember) {
+			$wo->logError(self::_ECP."5085 You have no privileges to edit this idea");
+			$wo->handleShowStopperError('505');
+		}
+	
+		$list = json_encode($requestedIdea);
+	
+		$ideaName = json_encode($requestedIdea['CNT_title'], JSON_HEX_APOS);
+	
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var list = $list;
+			var ideaName = $ideaName;
+			var lookUps = $lookUps;
+			ReactDOM.render(
+				React.createElement(
+					IdeaEdit,
+					{ data: list, title: ideaName, lookUps: lookUps }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+		;
+	
+		$tpl = array(
+			'browserTitle'	=> $browserTitle,
+			'content' 		=> $content,
+			'errorMessage'	=> '',
+			'message'		=> '',
+		);
+		
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//editIdea
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	public static function createIdeaViewForm( WOOOF $wo ) {
+	
+		$requestedAction='viewUncontroled';
+		$pageLocation='3';
+		$browserTitle='VOICE Idea Creation Page';
+		$wo = WOOOF::getWOOOF($pageLocation, $requestedAction, $wo);
+		if ( $wo === FALSE ) { die('Failed to getWOOOF()'); }
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$userId = $wo->app->userId;
+		
+		$lookUps = WOOOF_Domains::getMultipleDomains($wo,
+			array(
+				'IDEA_TYPE'
+			)
+		);
+		if ( $lookUps === FALSE ) { $wo->handleShowStopperError(); }
+		
+		$templates = VO_Content::getTemplates($wo, 'IDEA' );
+		if ( $templates === FALSE ) { $wo->handleShowStopperError(); }
+		$lookUps['_TEMPLATES'] = $templates;
+		
+		$lookUps = json_encode($lookUps);
+		
+		$groups = VO_Groups::getTeams($wo, $userId);
+		if ( $groups === FALSE ) { return FALSE; }
+		$groups = json_encode($groups);
+		
+		$content = <<<EOH
+		<div id='content-main'></div>
+	
+		<script>
+			var lookUps = $lookUps;
+			var groups = $groups;
+			ReactDOM.render(
+				React.createElement(
+					CreateIdeaForm,
+					{ data: '$userId', lookUps: lookUps, groups: groups }
+				),
+				document.getElementById('content-main')
+			);
+		</script>
+EOH
+		;
+	
+		$tpl = array(
+			'browserTitle'	=> $browserTitle,
+			'content' 		=> $content,
+			'errorMessage'	=> '',
+			'message'		=> '',
+		);
+		
+		
+		$wo->fetchApplicationFragment('structural/template.php', [], $tpl);
+	
+	}	//createGroupViewForm
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | [ 'ideaCreatedOk' => bool, 'ideaCreatedId' => id ]
+	 */
+	
+	public static function createIdea( WOOOF $wo, $in ) {
+		
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if( !$wo->hasContent($in) ) {
+			$wo->logError(self::_ECP."1346 You must provide data in order to create an idea!");
+			return false;
+		}
+		
+		$res = VO_Ideas::createIdea($wo, $in, $in['ownershipTo'], $wo->app->userId);
+		
+		if($res === FALSE) {
+			$out = [
+				'ideaCreatedOk' => false,
+				'errors' 		=> $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'ideaCreatedOk'	=> true,
+				'ideaCreatedId'	=> $res,
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+
+	}	//createIdea
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | [ 'ideaEditedOk' => bool, 'ideaEditedId' => id ]
+	 */
+	
+	public static function editIdeaMain( WOOOF $wo, $in ) {
+	
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if( !$wo->hasContent($in) ) {
+			$wo->logError(self::_ECP."1346 You must provide data in order to edit an idea!");
+			return false;
+		}
+	
+		$res = VO_Ideas::editIdeaMain($wo, $in, $wo->app->userId);
+	
+		if($res !== FALSE) {
+			$titleImg = $wo->db->getRowByColumn('v_ideas', 'CNT_id', $res);
+			if($titleImg=== FALSE) { $res = false; }
+		}
+	
+		if($res === FALSE) {
+			$out = [
+				'contentEditedOk' => false,
+				'errors' 		=> $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'contentEditedOk'	=> true,
+				'contentEditedId'	=> $res,
+				'titleImg' => $titleImg['CNT_titleImg']
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	
+	}	//editIdeaMain
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | [ 'ideaTypeSavedOk' => bool, 'ideaTypeSavedRecId' => id ]
+	 */
+	
+	public static function saveIdeaType( WOOOF $wo, $in ) {
+	
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if( !$wo->hasContent($in) ) {
+			$wo->logError(self::_ECP."1349 You must provide data in order to edit an idea!");
+			return false;
+		}
+	
+		$res = VO_Ideas::saveIdeaType($wo, $in, $wo->app->userId);
+	
+		if($res === FALSE) {
+			$out = [
+				'ideaTypeSavedOk' => false,
+				'errors' 		=> $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'ideaTypeSavedOk'	=> true,
+				'ideaTypeSavedRecId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	
+	}	//saveIdeaType
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | [ 'ideaNewVersionSavedOk' => bool, 'ideaNewVersionId' => id ]
+	 */
+	
+	public static function saveNewVersion( WOOOF $wo, $in ) {
+	
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		if( !$wo->hasContentArrayEntry($in, 'id') ) {
+			$wo->logError(self::_ECP."1350 You must idea id to create a new version!");
+			return false;
+		}
+		
+		$res = VO_Ideas::newVersion($wo, $in['id'], $wo->app->userId, $in['versionName']);
+	
+		if($res === FALSE) {
+			$out = [
+				'ideaNewVersionSavedOk' => false,
+				'errors' 		=> $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'ideaNewVersionSavedOk'	=> true,
+				'ideaNewVersionId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	
+	}	//saveNewVersion
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | [ 'ideaNewStatusSavedOk' => bool, 'ideaNewStatusId' => id ]
+	 */
+	
+	public static function saveNewStatus( WOOOF $wo, $in ) {
+	
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if( !$wo->hasContentArrayEntry($in, 'id') ) {
+			$wo->logError(self::_ECP."1355 You must provide an idea id to update its status!");
+			return false;
+		}
+		
+		if( !$wo->hasContentArrayEntry($in, 'newStatus') ) {
+			$wo->logError(self::_ECP."1356 You must provide a new status!");
+			return false;
+		}
+	
+		$res = VO_Ideas::changeIdeaStatus($wo, $in['id'], $wo->app->userId, $in['newStatus']);
+		
+		if($res === FALSE) {
+			$out = [
+				'ideaNewStatusSavedOk' => false,
+				'errors' 		=> $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'ideaNewStatusSavedOk'	=> true,
+				'ideaNewStatusId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	
+	}	//saveNewStatus
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | [ 'getIdeaContentOk' => bool, 'getIdeaContent' => [] ]
+	 */
+	
+	public static function getContent( WOOOF $wo, $in ) {
+	
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		if( !$wo->hasContent($in) ) {
+			$wo->logError(self::_ECP."1349 You must provide data in order to edit an idea!");
+			return false;
+		}
+	
+		$content = VO_Content::getContent($wo, $in['id'], $wo->app->userId);
+		
+		if($content === FALSE) {
+			$out = [
+				'getContentOk' => false,
+				'errors' 		=> $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'getContentOk'	=> true,
+				'getContent'	=> $content
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	
+	}	//getContent
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+}	// VO_CtrlIdeas

@@ -1,0 +1,65 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import $ from 'jquery';
+
+import DashboardComp from './DashboardComp';
+import InvitationComp from './InvitationComp';
+import AutoCompleteComp from './AutoCompleteComp';
+import MessagesBoxComp from './MessagesBoxComp';
+
+export default React.createClass({ //Home
+
+  render: function() {
+  	var userData = this.props.userData || null;
+  	//console.log(userData);
+    return (
+		<div className="container">
+			{
+				userData.voiceUserId == null ?
+					<div clasName="well">
+						<div className="row">
+							<div className="col-md-12">
+								<div className="well">
+									<h1><center>Welcome to VOICE !</center></h1>
+								</div>
+							</div>
+						</div>
+						<div className="row">
+							<div className="col-md-12">
+								<div className="well">
+									<blockquote className="lead">
+										<a href="register">Click here to register</a> or <a href="login">here to login.</a>
+								    </blockquote>
+						    	</div>
+						    </div>
+					    </div> 
+					</div> :
+					<div clasName="well">
+						<DashboardComp userData={this.props.userData} />
+
+						{/*
+					    <div className="row">
+						    <div className="col-md-12">
+						    	<div className="panel panel-default">
+						    		<div className="panel-heading">
+						    			<center><h2>Send Invitations to Join Voice</h2></center>
+						    		</div>
+						    		<div className="panel-body">
+									    {
+											userData.isSelf  ?
+												<div className="col-sm-12 col-md-12 col-lg-12">
+													<InvitationComp></InvitationComp> 
+												</div>: null
+										}
+									</div>
+						    	</div>
+						    </div>
+					    </div>
+						*/}
+		            </div>
+				}
+		</div>
+    );
+  }
+  
+});

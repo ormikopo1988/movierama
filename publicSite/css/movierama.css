@@ -1,0 +1,105 @@
+.subInfo {
+    margin-top: 16px;
+}
+
+body { 
+	padding-bottom: 70px;
+	font-size: 15px; 
+  background-color: #e4e4e4;
+}
+
+#selectBox {
+	padding: 0.2em 0.6em 0.3em;
+}
+
+#basic-addon {
+	padding-bottom: 5px;
+}
+
+.fa:not(.smallFa) {
+	font: x-large/1 FontAwesome !important;
+}
+
+.homeLink {
+    position: relative;
+    padding-right: 5px;
+    bottom: -28px;
+}
+
+.profile-name {
+  padding: 40px;
+}
+
+.fa-2x {
+    padding-right: 20px;
+}
+
+.well-agency {padding:10px;margin-bottom:0;margin:10px 0;}
+.well-agency:hover {background:#fff;}
+.well-agency a {text-decoration:none;}
+.well-service .lead, .well-agency .lead, .well-civic-official .lead {display:block;margin-bottom:5px;font-size:21px;line-height:22px;}
+.well-agency img {border-radius:0px;max-width:150px;float:left;margin:0px 20px 10px 20px; }
+
+.well-service img {margin-bottom:5px;}
+.well-service a {display:block;}
+
+.well-agency .lead {margin-top:10px;}
+.well-agency hr {margin-top: 0;margin-bottom: 0px;clear: both;padding-top: 10px;}
+
+.sub-info {
+  font-size: 16px;
+  margin: 20px;
+}
+
+.isType {
+    margin: 10px;
+}
+
+.loading {
+  margin: 4px !important;
+}
+
+.relFa {
+  position: relative;
+  left: -3px;
+  top: 3px;
+}
+
+.tip {
+  border-bottom: 1px solid lightgray;
+  padding-bottom: 8px;
+  padding-top: 8px;
+}
+
+.custom-modal {
+    width: 100%;
+}
+
+footer {
+    background-color: #43609C !important;
+    color: white !important;
+    padding: 10px !important;
+}
+
+.navbar-inverse .navbar-collapse, .navbar-inverse .navbar-form {
+    border-color: #43609C !important;
+}
+.navbar-default .navbar-collapse, .navbar-default .navbar-form {
+    border-color: #43609C !important;
+}
+
+.sSpace {
+    padding-right: 10px;
+    
+}
+
+.navbar-inverse {
+    background-color: #43609C !important;
+    border-color: #43609C !important;
+}
+
+#movierama-header {
+  margin-bottom: 50px !important;
+}
+
+

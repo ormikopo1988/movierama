@@ -1,0 +1,157 @@
+<?php 
+
+	/********************************************************************/
+	// Content
+	
+
+	// content/create
+	$router->map(
+		'GET',
+		'/content/create',
+		function() use($wo) {
+			VO_CtrlContent::createContentForm($wo, '0');
+		}
+		, 'createContentForm'
+	);
+
+	// content/createTemplate
+	$router->map(
+		'GET',
+		'/content/createTemplate',
+		function() use($wo) {
+			VO_CtrlContent::createContentForm($wo, '1');
+		}
+		, 'createContentTemplateForm'
+	);
+
+	// content/view/[a:contentId]
+	$router->map(
+		'GET',
+		'/content/view/[a:contentId]',
+		function($contentId) use($wo) {
+			VO_CtrlContent::viewContent($wo, $contentId);
+		}
+		, 'viewContent'
+	);
+
+	// content/edit/[a:contentId]
+	$router->map(
+		'GET',
+		'/content/edit/[a:contentId]',
+		function($contentId) use($wo) {
+			VO_CtrlContent::editContent($wo, $contentId);
+		}
+		, 'editContentForm'
+	);
+	
+	// Lists
+
+	// user/contents/[...]
+	$router->map(
+		'GET',
+		'/contents/[user|type|templates|all:what]/[a:param]',
+		function($what, $param) use($wo) {
+			VO_CtrlContent::contentsList($wo, $what, $param, $wo->app->userId);
+		}
+		, 'contentsLists'
+	);
+
+	
+	// API Calls
+
+	// /api/contents/getContent
+	// TODO: Why VO_CtrlIdeas ??
+	$router->map('POST', '/api/contents/getContent', function() use($wo) {
+		try {
+			$res = VO_CtrlIdeas::getContent($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/content/create
+	$router->map('POST', '/api/content/create', function() use($wo) {
+		try {
+			$res = VO_CtrlContent::createContent($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+		
+		
+	// /api/conten/saveMain
+	$router->map('POST', '/api/content/saveMain', function() use($wo) {
+		try {
+			$res = VO_CtrlContent::saveContentMain($wo, json_decode($_POST['data'], true));
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+		
+		
+	// /api/content/author|section/save|delete
+
+	$router->map('POST', '/api/content/author/save', function() use($wo) {
+		try {
+			$res = VO_CtrlContent::contentSaveDeleteAPI($wo, 'authorSave', $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+		
+	$router->map('POST', '/api/content/author/delete', function() use($wo) {
+		try {
+			$res = VO_CtrlContent::contentSaveDeleteAPI($wo, 'authorDelete', $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+			
+	$router->map('POST', '/api/content/section/save', function() use($wo) {
+		try {
+			$res = VO_CtrlContent::contentSaveDeleteAPI($wo, 'sectionSave', $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+		
+	$router->map('POST', '/api/content/section/delete', function() use($wo) {
+		try {
+			$res = VO_CtrlContent::contentSaveDeleteAPI($wo, 'sectionDelete', $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+
+	// /api/content/authors|sections/get/[a:contentId]
+	
+	$router->map('GET', '/api/content/authors/get/[a:contentId]', function($contentId) use($wo) {
+		try {
+			$res = VO_CtrlContent::authorsGet($wo, $contentId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+		
+	$router->map('GET', '/api/content/sections/get/[a:contentId]', function($contentId) use($wo) {
+		try {
+			$res = VO_CtrlContent::sectionsGet($wo, $contentId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+		
+		
+	$router->map('POST', '/api/content/[a:toContentId]/sections/add', function($toContentId) use($wo) {
+		try {
+			$res = VO_CtrlContent::sectionsAdd($wo, $toContentId, $_POST );
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+		
+		
+		
+/* End of file content.php */
+

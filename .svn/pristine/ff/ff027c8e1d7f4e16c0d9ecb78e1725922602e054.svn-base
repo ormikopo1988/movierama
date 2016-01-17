@@ -1,0 +1,22 @@
+<?php
+/* Class [VO_TblEvaluations] for table [evaluations] */
+
+class VO_TblEvaluations extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'evaluations';
+
+    public $id;
+    public $isDeleted;
+    public $whatType;
+    public $whatId;
+    public $evalTemplateId;
+    public $userId;
+    public $startDateTime;
+    public $endDateTime;
+    public $isRunning;
+    public $finalScore;
+    public $isViewable;
+    public $roundNumber;
+    public $finalCount;
+
+}  // VO_TblEvaluations

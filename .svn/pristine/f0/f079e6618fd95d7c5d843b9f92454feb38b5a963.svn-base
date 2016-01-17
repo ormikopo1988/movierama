@@ -1,0 +1,773 @@
+<?php
+class VO_PostBox
+{
+	const _ECP = 'PoB';
+
+	public static function handlePostInsert(WOOOF $wo, array $inArray, $isAComment = FALSE)
+	{
+		$posts = new WOOOF_dataBaseTable($wo->db, 'posts');
+		
+		//TODO: add attachments here... populate attachmentSetId
+
+		if (!$wo->hasContent($inArray['message']))
+		{
+			$wo->logError(self::_ECP.'1001 Post has no content. Empty posts not accepted!');
+			return FALSE;
+		}
+
+		if ($isAComment)
+		{
+			if (!isset($inArray['parentPostId']))
+			{
+				$wo->logError(self::_ECP.'1002 Parent Post Id was not provided.');
+				return FALSE;
+			}elseif ($inArray['parentPostId']=='')
+			{
+				$wo->logError(self::_ECP.'1003 Provided parent post Id is empty.');
+				return FALSE;
+			}else
+			{
+				$parentPost = $wo->db->getRow('posts', $inArray['parentPostId']);
+				if ($parentPost===FALSE)
+				{
+					return FALSE;
+				}elseif (!isset($parentPost['id']))
+				{
+					$wo->logError(self::_ECP.'1004 Rrovided parent post Id is invalid.');
+					return FALSE;
+				}
+			}
+		}else
+		{
+			if (!isset($inArray['parentPostId']))
+			{
+				$inArray['parentPostId'] = '';
+			}
+
+			if (!isset($inArray['postBoxId']))
+			{
+				$wo->logError(self::_ECP.'1005 Post box id was not provided.');
+				return FALSE;
+			}elseif ($inArray['postBoxId']=='')
+			{
+				$wo->logError(self::_ECP.'1006 Requested post box id is empty.');
+				return FALSE;
+			}else
+			{
+				$postBox = $wo->db->getRow('post_boxes',$inArray['postBoxId']);
+				if ($postBox === FALSE)
+				{
+					return FALSE;
+				}
+
+				if (!isset($postBox['id']))
+				{
+					$wo->logError(self::_ECP.'1007 Requested post box id not found.');
+					return FALSE;
+				}
+			}
+		}
+
+		$insertArray['entryDate']=$wo->currentGMTDateTime();
+		$insertArray['parentPostId']=$inArray['parentPostId'];
+		$insertArray['title']=$inArray['title'];
+		$insertArray['content']=$inArray['message'];
+		$insertArray['thumbsUp']=0;
+		$insertArray['thumbsDown']=0;
+		$insertArray['visibilityType']=$inArray['privacySelection'];
+		$insertArray['isOpenToEvaluations']=0; //TODO: v.x this should be a drop list of evaluation methods: none, thumbsup/down, ...
+		$insertArray['noOfChildren']=0;
+		$insertArray['userId'] = $wo->app->userId;
+
+		$result = $posts->insertFromArray($insertArray);
+		if ($result === FALSE)
+		{
+			return FALSE;
+		}
+		$insertArray['id'] = $result;
+		$insertArray['comments'] = [];
+
+		if (!$isAComment)
+		{
+			$result = $wo->db->query('update post_boxes set lastPostDateTime=\''. $wo->getCurrentDateTime() .'\', noOfPosts = (noOfPosts+1) where id=\''. $wo->db->escape($inArray['postBoxId']) .'\'');
+			
+			if ($result === FALSE)
+			{
+				return FALSE;
+			}
+
+			$pPBoxes = new WOOOF_dataBaseTable($wo->db, 'post_post_boxes');
+
+			$pPBInsert['boxId'] = $postBox['id'];
+			$pPBInsert['postId'] = $insertArray['id'];
+			$pPBInsert['associationReason'] = 'PBA_DIRECT';
+
+			if ($pPBoxes->insertFromArray($pPBInsert)===FALSE)
+			{
+				return FALSE;
+			}
+		}else
+		{
+			$result = $wo->db->query('update posts set noOfChildren=(noOfChildren+1) where id=\''. $wo->db->escape($inArray['parentPostId']) .'\'');
+			if ($result === FALSE)
+			{
+				return FALSE;
+			}
+		}
+		
+		$postToReturn = $wo->db->getRowByColumn('v_posts_data', 'POS_id', $insertArray['id']);
+		if ($postToReturn===FALSE)
+		{
+			return FALSE;
+		}
+
+		$postToReturn['comments'] = [];
+
+		$wo->db->commit();
+		return (array('newPostId' => $result, 'newPost' => $postToReturn));
+	}
+
+	public static function getBoxPosts(WOOOF $wo, $postBoxId, $orderBy = 'POS_entryDate desc', $limitFrom = 0, $limitHowMany = 10)
+	{
+		$browserTitle = 'Activity Feed';
+		$data = [];
+		$lookUps = [];
+		
+		$postBox = $wo->db->getRow('post_boxes', $postBoxId);
+		if ($postBox === FALSE)
+		{
+			return FALSE;
+		}
+
+		if (!$wo->hasContent($postBox['id']) || $postBoxId != $postBox['id'])
+		{
+			$wo->logError( self::_ECP.'2001 Invalid post box ID requested.' );
+			return FALSE;
+		}
+
+		if (!self::canUserReadFromBox($wo, $postBoxId))
+		{
+			$wo->logError( self::_ECP.'2002 Current user cannot access this post box.' );
+			return FALSE;
+		}
+
+		$skipR = $wo->db->query('select * from __domain_values where domainValueCode=\'PBA_PRIVATE_MESSAGE\' OR domainValueCode=\'PBA_CHAT_MESSAGE\'');
+		if ($skipR==FALSE)
+		{
+			return FALSE;
+		}
+
+		if ($wo->db->getNumRows($skipR) != 2)
+		{
+			$wo->logError( self::_ECP.'2003 Failed to get domain values for filtering out post box.');
+			return FALSE;
+		}
+
+		$filteredMessageTypes = $wo->db->fetchAssoc($skipR);
+		$filter = 'and `associationReason` NOT IN (\''. $filteredMessageTypes['id'] .'\', ';
+
+		$filteredMessageTypes = $wo->db->fetchAssoc($skipR);
+		$filter .= '\''. $filteredMessageTypes['id'] .'\')';
+
+
+		$result = $wo->db->query('SELECT v_posts_data.* FROM post_post_boxes, v_posts_data WHERE v_posts_data.POS_id = post_post_boxes.postId AND post_post_boxes.boxId=\''. 
+			$wo->db->escape($postBox['id']) .'\' '. $filter .' order by '. $wo->db->escape($orderBy) .' limit '. $wo->db->escape($limitFrom) .','. 
+			$wo->db->escape($limitHowMany) );
+		if ($postBox['ownerType']=='GRO')
+		{
+			$data['showPrivacy'] = FALSE;
+		}else
+		{
+			$data['showPrivacy'] = TRUE;
+		}
+
+		$data['postBoxId'] = $postBox['id'];
+		
+		$data['posts'] = [];
+
+		$data['dateShowFormat'] = 'DD/MM/YYYY';
+		
+		if ($wo->db->getNumRows($result))
+		{
+			$counter = 0;
+			while($post = $wo->db->fetchAssoc($result))
+			{
+				$data['posts'][$counter] = $post;
+				$data['posts'][$counter]['comments'] = self::fetchChildren($wo, $data['posts'][$counter]['POS_id']);
+				$counter++;
+			}
+		}
+
+		if ($postBox['ownerType']=='PRS')
+		{
+			$data['showPrivacy'] = true;
+		}else
+		{
+			$data['showPrivacy'] = false;
+		}
+
+		return $data;
+	}
+
+	public static function handleReputationChange(WOOOF $wo, $postId, $isThumbsDown = FALSE)
+	{
+		$post = $wo->db->getRow('posts', $postId);
+		if ($post === FALSE)
+		{
+			return FALSE;
+		}
+
+		if (!isset($post['id']))
+		{
+			$wo->logError(self::_ECP.'3001 Requested Post doesn\'t exist. Received post id: '. $postId);
+			return FALSE;
+		}
+
+		//// TODO: Check security!!!!!
+
+		$evaluations = new WOOOF_dataBaseTable($wo->db, 'post_user_evaluations');
+
+		$whereClauses['postId'] = $postId;
+		$whereClauses['voiceUserId']=$wo->app->userId;
+		
+		$result = $evaluations->getResult($whereClauses);
+
+		if ($result === FALSE)
+		{
+			return FALSE;
+		}
+
+		if ($result['rowsFetched']===0)
+		{
+			if ($isThumbsDown)
+			{
+				$whereClauses['isThumbsUp'] = FALSE;
+				$thumbsUp = $post['thumbsUp'];
+				$thumbsDown = $post['thumbsDown']+1;
+			}else
+			{
+				$whereClauses['isThumbsUp'] = TRUE;
+				$thumbsUp = $post['thumbsUp']+1;
+				$thumbsDown = $post['thumbsDown'];
+			}
+			$result = $evaluations->insertFromArray($whereClauses);
+			if ($result === FALSE)
+			{
+				return FALSE;
+			}
+			$result = $wo->db->query('update posts set thumbsUp=\''. $thumbsUp .'\', thumbsDown=\''. $thumbsDown .'\' where id=\''. $postId .'\'');
+			if ($result === FALSE)
+			{
+				return FALSE;
+			}
+			$result = $wo->db->query('commit');
+			if ($result === FALSE)
+			{
+				return FALSE;
+			}
+			return array('thumbsUp' => $thumbsUp, 'thumbsDown' => $thumbsDown);
+		}else
+		{
+			//TODO: this should be later changed so as to have the ability to undo previous choices without activating the alternate choice.
+			if ($evaluations->resultRows[0]['isThumbsUp']=='1')
+			{
+				if ($isThumbsDown)
+				{
+					$evaluations->resultRows[$evaluations->resultRows[0]['id']]['isThumbsUp'] = '0';
+					$result = $evaluations->updateRowFromResults($evaluations->resultRows[0]['id']);
+					if ($result === FALSE)
+					{
+						return FALSE;
+					}
+					$result = $wo->db->query('update posts set thumbsUp=\''. ($post['thumbsUp']-1) .'\', thumbsDown=\''. ($post['thumbsDown']+1) .'\' where id=\''. $postId .'\'');
+					if ($result === FALSE)
+					{
+						return FALSE;
+					}
+					$result = $wo->db->query('commit');
+					if ($result === FALSE)
+					{
+						return FALSE;
+					}
+					return array('thumbsUp' => ($post['thumbsUp']-1), 'thumbsDown' => ($post['thumbsDown']+1));
+				}else
+				{
+					return array('thumbsUp' => $post['thumbsUp'], 'thumbsDown' => $post['thumbsDown']);
+				}
+			}else
+			{
+				if (!$isThumbsDown)
+				{
+					$evaluations->resultRows[$evaluations->resultRows[0]['id']]['isThumbsUp'] = '1';
+					$result = $evaluations->updateRowFromResults($evaluations->resultRows[0]['id']);
+					if ($result === FALSE)
+					{
+						return FALSE;
+					}
+					$result = $wo->db->query('update posts set thumbsUp=\''. ($post['thumbsUp']+1) .'\', thumbsDown=\''. ($post['thumbsDown']-1) .'\' where id=\''. $postId .'\'');
+					if ($result === FALSE)
+					{
+						return FALSE;
+					}
+					$result = $wo->db->query('commit');
+					if ($result === FALSE)
+					{
+						return FALSE;
+					}
+					return array('thumbsUp' => ($post['thumbsUp']+1), 'thumbsDown' => ($post['thumbsDown']-1));
+				}else
+				{
+					return array('thumbsUp' => $post['thumbsUp'], 'thumbsDown' => $post['thumbsDown']);
+				}
+			}
+		}
+	}
+
+	public static function handleCommentInsert(WOOOF $wo, array $inArray)
+	{ // Errors 4000
+		return self::handlePostInsert($wo,$inArray,TRUE);
+	}
+
+	public static function handlePostEdit(WOOOF $wo, $postBoxId)
+	{// Errors 5000
+		
+	}
+
+	public static function canUserReadFromBox($wo, $postBoxId)
+	{// Errors 6000
+		return true;
+	}
+
+	public static function canUserPostToBox()
+	{// Errors 7000
+		return true;
+	}
+
+	public static function canUserEditPost()
+	{// Errors 8000
+		return true;
+	}
+
+	public static function fetchUserData(WOOOF $wo, $voiceUserId)
+	{// Errors 9000
+		$user = $wo->db->getRowByColumn('v_voice_persons', 'VUS_id', $voiceUserId);
+		if ($user === FALSE)
+		{
+			return FALSE;
+		}elseif (!isset($user['VUS_id']))
+		{
+			$wo->logError(self::_ECP.'9001 Post with id '. $postId .' has user '. $post['userId'] .' as owner but the user is not in the database...');
+			return FALSE;
+		}
+
+		return $user;
+	}
+
+	/**
+	* fetchPostData
+	*
+	* @param WOOOF 		$wo  		an instance of WOOOF
+	* @param char(10) 	$itemId 	an id of a post of any level that wil be used to find the top node and return its data.
+	*
+	* @return FALSE | array of post data. 
+	*
+	**/
+	public static function fetchPostData(WOOOF $wo, $itemId)
+	{
+		$post = $wo->db->getRowByColumn('v_posts_data', 'POS_id', $itemId);
+		if ($post === FALSE)
+		{
+			return FALSE;
+		}
+
+		if (!isset($post['POS_id']))
+		{
+			$wo->logError(self::_ECP.'A001 Post with id '. $itemId .' is not in the database...');
+			return FALSE;
+		}
+
+		$rootNode = '';
+		$result = '';
+		if ($wo->hasContent($post['POS_parentPostId']))
+		{
+			while($wo->hasContent($post['POS_parentPostId']))
+			{
+				$reqPostId = $post['POS_parentPostId'];
+				$post = $wo->db->getRowByColumn('v_posts_data', 'POS_id', $post['POS_parentPostId']);
+				if ($post === FALSE)
+				{
+					return FALSE;
+				}
+
+				if (!isset($post['POS_id']))
+				{
+					$wo->logError(self::_ECP.'A001A Post with id '. $reqPostId .' is not in the database but it is marked as parent post id (original requested post id: '. $itemId .')');
+					return FALSE;
+				}
+			}
+			$result = $wo->db->getRowByColumn('post_post_boxes', 'postId', $post['POS_id']);
+		}else
+		{
+			$result = $wo->db->getRowByColumn('post_post_boxes', 'postId', $itemId);
+		}
+
+		if ($result === FALSE)
+		{
+			return FALSE;
+		}elseif (!isset($result['postId']))
+		{
+			$wo->logError(self::_ECP.'A002 Post requested is neither root node nor leaf of a discussion!');
+			return FALSE;
+		}else
+		{
+			$rootNode = $post;
+		}
+
+		$rootNode['comments'] = self::fetchChildren($wo, $rootNode['POS_id']);
+		
+		if ($rootNode['comments']===FALSE)
+		{
+			return FALSE;
+		}
+
+		return $rootNode;
+	}
+
+	public static function fetchChildren($wo, $parentId)
+	{
+		$post = $wo->db->getRowByColumn('v_posts_data', 'POS_id', $parentId);
+		if ($post === FALSE)
+		{
+			return FALSE;
+		}
+
+		if (!isset($post['POS_id']))
+		{
+			$wo->logError(self::_ECP.'B001 Post with id '. $parentId .' is not in the database...');
+			return FALSE;
+		}
+		$children = [];
+
+		$result = $wo->db->query('select * from v_posts_data where POS_parentPostId = \''. $wo->db->escape($parentId) .'\' order by POS_entryDate');
+		if ($result===FALSE)
+		{
+			return FALSE;
+		}
+
+		if (!$wo->db->getNumRows($result))
+		{
+			return [];
+		}
+
+		while($row = $wo->db->fetchAssoc($result))
+		{
+			$row['comments'] = self::fetchChildren($wo, $row['POS_id']); 
+			if ($row['comments']===FALSE)
+			{
+				return FALSE;
+			}
+			$children[] = $row;
+		}
+
+		return $children;
+	}
+
+	public static function getPrivateConversations(WOOOF $wo)
+	{
+		$conversationsR = $wo->db->query('
+			SELECT post_recipient_groups.* 
+			FROM post_recipient_group_members, post_recipient_groups 
+			WHERE 
+				post_recipient_groups.id = post_recipient_group_members.recipientGroupId
+				AND post_recipient_group_members.voiceUserId = \''. $wo->app->userId .'\'
+			ORDER BY lastUpdate DESC');
+
+		if ($conversationsR === FALSE)
+		{
+			return FALSE;
+		}
+
+		$return = [];
+		while($conversation = $wo->db->fetchAssoc($conversationsR))
+		{
+			$lastPostR = $wo->db->query('SELECT * FROM posts WHERE recipientGroupId=\''. $conversation['id'] .'\' ORDER BY entryDate DESC LIMIT 1');
+			if ($lastPostR === FALSE)
+			{
+				return FALSE;
+			}
+			
+			$lastPost = $wo->db->fetchAssoc($lastPostR);
+
+			if (!isset($lastPost['id']))
+			{
+				$wo->logError(self::_ECP.'C001 Could Not get LAST POST from conversation '. $conversation['id'] .' for user '. $wo->app->userId);
+				return FALSE;
+			}
+
+			$lastPost['comments'] = [];
+			$recipients =  self::getConversationRecipientData($wo, $conversation['id']);
+			$lastPost['recipients'] = $recipients;
+			$lastPost['title'] = $conversation['conversationTitle'];
+			foreach ($recipients as $value) 
+			{
+				if ($value['id'] == $lastPost['userId'])
+				{
+					$lastPost['ownerData'] = $value;
+				}
+			}
+			
+			$return[] = $lastPost;
+		}
+
+		return $return;
+	}
+
+	public static function getPrivateMessages(WOOOF $wo, $recipientGroupId)
+	{///D errors
+		$recipientGroup = $wo->db->getRow('post_recipient_groups', $recipientGroupId);
+		if ($recipientGroup === FALSE)
+		{
+			return FALSE;
+		}
+
+		if (!isset($recipientGroup['id']))
+		{
+			$wo->logError(self::_ECP.'D001 Provided recipient group was NOT found in the database.');
+			return FALSE;
+		}
+
+		$recipients = self::getConversationRecipientData($wo, $recipientGroup['id']);
+		$isAMember = FALSE;
+		foreach ($recipients as $recipient) 
+		{
+			if ($recipient['id'] === $wo->app->userId)
+			{
+				$isAMember = TRUE;
+			}
+		}
+
+		if (!$isAMember)
+		{
+			$wo->logError(self::_ECP.'D002 User is not a member of the requested recipient group.');
+			return FALSE;
+		}
+
+		$theListR = $wo->db->query('select * from posts where recipientGroupId=\''. $recipientGroup['id'] .'\' order by entryDate desc');
+		if ($theListR === FALSE)
+		{
+			return FALSE;
+		}
+
+		$return = [];
+		while($discussion = $wo->db->fetchAssoc($theListR))
+		{
+			foreach ($recipients as $value) 
+			{
+				if ($value['id'] == $discussion['userId'])
+				{
+					$discussion['ownerData'] = $value;
+				}
+			}
+			
+			$return[] = $discussion;
+		}
+		
+		return ['recipients' => $recipients, 'recipientGroupId' => $recipientGroup['id'], 'conversationTitle' => $recipientGroup['conversationTitle'] ,'posts' => $return];
+	}
+
+	public static function getChat(WOOOF $wo, $userId, $since = NULL)
+	{///E errors
+		
+	}
+
+	public static function insertPersonalMessage(WOOOF $wo, $inArray)
+	{///F errors
+		
+		$inArray['entryDate']=$wo->currentGMTDateTime();
+		$inArray['parentPostId']='';
+		$inArray['thumbsUp']=0;
+		$inArray['thumbsDown']=0;
+		$inArray['visibilityType']='';
+		$inArray['isOpenToEvaluations']=0; 
+		$inArray['noOfChildren']=0;
+		$inArray['userId'] = $wo->app->userId;
+
+		if (!isset($inArray['recipientGroupId']) || !$wo->hasContent($inArray['recipientGroupId']))
+		{
+			if (!isset($inArray['recipientsList']))
+			{
+				$wo->logError(self::_ECP.'F003 No recipient group id and at the same time no recipients list was provided ...');
+				return FALSE;
+			}
+
+			$recGroupTable = new WOOOF_dataBaseTable($wo->db, 'post_recipient_groups');
+			if (!$recGroupTable->constructedOk)
+			{
+				return FALSE;
+			}
+
+			$recGroup['conversationTitle'] = $inArray['title'];
+			$recGroup['lastUpdate'] = $inArray['entryDate'];
+
+			$inArray['recipientGroupId'] = $recGroupTable->insertFromArray($recGroup);
+			if ($inArray['recipientGroupId'] === FALSE)
+			{
+				return FALSE;
+			}
+
+			$inArray['recipientsList'][] = $wo->app->userId;
+			foreach ($inArray['recipientsList'] as $recipient) 
+			{
+				$vUD = $wo->db->getRowByColumn('v_voice_persons', 'VUS_id', $recipient);
+				if ($vUD === FALSE)
+				{
+					return FALSE;
+				}
+
+				if (!isset($vUD['VUS_id'])) 
+				{
+					$wo->logError(self::_ECP.'F003 Non valid recipient was provided ('. $recipient .')');
+					return FALSE;
+				}
+
+				$result = $wo->db->query('insert into post_recipient_group_members set id=\''. $wo->db->getNewId('post_recipient_group_members') .'\', recipientGroupId=\''. $inArray['recipientGroupId'] .'\', voiceUserId=\''. $vUD['VUS_id'] .'\'');
+				if ($result === FALSE)
+				{
+					return FALSE;
+				}
+			}
+			unset($inArray['recipientsList']);
+		}
+
+		$recipientGroup = $wo->db->getRow('post_recipient_groups', $inArray['recipientGroupId']);
+		if ($recipientGroup === FALSE)
+		{
+			return FALSE;
+		}
+
+		if (!isset($recipientGroup['id']))
+		{
+			$wo->logError(self::_ECP.'F001 Provided recipient group was NOT found in the database.');
+			return FALSE;
+		}
+
+		$postsTable = new WOOOF_dataBaseTable($wo->db, 'posts');
+
+		if ($postsTable->constructedOk === FALSE)
+		{
+			return FALSE;
+		}
+
+		$newPostId = $postsTable->insertFromArray($inArray);
+		if ($newPostId === FALSE) 
+		{
+			return FALSE;
+		}
+
+		$recipients = self::getConversationRecipientData($wo, $recipientGroup['id']);
+
+		$escapedPost = $wo->db->getRow('posts', $newPostId);
+
+		$return['recipientGroupId'] = $recipientGroup['id'];
+		$return['recipients'] = $recipients;
+		$return['title'] = $escapedPost['title'];
+		$return['message'] = $escapedPost['content'];
+		$return['content'] = $escapedPost['content'];
+		$return['id'] = $escapedPost['id'];
+		$return['entryDate'] = $escapedPost['entryDate'];
+
+		foreach ($recipients as $value) 
+		{
+			if ($value['id'] == $escapedPost['userId'])
+			{
+				$return['ownerData'] = $value;
+			}
+		}
+
+		$result = $wo->db->query('commit');
+		if ($result === FALSE)
+		{
+			return FALSE;
+		}
+
+		return $return;
+	}
+
+	public static function getPostBox(WOOOF $wo, $ownerId, $ownerType)
+	{
+		$result = $wo->db->query('select * from post_boxes where ownerId=\''. $wo->db->escape($ownerId) .'\' and ownerType = \''. $wo->db->escape($ownerType) .'\'');
+		if ($result === FALSE)
+		{
+			return FALSE;
+		}
+
+		if (!$wo->db->getNumRows($result))
+		{
+			//TODO - TEMPORARY FIX
+			//$wo->logError(self::_ECP.'G001 No post box found for the given data');
+			//return FALSE;
+			$newPostBoxId = self::createPostBox($wo, $ownerId, $ownerType);
+			
+			$newPostBoxRec = $wo->db->getRow('post_boxes', $newPostBoxId);
+			
+			$outVal['id']= $newPostBoxRec['id'];
+			$outVal['noOfPosts'] = $newPostBoxRec['noOfPosts'];
+			$outVal['lastPostDateTime'] = $newPostBoxRec['lastPostDateTime'];
+			
+			return $outVal;
+		}
+
+		$postBox = $wo->db->fetchAssoc($result);
+
+		$outVal['id']= $postBox['id'];
+		$outVal['noOfPosts'] = $postBox['noOfPosts'];
+		$outVal['lastPostDateTime'] = $postBox['lastPostDateTime'];
+
+		return $outVal;
+	}
+	
+	public static function createPostBox(WOOOF $wo, $ownerId, $ownerType)
+	{
+		$tblPostBoxInsert = new VO_TblPostBoxes();
+		$tblPostBoxInsert->ownerId = $ownerId;
+		$tblPostBoxInsert->ownerType = $ownerType;
+			
+		$tblPostBoxGeneric = new WOOOF_dataBaseTable($wo->db, 'post_boxes');
+		if($tblPostBoxGeneric === FALSE) { return false; }
+		
+		$newPostBoxId = $tblPostBoxGeneric->insertRowFromArraySimple( $tblPostBoxInsert->toArray() );
+		if ( $newPostBoxId === FALSE ) { return false; }
+	
+		return $newPostBoxId;
+	}
+
+	public static function getConversationRecipientData(WOOOF $wo, $recipientGroupId)
+	{
+		$postRecipientGroupMembers = new WOOOF_dataBaseTable($wo->db, 'post_recipient_group_members');
+		if ($postRecipientGroupMembers->constructedOk === FALSE)
+		{
+			return FALSE;
+		}
+		
+		$whereClauses['recipientGroupId'] = $recipientGroupId;
+		$postRecipientGroupMembers->getResult($whereClauses, '', '', '', '', TRUE, FALSE);
+
+		foreach ($postRecipientGroupMembers->resultRows as $member) 
+		{
+			$recipient = $wo->db->getRowByColumn('v_voice_persons', 'VUS_id', $member['voiceUserId']);
+			if ($recipient === FALSE)
+			{
+				return FALSE;
+			}
+			if (isset($recipient['VUS_id']))
+			{
+				$tmp = ['id' => $recipient['VUS_id'], 'picture'=> $recipient['VUS_avatarImg'], 'username'=>$recipient['VUS_slug']];
+				$recipients[] = $tmp;
+			}
+		}
+
+		return $recipients;
+	}
+}
+
+?>

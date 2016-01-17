@@ -1,0 +1,21 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import Reputation from './ReputationComp';
+var RB = require('react-bootstrap');
+
+export default React.createClass({
+	getInitialState: function()
+	{
+		return {reputation: this.props.data.reputation};
+	},
+
+	render: function()
+	{
+		return(
+			<RB.Panel key={this.props.data.id}>
+				{this.props.data.postContent}
+				<Reputation data = {this.state.reputation} />
+			</RB.Panel>
+			);
+	}
+});

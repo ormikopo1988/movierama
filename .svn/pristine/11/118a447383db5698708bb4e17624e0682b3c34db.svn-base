@@ -1,0 +1,212 @@
+<?php 
+
+	/*******************************************************************/
+	// Groups
+	//
+
+	// group/create
+	$router->map(
+		'GET',
+		'/group/createForm',
+		function() use($wo) {
+			VO_CtrlGroup::createGroupViewForm($wo);
+		}
+		, 'createGroupViewForm'
+	);
+
+	// user/discussionGroups/[a:userId]
+	$router->map(
+			'GET',
+			'/user/discussionGroups/[a:userId]',
+			function($userId) use($wo) {
+				VO_CtrlGroup::userGroups($wo, $userId, 'DIS');
+			}
+			, 'userDiscussionGroups'
+	);
+
+	// user/teamGroups/[a:userId]
+	$router->map(
+		'GET',
+		'/user/teamGroups/[a:userId]',
+		function($userId) use($wo) {
+			VO_CtrlGroup::userGroups($wo, $userId, 'TEA');
+		}
+		, 'userTeamGroups'
+	);
+
+	// /discussionGroups/list
+	$router->map(
+		'GET',
+		'/discussionGroups/list',
+		function() use($wo) {
+			VO_CtrlGroup::userGroups($wo, '', 'DIS');
+		}
+		, 'discussionGroups'
+	);
+
+	// /teamGroups/list
+	$router->map(
+		'GET',
+		'/teamGroups/list',
+		function() use($wo) {
+			VO_CtrlGroup::userGroups($wo, '', 'TEA');
+		}
+		, 'teamGroups'
+	);
+
+	// group/members/[a:groupId]
+	$router->map(
+		'GET',
+		'/group/members/[a:groupId]',
+		function($groupId) use($wo) {
+			VO_CtrlGroup::groupMembers($wo, $groupId);
+		}
+		, 'groupMembers'
+	);
+
+	// group/joinRequests/[a:groupId]
+	$router->map(
+		'GET',
+		'/group/joinRequests/[a:groupId]',
+		function($groupId) use($wo) {
+			VO_CtrlGroup::groupJoinRequests($wo, $groupId);
+		}
+		, 'groupJoinRequests'
+	);
+
+	// group/view/[a:groupId]
+	$router->map(
+		'GET',
+		'/group/view/[a:groupId]',
+		function($groupId) use($wo) {
+			VO_CtrlGroup::viewGroup($wo, $groupId);
+		}
+		, 'viewGroup'
+	);
+
+	// group/edit/[a:groupId]
+	$router->map(
+		'GET',
+		'/group/edit/[a:groupId]',
+		function($groupId) use($wo) {
+			VO_CtrlGroup::editGroup($wo, $groupId);
+		}
+		, 'editGroup'
+	);
+
+	/*
+	 * ====================================== API Calls ===========================
+	 * 
+	*/
+	
+	// /api/groups/createGroup
+	$router->map('POST', '/api/groups/createGroup', function() use($wo) {
+		try {
+			$res = VO_CtrlGroup::createGroup($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/groups/saveGroup
+	$router->map('POST', '/api/groups/saveGroup', function() use($wo) {
+		try {
+			$res = VO_CtrlGroup::createGroup($wo, json_decode($_POST['data'], true));
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/groups/joinGroup/[a:userId]/[a:groupId]
+	$router->map('POST', '/api/groups/joinGroup/[a:userId]/[a:groupId]', function($userId, $groupId) use($wo) {
+		try {
+			$res = VO_CtrlGroup::userJoinsGroup($wo, $userId, $groupId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/groups/requestJoinGroup/[a:userId]/[a:groupId]
+	$router->map('POST', '/api/groups/requestJoinGroup/[a:userId]/[a:groupId]', function($userId, $groupId) use($wo) {
+		try {
+			$res = VO_CtrlGroup::userRequestsJoiningGroup($wo, $userId, $groupId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/groups/answerRequestJoin/[a:requestId]/[a:response]
+	$router->map('POST', '/api/groups/answerRequestJoin/[a:requestId]/[a:response]', function($requestId, $response) use($wo) {
+		try {
+			$res = VO_CtrlGroup::adminAnswersRequestJoinGroup($wo, $requestId, $response);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	//api/groups/deleteRequestJoinGroup/[a:userId]/[a:groupId]
+	$router->map('POST', '/api/groups/deleteRequestJoinGroup/[a:userId]/[a:groupId]', function($userId, $groupId) use($wo) {
+		try {
+			$res = VO_CtrlGroup::userDeletesRequestJoiningGroup($wo, $userId, $groupId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	//api/groups/deleteMember/[a:userId]/[a:groupId]
+	$router->map('POST', '/api/groups/deleteMember/[a:userId]/[a:groupId]', function($userId, $groupId) use($wo) {
+		try {
+			$res = VO_CtrlGroup::adminDeletesGroupMember($wo, $userId, $groupId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/groups/leaveGroup -> [userId, groupId]
+	$router->map('POST', '/api/groups/leaveGroup/[a:userId]/[a:groupId]', function($userId, $groupId) use($wo) {
+		try {
+			$res = VO_CtrlGroup::userLeavesGroup($wo, $userId, $groupId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/groups/getMembershipInfo -> requestorUserId, $targetIds[]
+	$router->map('POST', '/api/groups/getMembershipInfo', function() use($wo) {
+		try {
+			$res = VO_CtrlGroup::membershipInfo($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// api/groups/invitePeopleToGroups
+	$router->map('POST', '/api/groups/invitePeopleToGroup', function() use($wo) {
+		try {
+			$res = VO_CtrlGroup::invitePeopleToGroup($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/groups/answerInvitationJoin/[a:requestId]/[a:response]
+	$router->map('POST', '/api/groups/answerInvitationJoin/[a:requestId]/[a:response]', function($requestId, $response) use($wo) {
+		try {
+			$res = VO_CtrlGroup::userAnswersInvitationFromAdmin($wo, $requestId, $response);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});	
+
+	// /api/group/members/[GRO|ORG|CON:whatType]/[a:whatId]
+	$router->map('GET', '/api/group/members/[GRO|ORG|CON:whatType]/[a:whatId]', 
+	function($whatType, $whatId) use($wo) {
+		try {
+			$res = VO_CtrlGroup::getMembersData($wo, $whatType, $whatId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});	
+
+/* End of file groups.php */
+

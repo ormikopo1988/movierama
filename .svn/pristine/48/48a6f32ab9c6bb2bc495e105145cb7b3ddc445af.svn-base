@@ -1,0 +1,477 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import AutoCompleteComp from './AutoCompleteComp';
+import SocialActionsComp from './SocialActionsComp';
+import BookmarkComp from './BookmarkComp';
+import GroupActionsComp from './GroupActionsComp';
+import GroupJoinRequestsComp from './GroupJoinRequestsComp';
+import MessagesBoxComp from './MessagesBoxComp';
+import IsTypeComp from './IsTypeComp';
+
+export default React.createClass({ //ObjectsList
+  
+  /*
+	properties
+	autocompleteUrl: last part of api/autoComplete/
+	viewUrl: where to go e.g. profile/view | organisation/view etc.
+  */
+
+  getInitialState: function() {
+  	return {};
+  },
+
+  handleSearch: function() {
+  	var val = this.refs.targetId.getValue();
+  	window.location.href = VOICE.linkPrefix(this.props.viewUrl+'/'+val);
+  },
+
+  render: function() {
+  	var results = this.props.data;
+  	var requests = this.props.requests || false;
+  	var groupId = this.props.groupId || false;
+  	for(var i=0; i<results.length; i++) {
+  		results[i]['groupJoinReqAnswers'] = requests[i] || false;
+  		results[i]['groupId'] = groupId || false;
+  	}
+  	console.log('RESULTS AFTER REQS: ', results);
+  	return (
+      <div classNameName="container">
+		<center><h1>{this.props.title}</h1></center>
+		<AutoCompleteComp isType={this.props.isType} ref="targetId" placeholder="Search..." url={VOICE.linkPrefix('api/autoComplete/'+this.props.autocompleteUrl)} customCallBackOnChange={this.handleSearch} />
+		<div className="row">
+	        {results.map(function(result) {
+	          switch(result.isType) {
+	          	case 'PRS': 
+	          		return (
+	          			<Person key={result.VUS_id} result={result}></Person>
+	          		);
+	          		break;
+	          	case 'ORG':
+	          		return (
+	          			<Organisation key={result.ORG_id} result={result}></Organisation>
+	          		);
+	          		break;
+	          	case 'DIS':
+	          		return (
+	          			<DiscussionGroup key={result.id} result={result}></DiscussionGroup>
+	          		);
+	          		break;
+	          	case 'TEA':
+		          	return (
+	          			<TeamGroup key={result.id} result={result}></TeamGroup>
+	          		);
+	          		break;
+	          	case 'OWN':
+	          		return (
+	          			<TeamGroup key={result.id} result={result}></TeamGroup>
+	          		);
+	          		break;
+	          	case 'IDE':
+	          		return (
+	          			<Idea key={result.id} result={result}></Idea>
+	          		);
+	          		break;
+	          	case 'CNT':
+	          		return (
+	          			<Content key={result.id} result={result}></Content>
+	          		);
+	          		break;
+	          	default:
+	          		return (
+	          			<p>unknown 'isType' [{result.isType}] </p>
+	          		);
+	          }
+	        })}
+	    </div>
+      </div>
+    );
+  } 
+});
+
+var Person = React.createClass({
+
+	getInitialState: function() {
+		return {
+			deleteMemVisible: true
+		}
+	},
+
+	handleDeleteMember: function() {
+		var url = VOICE.linkPrefix('api/groups/deleteMember/'+this.props.result.VUS_id+'/'+this.props.result.groupId);
+		VOICE.ajaxCall(url, 'POST', {}, this, this.cbHandleDelete);
+	},
+
+	cbHandleDelete: function(result) {
+		console.log(result);
+		if(result.groupMemberDeleteOk) {
+			this.refs.msgBox.clearErrors();
+			this.refs.msgBox.addSuccess('Member Deleted!', false);
+			setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+			this.setState({
+				deleteMemVisible: false
+			});
+		}
+
+		else {
+			this.refs.msgBox.addError(result.errors);
+			setTimeout(this.refs.msgBox.clearErrors, 5000);
+		}
+	},
+
+	render: function() {
+		console.log(this.props);
+		var result = this.props.result;
+		console.log(result);
+		var avatarImg = result.VUS_avatarImg || '$profile_none.png';
+		var avatarURL = '';
+
+		avatarURL = VOICE.imgPrefix(avatarImg, 'M');
+		
+		var memberSince = moment.utc(result.VUS_createdDateTime, 'YYYYMMDDhhmmss').fromNow();
+		var lastLogin;
+		if(result.STATS_lastLoginDateTime === '' || result.STATS_lastLoginDateTime === null || !result.STATS_lastLoginDateTime) {
+			lastLogin = false;
+		}
+		else {
+			lastLogin = moment.utc(result.STATS_lastLoginDateTime, 'YYYYMMDDhhmmss').fromNow();
+		}
+		
+		return (
+			<div className="col-md-12 col-sm-12">
+				{	
+					this.state.deleteMemVisible === true ?
+						<div className="well well-sm well-agency">           
+							<a href={VOICE.linkPrefix('profile/view/'+result.VUS_id)}><img src={avatarURL}/></a>
+							<a className="lead agency-name" href={VOICE.linkPrefix('profile/view/'+result.VUS_id)}>
+								{ result.PROF_gender === 'M' ? <i className="fa fa-mars smallFa"></i> : 
+								  result.PROF_gender === 'F' ? <i className="fa fa-venus smallFa"></i> : null} {result.PROF_firstName} {result.PROF_lastName}
+							</a>
+							<div className="sub-info">
+								<p>
+									<i className="fa fa-registered smallFa"></i> { 
+										result.ORG_shortName !== 'Individual' ?
+											<a href={VOICE.linkPrefix('organisation/view/'+result.ORG_id)}>{result.ORG_name}</a> :
+											<span>{result.ORG_name}</span>
+									}
+								</p>
+								{
+					  				result.VUS_oneLiner ? 
+					  					<p>
+					  						<i className="fa fa-quote-left smallFa"></i> {result.VUS_oneLiner}
+					  					</p> : null
+					  			}
+								<p>
+									{ result.PROF_birthYear !== '0' ? <i className="fa fa-birthday-cake smallFa"> {result.PROF_birthYear}</i> : null}
+								</p>
+								<p><i className="fa fa-clock-o smallFa"> Member Since: {memberSince}</i></p>
+								<p>
+									{
+										lastLogin !== false ?
+											<span><i className="fa fa-sign-in smallFa"></i> Last Login: {lastLogin}</span>
+											: null
+									}
+								</p>
+								<hr/>
+								<SocialActionsComp targetType="PRS" connections={result.connections} userId={result.VUS_id}></SocialActionsComp>
+								<BookmarkComp targetType="PRS" connections={result.connections} userId={result.requestorUserId}></BookmarkComp>
+								{
+									result.groupJoinReqAnswers ? 
+										<GroupJoinRequestsComp onActionClicked={this.changeVisibility} requests={result.groupJoinReqAnswers}></GroupJoinRequestsComp> : null
+								}
+								{
+									result.isGroupAdmin === '1' ?
+										<span>
+											<hr/>
+											<i className="fa fa-adn smallFa"></i> <strong>Admin</strong>
+										</span> : null
+								}
+								{
+									result.canBeDeleted === true ?
+										<span>
+											<hr/>
+											<button onClick={this.handleDeleteMember} type="button" className="btn btn-danger">Delete Member</button>
+										</span> : null
+								}
+								<IsTypeComp isType={result.isType}></IsTypeComp>
+							</div>
+							<MessagesBoxComp ref="msgBox"/>
+						</div> : null
+				}
+			</div>
+		)
+	}
+});
+
+var Organisation = React.createClass({
+
+	render: function() {
+		var result = this.props.result;
+		console.log(result);
+		var avatarImg = result.logoURL || '$no_image_available.jpg';
+		var avatarURL = '';
+		
+		if(avatarImg !== '$no_image_available.jpg') {
+			avatarURL = avatarImg;
+		}
+		else {
+			avatarURL = VOICE.systemImgPrefix(avatarImg, 'M');
+		}
+
+		var memberSince = moment.utc(result.createdDateTime, 'YYYYMMDDhhmmss').fromNow();
+
+		return (
+			<div className="col-md-12 col-sm-12">
+				<div className="well well-sm well-agency">           
+					<a href={VOICE.linkPrefix('organisation/view/'+result.id)}><img src={avatarURL}/></a>
+					<a className="lead agency-name" href={VOICE.linkPrefix('organisation/view/'+result.id)}>
+						{result.name} {result.PROF_lastName}
+					</a>
+					<div className="sub-info">
+						<p>
+							{ result.description }
+						</p>
+						<p><i className="fa fa-clock-o smallFa"> Member Since: {memberSince}</i></p>
+						<hr/>
+						<SocialActionsComp targetType="ORG" followOnly={true} connections={result.connections} userId={result.requestorUserId}></SocialActionsComp>
+						{
+							result.requestorIsAdmin && result.requestorIsAdmin === '1' ?
+								<div>
+									<a href={VOICE.linkPrefix('organisation/edit/'+result.id)}>
+										<i className="fa fa-pencil"></i> Edit Organisation
+									</a><br/><br/>
+								</div> : null
+						}
+						<BookmarkComp targetType="ORG" connections={result.connections} userId={result.requestorUserId}></BookmarkComp>
+						<IsTypeComp isType={result.isType}></IsTypeComp>
+					</div>
+				</div>
+			</div>
+		)
+	}
+});
+
+var DiscussionGroup = React.createClass({
+
+	render: function() {
+		var result = this.props.result;
+		console.log(result);
+		var avatarImg = result.avatarImg || '$no_image_available.jpg';
+		var avatarURL = VOICE.imgPrefix(avatarImg);
+		var memberSince = moment.utc(result.fromDate, 'YYYYMMDDhhmmss').fromNow();
+
+		var tags = [];
+		if(result.tags.length !== 0) {
+			for(var i=0; i<result.tagDesc.length; i++) {
+				tags.push(
+					<span className="endorse-item-name">
+						<span className="endorse-item-name-text"><i className="fa fa-tag"></i> {result.tagDesc[i]}</span>
+					</span>
+				);
+			}
+		} 
+
+		return (
+			<div className="col-md-12 col-sm-12">
+				<div className="well well-sm well-agency">           
+					<a href={VOICE.linkPrefix('group/view/'+result.id)}><img src={avatarURL}/></a>
+					<a className="lead agency-name" href={VOICE.linkPrefix('group/view/'+result.id)}>
+						{result.title}
+					</a>
+					<div className="sub-info">
+						<p>
+							{ result.description }
+						</p>
+						<p><i className="fa fa-clock-o smallFa"> Created: {memberSince}</i></p>
+						{
+							tags.length !== 0 ?
+								<p>
+									{tags}
+								</p> : null
+						}
+						<hr/>
+						<GroupActionsComp targetType={result.isType} memberships={result.memberships} userId={result.requestorUserId}></GroupActionsComp>
+						<BookmarkComp targetType={result.isType} connections={result.memberships} userId={result.requestorUserId}></BookmarkComp>
+						<IsTypeComp isType={result.isType}></IsTypeComp>
+					</div>
+				</div>
+			</div>
+		)
+	}
+});
+
+var TeamGroup = React.createClass({
+
+	render: function() {
+		var result = this.props.result;
+		console.log(result);
+		var avatarImg = result.avatarImg || '$no_image_available.jpg';
+		var avatarURL = VOICE.imgPrefix(avatarImg, 'M');
+
+		var memberSince = moment.utc(result.fromDate, 'YYYYMMDDhhmmss').fromNow();
+
+		var tags = [];
+		if(result.tags.length !== 0) {
+			for(var i=0; i<result.tagDesc.length; i++) {
+				tags.push(
+					<span className="endorse-item-name">
+						<span className="endorse-item-name-text"><i className="fa fa-tag"></i> {result.tagDesc[i]}</span>
+					</span>
+				);
+			}
+		} 
+
+		return (
+			<div className="col-md-12 col-sm-12">
+				<div className="well well-sm well-agency">           
+					<a href={VOICE.linkPrefix('group/view/'+result.id)}><img src={avatarURL}/></a>
+					<a className="lead agency-name" href={VOICE.linkPrefix('group/view/'+result.id)}>
+						{result.title}
+					</a>
+					<div className="sub-info">
+						<p>
+							{ result.description }
+						</p>
+						<p><i className="fa fa-clock-o smallFa"> Created: {memberSince}</i></p>
+						{
+							tags.length !== 0 ?
+								<p>
+									{tags}
+								</p> : null
+						}
+						<hr/>
+						<GroupActionsComp targetType={result.isType} memberships={result.memberships} userId={result.requestorUserId}></GroupActionsComp>
+						<BookmarkComp targetType={result.isType} connections={result.memberships} userId={result.requestorUserId}></BookmarkComp>
+						<IsTypeComp isType={result.isType}></IsTypeComp>
+					</div>
+				</div>
+			</div>
+		)
+	}
+});
+
+var Idea = React.createClass({ // Idea
+
+	render: function() {
+		var result = this.props.result;
+		var avatarImg = result.CNT_titleImg || '$no_image_available.jpg';
+		var avatarURL = VOICE.imgPrefix(avatarImg, 'M');
+
+		var memberSince = moment.utc(result.IDE_effectiveDate, 'YYYYMMDDhhmmss').fromNow();
+		var lastEdited = moment.utc(result.IDV_fromDate, 'YYYYMMDDhhmmss').fromNow();
+
+		return (
+			<div className="col-md-12 col-sm-12">
+				<div className="well well-sm well-agency">           
+					<a href={VOICE.linkPrefix('idea/view/'+result.IDE_id)}><img src={avatarURL}/></a>
+					<a className="lead agency-name" href={VOICE.linkPrefix('idea/view/'+result.IDE_id)}>
+						{result.CNT_title}
+					</a>
+					<a href={VOICE.linkPrefix('group/view/'+result.SUBTEAM_id)}>
+						Submitted By Team Group: {result.SUBTEAM_title}
+					</a>
+					<div className="sub-info">
+						<p><i className="fa fa-lightbulb-o smallFa"></i> {result.DVIDEATYPE_SDOMVAL_description}</p>
+						<p>
+							{ result.CNT_snippet }
+						</p>
+						<p><i className="fa fa-clock-o smallFa"> Updated: {memberSince}</i></p>
+						<hr/>
+						{
+							result.CNT_subTitle !== '' ?
+								<div>
+									<i className="fa fa-paragraph smallFa"></i> {result.CNT_subTitle}<hr/>
+								</div>
+								: null 
+						}
+						<p><i className="fa fa-code-fork smallFa"></i> {result.IDV_versionString} 
+							{
+								result.IDV_versionName !== '' ?
+									<span> {result.IDV_versionName}</span>
+									:null
+							}
+						</p>
+						{/*<p><i className="fa fa-pencil-square-o smallFa"> Last Edited: {lastEdited}</i></p>*/}
+						<hr/>
+						{
+							result.isSelfOwner ? 
+								<span>
+									<a href={VOICE.linkPrefix('idea/edit/'+result.IDE_id)}><i className="fa fa-pencil"></i> Edit Idea</a><br/><br/>
+								</span> : null
+						}
+						<a href={VOICE.linkPrefix('group/view/'+result.OWNGR_id)}><i className="fa fa-users"></i> View Ownership Group</a><br/><br/>
+			  			{/*<i className="fa fa-comment"></i> <a href={VOICE.linkPrefix('timeline/'+mainView.postBoxId)}>See Timeline</a>*/}
+						<BookmarkComp targetType="IDE" connections={result.connections[0]} userId={result.requestorUserId}></BookmarkComp>
+						<SocialActionsComp targetType="IDE" followOnly={true} connections={result.connections[0]} userId={result.requestorUserId}></SocialActionsComp>
+						<IsTypeComp isType={result.isType}></IsTypeComp>
+					</div>
+				</div>
+			</div>
+		)
+	}
+}); // Idea
+
+
+var Content = React.createClass({
+
+	render: function() {
+		var result = this.props.result;
+		console.log( 'ObjectsList.Content result: ', result );
+		var userImg = result.CREATEDBY_avatarImg || '$no_image_available.jpg';
+		var userURL = VOICE.imgPrefix(userImg, 'T');
+		var userViewURL = VOICE.linkPrefix('user/view')
+
+		var contentImg = result.titleImg || '$no_image_available.jpg';
+		var contentURL = VOICE.imgPrefix(contentImg, 'M');
+
+		var createdSince = moment.utc(result.createdDateTime, 'YYYYMMDDhhmmss').fromNow();
+		var updatedSince = moment.utc(result.updatedDateTime, 'YYYYMMDDhhmmss').fromNow();
+
+		var tags = [];
+		if(result.tags.length !== 0) {
+			for(var i=0; i<result.tagDesc.length; i++) {
+				tags.push(
+					<span className="endorse-item-name">
+						<span className="endorse-item-name-text"><i className="fa fa-tag"></i> {result.tagDesc[i]}</span>
+					</span>
+				);
+			}
+		} 
+
+		return (
+			<div className="col-md-12 col-sm-12">
+				<div className="well well-sm well-agency">           
+					<a href={VOICE.linkPrefix('content/view/'+result.id)}><img src={contentURL}/></a>
+					<a className="lead agency-name" href={VOICE.linkPrefix('content/view/'+result.id)}>
+						{result.title}
+					</a>
+					<div className="sub-info">
+						<p>
+							{ result.subTitle }
+						</p>
+						<p>
+							{ result.snippet }
+						</p>
+						<p><i className="fa fa-clock-o smallFa"> Created: {createdSince}</i> by 
+							<a href={VOICE.linkPrefix('profile/view/'+result.createdByUserId)}> {result.CREATEDBY_slug}</a>
+						</p>
+						<p><i className="fa fa-clock-o smallFa"> Updated: {updatedSince}</i></p>
+						{
+							tags.length !== 0 ?
+								<p>
+									{tags}
+								</p> : null
+						}
+						<hr/>
+						{/*
+						<GroupActionsComp targetType={result.isType} memberships={result.memberships} userId={result.requestorUserId}></GroupActionsComp>
+					*/}
+						<BookmarkComp targetType={result.isType} connections={result.connections} userId={result.requestorUserId}></BookmarkComp>
+						<IsTypeComp isType={result.isType}></IsTypeComp>
+					</div>
+				</div>
+			</div>
+		)
+	}
+});	// Content

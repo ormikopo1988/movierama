@@ -1,0 +1,31 @@
+// The Realtime Matchmaking API (VCON) (Called by VCEN)
+// 
+// API URI prefix: api/match/
+
+
+/*
+	All results are JSON encoded.
+	(for brevity, double quotes are/may be omitted below)
+	
+	All results are of the form:
+		{ ok: bool, errors: string[], data }
+	
+	If 'ok' is false
+		'errors' will contain one or more error messages (strings).
+		'data' will be NULL (or absent).
+	Otherwise errors will be empty (or NULL or absent ?).
+	
+	
+*/
+
+/*
+	realtime/ POST <requestData> --> <resultData>
+*/
+
+//<resultData> as defined in offlineMatchMakingAPI.json
+
+//<requestData>
+{
+	text,
+	userId
+}

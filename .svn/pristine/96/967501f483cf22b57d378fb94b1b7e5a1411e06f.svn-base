@@ -1,0 +1,35 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import VOICE from './voice.js';
+
+export default React.createClass({
+	render: function()
+	{
+		return (<div>{this.state.thumbsUp} <div className="btn btn-success" onClick={this.thumbsUpClicked}><i className="fa fa-thumbs-up smallFa"></i></div> - <div className="btn btn-danger" onClick={this.thumbsDownClicked}><i className="fa fa-thumbs-down smallFa"></i></div> {this.state.thumbsDown}</div>);
+	},
+
+	getInitialState: function()
+	{
+		return {
+			thumbsUp: this.props.data.thumbsUp,
+			thumbsDown: this.props.data.thumbsDown,
+		};
+	},
+
+	thumbsUpClicked: function()
+	{
+		var url = VOICE.linkPrefix('api/postBox/thumbsUp');
+		VOICE.ajaxCall(url, 'POST', {postId: this.props.data.postId}, this, this.handleResult);
+	},
+
+	thumbsDownClicked:function()
+	{
+		var url = VOICE.linkPrefix('api/postBox/thumbsDown');
+		VOICE.ajaxCall(url, 'POST', {postId: this.props.data.postId}, this, this.handleResult);
+	},
+
+	handleResult: function(responseData)
+	{
+		this.setState(responseData);
+	}
+});

@@ -1,0 +1,19 @@
+<?php
+/* Class [VO_TblContentSection] for table [content_sections] */
+
+class VO_TblContentSection extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'content_sections';
+
+    public $id;
+    public $isDeleted;
+    public $contentId;
+    public $sectionType;
+    public $ord;
+    public $belongsToSectionId;
+    public $title;
+    public $attachmentSetId;
+    public $fromTemplateSectionId;
+    public $mnemonicCode;
+
+}  // VO_TblContentSection

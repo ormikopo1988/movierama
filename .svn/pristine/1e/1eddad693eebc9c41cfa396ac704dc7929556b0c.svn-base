@@ -1,0 +1,113 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import ReactBootstrap from 'react-bootstrap';
+import MessagesBoxComp from './MessagesBoxComp';
+var RB = require('react-bootstrap');
+
+
+export default React.createClass({ //LoginBox
+  // props: nextRoute
+
+  render: function() {
+    return (
+      <div className="loginBox">
+          <h1>Login</h1>
+          <LoginForm {...this.props} />
+      </div>
+    );
+  }
+  
+});
+
+var LoginForm = React.createClass({
+  
+  getInitialState: function() {
+    return { isLoading: false }
+  },
+  
+  handleSubmit: function(e) {
+      e.preventDefault();
+
+      var email     = ReactDOM.findDOMNode(this.refs.email).value.trim();
+      var password  = ReactDOM.findDOMNode(this.refs.password).value.trim();
+      var okToProceed = true;
+
+      this.refs.msgBox.clearAll();
+
+      if ( !email ) {
+        okToProceed = false;
+        this.refs.msgBox.addError('Please fill-in your e-mail', false);
+      }
+      if ( !password ) {
+        okToProceed = false;
+        this.refs.msgBox.addError('Please fill-in your password', false);
+      }
+
+      if ( !okToProceed ) {
+        return;
+      }
+
+      this.setState({isLoading: true});
+
+      var data = {
+        email: email,
+        password: password,
+      };
+
+      var self = this;
+
+      VOICE.ajaxCall('api/login/do', 'POST', data, self, this.cbHandleSubmit);
+
+      return;
+  },
+  
+  cbHandleSubmit: function(result) {
+        if(result.loginOk === false) {
+            this.setState({isLoading: false});
+            this.refs.msgBox.addError(result.errors, true);
+        }
+        else {
+            this.refs.msgBox.clearAll();
+            window.location = VOICE.linkPrefix(this.props.nextRoute);
+        }
+        
+        return;
+  }
+  ,
+
+  componentDidMount: function() {
+  },
+  
+  render: function() {
+    var isLoading = this.state.isLoading;
+
+    return (
+      <div className="well well-large formInlineStyle">
+	        	<input type="text" className="form-control" ref="email" 
+              autoFocus={true} id="userEmail" placeholder="Your e-mail..." aria-describedby="basic-addon2"/>
+	        <br/>
+	        	<input type="password" className="form-control" ref="password" id="userPassword" placeholder="Your VOICE Password..." aria-describedby="basic-addon3"/>
+	        <br/><br/>
+	        <center>
+              <RB.Button 
+                type="button"
+                bsStyle="success"
+                bsSize="large"
+                disabled={isLoading}
+                onClick={!isLoading ? this.handleSubmit : null}
+              >
+              {
+              isLoading ? 
+                <span><i className="fa fa-circle-o-notch fa-spin"></i> Checking...</span> : 
+                <span><i className="fa fa-sign-in"></i>&nbsp;&nbsp;Login</span>
+              }
+              </RB.Button>
+          </center>
+          <br/>
+          <br/>
+        <MessagesBoxComp ref="msgBox"/>
+      </div>
+    );
+  }
+});
+

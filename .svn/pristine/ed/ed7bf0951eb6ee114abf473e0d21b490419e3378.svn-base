@@ -1,0 +1,20 @@
+<?php
+/* Class [VO_TblGroups] for table [groups] */
+
+class VO_TblGroups extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'groups';
+
+    public $id;
+    public $isDeleted;
+    public $title;
+    public $fromDate;
+    public $isActive;
+    public $description;
+    public $comments;
+    public $isPrivate;
+    public $isFreeToFollow;
+    public $isOpenForPosts;
+    public $groupType;
+
+}  // VO_TblGroups

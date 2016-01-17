@@ -1,0 +1,139 @@
+
+update _load_organisations
+set voice_id =  substr(MD5(RAND()),1,10)
+;
+
+/* Check this and repeat as many times as necessary */
+
+	select voice_id
+	from _load_organisations
+	group by voice_id
+	having count(*) > 1
+
+
+drop table _load_orgs_ids;
+create table _load_orgs_ids
+as
+	select voice_id
+	from _load_organisations
+	group by voice_id
+	having count(*) > 1
+;
+ALTER TABLE `_load_orgs_ids`
+ADD INDEX `voice_id` (`voice_id`);
+
+update _load_organisations
+set voice_id =  substr(MD5(RAND()),1,10)
+where voice_id in (
+	select voice_id
+	from _load_orgs_ids
+)
+;
+
+/* End of repeat .... */
+
+
+insert into organisations
+(
+	id, isDeleted, active,	 
+	name, 
+	shortName,	 
+	/*logoImage,*/	 
+	orgURL,	 
+	orgDomain,	 
+	description,	 
+	/*longDescription,*/	 
+	createdDateTime,	 
+	updatedDateTime,	 
+	orgTypeDVId, 
+	/*legalFormDVId	char(10) NULL*/	 
+	/*stakeholderDVId	char(10) NULL*/	 
+	/*stakeholderSegmentDVId	char(10) NULL 
+	acceptEmailsForAdmin	varchar(1000) NULL	 
+	partOfOrganisationId	char(10) NULL	 
+	*/
+	isReallyInVOICE,	 
+	source,	 
+	idOfSource
+)
+select
+	voice_id, 0, 1,
+	name,
+	null,
+	homepage_url,
+	homepage_domain,
+	short_description,
+	DATE_FORMAT( UTC_TIMESTAMP(), '%Y%m%d%H%i%S'), DATE_FORMAT( UTC_TIMESTAMP(), '%Y%m%d%H%i%S'),
+	CASE primary_role 
+		when 'investor' then 'tTwHzA1D3G'
+		when 'company' then 'eA5YkTdBkT'
+		when 'school' then 'o8yQxEnSmX'
+	END,
+	0,
+	'crunchbase',
+	crunchbase_uuid
+from
+	_load_organisations
+;
+	
+
+insert into address_generic (
+	id, genericType, genericId,
+	areaId, addressText,
+	addressTypeDVId,
+	createdDateTime
+)
+select
+	voice_id /* hack!! */ , 'ORG', voice_id,
+	(select b.id from areas b where b.isocode3=location_country_code)
+	, concat(location_region, ' - ', location_city ) ,
+	'ltFQ0gfH7s',
+	DATE_FORMAT( UTC_TIMESTAMP(), '%Y%m%d%H%i%S')
+from
+	_load_organisations
+;
+
+update organisations a
+set a.logoURL = (
+  select profile_image_url
+  from _load_organisations b
+  where b.voice_id = a.id
+);
+/*
+update organisations a
+set a.locationText = (
+  select concat(location_city, ' - ', location_region, ' - ' )
+  from _load_organisations b
+  where b.voice_id = a.id
+);
+*/
+update organisations a inner join _load_organisations b on b.voice_id = a.id
+set a.addressText = concat( b.location_city, ' - ', b.location_region )
+;
+
+update organisations a inner join _load_organisations b on b.voice_id = a.id
+set a.logoURL = b.profile_image_url
+;
+
+
+/*	
+	crunchbase_uuid	varchar(40) NULL	 
+	org_type	varchar(40) NULL	 
+	primary_role	varchar(40) NULL	 
+		varchar(200) NULL	 
+	crunchbase_url	varchar(255) NULL	 
+		varchar(255) NULL	 
+		varchar(255) NULL	 
+	profile_image_url	varchar(255) NULL	 
+	facebook_url	varchar(255) NULL	 
+	twitter_url	varchar(255) NULL	 
+	linkedin_url	varchar(255) NULL	 
+	stock_symbol	varchar(40) NULL	 
+	location_city	varchar(255) NULL	 
+	location_region	varchar(40) NULL	 
+	location_country_code	varchar(40) NULL	 
+		varchar(2000) NULL	 
+	funding_round_name	varchar(40) NULL	 
+	ending	varchar(20) NULL	 
+	voice_id	
+*/

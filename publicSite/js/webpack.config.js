@@ -1,0 +1,86 @@
+var path = require('path');
+var HtmlwebpackPlugin = require('html-webpack-plugin');
+var webpack = require('webpack');
+var merge = require('webpack-merge');
+
+var TARGET = process.env.npm_lifecycle_event;
+var ROOT_PATH = path.resolve(__dirname);
+var APP_PATH = path.resolve(__dirname+ '/app/');
+var BUILD_PATH = path.resolve(ROOT_PATH, 'bundle');
+var CSS_PATH = path.resolve('../css/');
+
+process.env.BABEL_ENV = TARGET;
+
+var common = {
+  entry: APP_PATH,
+  resolve: {
+    extensions: ['', '.js', '.jsx']
+  },
+  output: {
+    path: BUILD_PATH,
+    filename: 'bundle.js'
+  },
+  module: {
+    preLoaders: [
+      {
+        test: /\.jsx?$/,
+        loaders: ['eslint'],
+        include: APP_PATH
+      }
+    ],
+    loaders: [
+      {
+        test: /\.css$/,
+        loaders: ['style', 'css'],
+        include: CSS_PATH
+      },
+      {
+        test: /\.jsx?$/,
+        loaders: ['babel'],
+        exclude: /node_modules/,
+        include: APP_PATH
+      },
+      {
+        test: /\.jsx?$/,
+        loaders: ['babel'],
+        exclude: /node_modules/,
+        include: __dirname
+      }
+    ]
+  },
+  devServer: {
+    historyApiFallback: true,
+    hot: true,
+    inline: true,
+    progress: true
+  },
+  plugins: [
+    new HtmlwebpackPlugin({
+      title: 'Forms Test App'
+    })
+    ,
+    //new webpack.optimize.UglifyJsPlugin({minimize: true}) // minimize for production (uncomment for Dev)
+  ]
+};
+
+if(TARGET === 'start' || !TARGET) {
+  module.exports = merge(common, {
+    devtool: 'eval-source-map', // comment for production
+    devServer: {
+      historyApiFallback: true,
+      hot: true,
+      inline: true,
+      progress: true,
+      host: '0.0.0.0',
+      proxy: {
+        '/api/*': {
+          target: 'http://localhost/movierama/publicSite/',
+          secure: false
+        }
+      }
+    },
+    plugins: [
+      new webpack.HotModuleReplacementPlugin()
+    ]
+  });
+}

@@ -1,0 +1,31 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+
+export default React.createClass({
+  
+  render: function() { 
+  	console.log('Sidebar.render: props:', this.props);
+  	var userData = this.props.userData || null;
+  	var userId = userData.voiceUserId || null;
+
+
+  	if(userData.voiceUserId != null) {
+  		var avatarImg = userData.avatarImg || '$profile_none.png';
+  	}
+
+    return (
+	    <div className="list-group">
+            <a href={VOICE.linkPrefix('profile/view')} className="list-group-item active"><img src={VOICE.imgPrefix(avatarImg, 'M')} className="pImage" /></a>
+            <a href={VOICE.linkPrefix('timeline/'+userData.postBoxId)} className="list-group-item"><img src={VOICE.imgPrefix('$profile_bar/messaging.png')} width="32" /></a>
+            <a href={VOICE.linkPrefix('user/teamGroups/'+userId)} className="list-group-item"><img src={VOICE.imgPrefix('$profile_bar/group.png')} width="32" /></a>
+            <a href={VOICE.linkPrefix('user/ideas/'+userId)} className="list-group-item">
+            	<img src={VOICE.imgPrefix('$profile_bar/i_icon.png')} width="32" />
+            </a>
+            <a href={VOICE.linkPrefix('contents/user/'+userId)} className="list-group-item"><img src={VOICE.imgPrefix('$profile_bar/document.png')} width="32" /></a>
+            <a href={VOICE.linkPrefix('profile/edit/'+userId)} className="list-group-item"><img src={VOICE.imgPrefix('$profile_bar/settings.png')} width="32" /></a>
+            <a href={VOICE.linkPrefix('logout')} className="list-group-item"><img src={VOICE.imgPrefix('$profile_bar/logout.png')} width="32" /></a>
+        </div>
+    );
+  }
+  
+});

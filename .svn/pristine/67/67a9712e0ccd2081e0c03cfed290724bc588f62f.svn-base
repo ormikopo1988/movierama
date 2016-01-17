@@ -1,0 +1,367 @@
+<?php 
+
+	/*******************************************************************/
+	// Profile
+	//
+	// profile/edit
+	$router->map(
+		'GET',
+		'/profile/edit',
+		function() use($wo) {
+			VO_CtrlProfile::profileEdit($wo);
+		}
+		, 'profileEdit'
+	);
+
+	// profile/view
+	$router->map(
+		'GET',
+		'/profile/view',
+		function() use($wo) {
+			VO_CtrlProfile::profileView($wo);
+		}
+		, 'profileView'
+	);
+	
+	// profile/view/[a:id]
+	$router->map(
+		'GET',
+		'/profile/view/[a:id]',
+		function($id) use($wo) {
+			VO_CtrlProfile::profileView($wo, $id);
+		}
+		, 'profileViewPerson'
+	);
+	
+	// user/bookmarks
+	$router->map(
+		'GET',
+		'/user/bookmarks',
+		function() use($wo) {
+			VO_CtrlSocial::userBookmarks($wo, $wo->app->userId);
+		}
+		, 'userBookmarks'
+	);
+	
+	// user/bookmarks
+	$router->map(
+		'GET',
+		'/user/badges',
+		function() use($wo) {
+			VO_CtrlBadges::userBadges($wo, $wo->app->userId);
+		}
+		, 'userBadges'
+	);
+		
+	// /api/badges/computeBadges/[a:voiceUserId]
+	$router->map('GET', '/api/badges/computeBadges/[a:voiceUserId]', function($voiceUserId) use($wo) {
+		try {
+			$res = VO_CtrlBadges::computeBadges($wo, $voiceUserId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/badges/getUserBadges/[a:voiceUserId]
+	$router->map('GET', '/api/badges/getUserBadges/[a:voiceUserId]', function($voiceUserId) use($wo) {
+		try {
+			$res = VO_Badges::getVoiceUserBadges($wo, $voiceUserId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	
+	/*******************************************************************/
+	// Organisation
+	//
+	// organisation/view/[a:id]
+	$router->map(
+		'GET',
+		'/organisation/view/[a:orgId]',
+		function($orgId) use($wo) {
+			VO_CtrlOrgProfile::organisationView($wo, $orgId);
+		}
+		, 'organisationView'
+	);
+	
+	// organisation/edit/[a:id]
+	$router->map(
+		'GET',
+		'/organisation/edit/[a:orgId]',
+		function($orgId) use($wo) {
+			VO_CtrlOrgProfile::organisationEdit($wo, $orgId);
+		}
+		, 'organisationEdit'
+	);
+	
+	
+	/*******************************************************************/
+	// Lists
+	// TODO - For testing purposes
+	// users/list
+	$router->map(
+		'GET',
+		'/users/list',
+		function() use($wo) {
+			VO_CtrlSite::usersList($wo);
+		}
+		, 'usersList'
+	);
+	
+	// user/activityLog/[a:userId]
+	$router->map(
+		'GET',
+		'/user/activityLog/[a:userId]',
+		function($userId) use($wo) {
+			VO_CtrlSite::userActivityLog($wo, $userId);
+		}
+		, 'userActivityLog'
+	);
+	
+	// user/notifications/[a:userId]
+	$router->map(
+		'GET',
+		'/user/notifications/[a:userId]',
+		function($userId) use($wo) {
+			VO_CtrlSite::userNotifications($wo, $userId);
+		}
+		, 'userNotifications'
+	);
+	
+	// TODO - For testing purposes
+	// organisations/list
+	$router->map(
+		'GET',
+		'/organisations/list',
+		function() use($wo) {
+			VO_CtrlSite::orgsList($wo);
+		}
+		, 'organisationsList'
+	);
+	
+	/******************* API Calls **************************************/
+	
+	// Profile (Organisation)
+	//
+	
+	// api/organisation/mainInfoSave
+	$router->map('POST', '/api/organisation/mainInfoSave', function() use($wo) {
+		try {
+			$res = VO_CtrlOrgProfile::mainInfoSave($wo, json_decode($_POST['data'], true));
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// api/organisation/saveAccounts
+	$router->map('POST', '/api/organisation/saveAccounts/[a:orgId]', function($orgId) use($wo) {
+		try {
+			$res = VO_CtrlOrgProfile::saveAccounts($wo, $orgId, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// api/organisation/saveTags
+	$router->map('POST', '/api/organisation/saveTags/[a:orgId]', function($orgId) use($wo) {
+		try {
+			$res = VO_CtrlOrgProfile::saveTags($wo, $_POST, $orgId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/organisation/getAddresses/[a:orgId]
+	$router->map('GET', '/api/organisation/getAddresses/[a:orgId]', function($orgId) use($wo) {
+		try {
+			$res = VO_OrganisationData::getAddressesInfo($wo, $orgId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// api/organisation/getAccounts
+	$router->map('GET', '/api/organisation/getAccounts/[a:orgId]', function($orgId) use($wo) {
+		try {
+			$res = VO_OrganisationData::getAccounts($wo, $orgId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// api/organisation/getTags
+	$router->map('GET', '/api/organisation/getTags/[a:orgId]', function($orgId) use($wo) {
+		try {
+			$res = VO_OrganisationData::getTags($wo, $orgId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// api/organisation/becomeAdmin
+	$router->map('POST', '/api/organisation/becomeAdmin', function() use($wo) {
+		try {
+			$res = VO_CtrlOrgProfile::becomeAdmin($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	/*******************************************************************/
+	// Profile (VOICE User)
+	//
+	
+	// Saves ==========================================================
+
+	// api/profile/mainInfoSave
+	$router->map('POST', '/api/profile/mainInfoSave', function() use($wo) {
+		try {
+			$res = VO_CtrlProfile::mainInfoSave($wo, json_decode($_POST['data'], true));
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// api/profile/invitePeopleToVoice
+	$router->map('POST', '/api/profile/invitePeopleToVoice', function() use($wo) {
+		try {
+			$res = VO_CtrlProfile::invitePeopleToVoice($wo, $_POST['data']);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// api/profile/sendUserInvitations/[a:userId]
+	$router->map('GET', '/api/profile/sendUserInvitations/[a:userId]?', function($userId='') use($wo) {
+		try {
+			$res = VO_CtrlProfile::sendUserInvitations($wo, $userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// api/addresses/save
+	$router->map('POST', '/api/addresses/save', function() use($wo) {
+		try {
+			$res = VO_CtrlProfile::saveAddresses($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// api/profile/saveEducations
+	$router->map('POST', '/api/profile/saveEducations', function() use($wo) {
+		try {
+			$res = VO_CtrlProfile::saveEducations($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// api/profile/saveAccounts
+	$router->map('POST', '/api/profile/saveAccounts', function() use($wo) {
+		try {
+			$res = VO_CtrlProfile::saveAccounts($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// api/profile/saveSkills
+	$router->map('POST', '/api/profile/saveSkills', function() use($wo) {
+		try {
+			$res = VO_CtrlProfile::saveSkills($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// api/profile/saveExperiences
+	$router->map('POST', '/api/profile/saveExperiences', function() use($wo) {
+		try {
+			$res = VO_CtrlProfile::saveExperiences($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+
+	// Gets ==========================================================
+
+	// /api/profile/getFullInfo
+	$router->map('GET', '/api/profile/getFullInfo', function() use($wo) {
+		try {
+			$res = VO_Users::getFull($wo, $wo->app->userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/profile/getMainInfo
+	$router->map('GET', '/api/profile/getMainInfo', function() use($wo) {
+		try {
+			$res = VO_ProfileData::getMainInfo($wo, $wo->app->userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/profile/getAddresses
+	$router->map('GET', '/api/profile/getAddresses', function() use($wo) {
+		try {
+			$res = VO_ProfileData::getAddressesInfo($wo, $wo->app->userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/profile/getEducations
+	$router->map('GET', '/api/profile/getEducations', function() use($wo) {
+		try {
+			$res = VO_ProfileData::getEducationInfo($wo, $wo->app->userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/profile/getSocialAccounts
+	$router->map('GET', '/api/profile/getSocialAccounts', function() use($wo) {
+		try {
+			$res = VO_ProfileData::getSocialAccounts($wo, $wo->app->userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/profile/getSkills
+	$router->map('GET', '/api/profile/getSkills', function() use($wo) {
+		try {
+			$res = VO_ProfileData::getSkills($wo, $wo->app->userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+	// /api/profile/getExperiences
+	$router->map('GET', '/api/profile/getExperiences', function() use($wo) {
+		try {
+			$res = VO_ProfileData::getExperiences($wo, $wo->app->userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+		
+	// /api/autoComplete/[a:type]
+	$router->map('GET', '/api/autoComplete/[a:type]', function($type) use($wo) {
+		try {
+			$res = VO_CtrlSite::autoComplete($wo, $type);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+
+
+/* End of file profile.php */
+

@@ -1,0 +1,17 @@
+<?php
+/* Class [VO_TblIdeaOtherContents] for table [idea_other_contents] */
+
+class VO_TblIdeaOtherContents extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'idea_other_contents';
+
+    public $id;
+    public $isDeleted;
+    public $contentId;
+    public $addedDate;
+    public $visibilityType;
+    public $title;
+    public $comments;
+    public $ideaId;
+
+}  // VO_TblIdeaOtherContents

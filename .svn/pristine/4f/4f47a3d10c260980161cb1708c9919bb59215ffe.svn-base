@@ -1,0 +1,140 @@
+import $ from 'jquery';
+
+var VOICE = VOICE || {};
+
+VOICE.namespace = function (ns_string) {
+  var parts = ns_string.split('.'),
+      parent = VOICE,
+      i;
+
+  // strip redundant leading global
+  if (parts[0] === 'VOICE') {
+    parts = parts.slice(1);
+  }
+
+  for (i = 0; i < parts.length; i += 1) {
+    // create a property if it doesn't exist
+    if (typeof parent[parts[i]] === 'undefined') {
+      parent[parts[i]] = {};
+    }
+    parent = parent[parts[i]];
+  }
+  return parent;
+};
+
+/*----------------------------------------------------------------------------*/
+
+VOICE.namespace('VOICE.globals');
+VOICE.namespace('VOICE.globals.labels');
+
+/*----------------------------------------------------------------------------*/
+
+VOICE.namespace('VOICE.comps');
+
+/*----------------------------------------------------------------------------*/
+
+VOICE.namespace('VOICE.ajax.common');
+VOICE.namespace('VOICE.ajax.config');
+
+VOICE.ajax.config.url = '';
+
+VOICE.ajaxCall = function(url, type, inputData, self, processResultFunc) {
+  console.log('VOICE.ajaxCall: URL: [' + url + '] Input Data: ', inputData);
+  $.ajax({
+    url: url,
+    dataType: 'json',
+    type: type,
+    data: inputData,
+    success: function(result) {
+      console.log('VOICE.ajaxCall: RESULT: ', result);
+      if(result.ok) {
+          processResultFunc(result.data);
+        }
+        else {
+          console.log('VOICE.ajaxCall: result.errorMsg: [' + result.errorMsg + ']' );
+        }
+      }.bind(self),
+      error: function(xhr, status, err) {
+        console.error(url, status, err.toString());
+      }.bind(self)
+  });
+};
+
+VOICE.ajaxCallWithFiles = function(url, type, inputData, self, processResultFunc) {
+  console.log(inputData);
+  $.ajax({
+    url: url,
+    dataType: 'json',
+    type: type,
+    data: inputData,
+    processData: false,
+    contentType: false,
+    success: function(result) {
+    console.log('RESULT: ');
+      console.log(result);
+      if(result.ok) {
+          processResultFunc(result.data);
+        }
+        else {
+          console.log(result.errorMsg);
+        }
+      }.bind(self),
+      error: function(xhr, status, err) {
+        console.error(self.props.url, status, err.toString());
+      }.bind(self)
+  });
+};
+
+VOICE.linkPrefix = function(route)
+{
+    return VOICE.globals.assetsURL + route;
+}
+
+VOICE.filePrefix = function(file)
+{
+    return VOICE.globals.filesURL + file;
+}
+
+VOICE.imgPrefix = function(fileName, imageSize)
+  // '' or F, M, T
+{
+    var prefix = ( imageSize == 'T' ? 'thumb_' : ( imageSize == 'M' ? 'mid_' : '' ) );
+      //console.log( fileName, fileName.substring(1));
+
+    if ( fileName.charAt(0) == '$' ) {
+      return VOICE.globals.systemImgURL + prefix + fileName.substring(1); 
+    }
+    else {
+      return VOICE.globals.imgURL + prefix + fileName;
+    }
+}
+
+VOICE.systemImgPrefix = function(fileName, imageSize)
+  // '' or F, M, T)
+{
+    var prefix = ( imageSize == 'T' ? 'thumb_' : ( imageSize == 'M' ? 'mid_' : '' ) );
+
+    if ( fileName.charAt(0) == '$' ) {
+      fileName = fileName.substring(1);
+    }
+    
+    return VOICE.globals.systemImgURL + prefix + fileName;
+}
+
+VOICE.renderOptions = function (options, whichFieldForValue )
+{
+  whichFieldForValue = whichFieldForValue || 'value'
+  return (
+    options.map(function (option)
+    {
+      return (
+        <option name={option.label} value={option[whichFieldForValue]} key={option[whichFieldForValue]}>{option.label}</option>
+        );
+    })
+    );
+}
+
+VOICE.globals.dateF = 'YYYYMMDD000000';
+VOICE.globals.dateTimeF = 'YYYYMMDDhhmmss';
+
+module.exports = VOICE;

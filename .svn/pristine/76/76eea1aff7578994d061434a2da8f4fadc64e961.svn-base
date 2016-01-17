@@ -1,0 +1,33 @@
+<?php 
+
+extract( $parametersArray, EXTR_PREFIX_ALL, '_param' );	//  an underscore is added at the end of prefix :-(
+
+// 		<b>$_param_someParam</b>
+
+// CAUTION: The corresponding $_param_ values must be one of the keys of the following array
+$_preFragmentsArray =
+	array(
+	);
+		
+		
+$_fragmentsArray = 
+	array(
+	'subject' => 'VOICE Invitation'
+	,
+	'messageText' => <<<EOH
+		Check out VOICE. It is really awesome.\n
+		In order to register,
+		please follow the link below\n
+		$_param_URL
+EOH
+	,
+	'messageHTML' => <<<EOH
+		Check out VOICE. It is really awesome.<br> 
+		In order to register,
+		<a href="$_param_URL">please follow this link</a>.
+EOH
+	,
+);
+	
+return $_fragmentsArray;
+

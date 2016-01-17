@@ -1,0 +1,362 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import MessagesBoxComp from './MessagesBoxComp';
+import LoadingComp from './LoadingComp';
+var RB = require('react-bootstrap');
+
+export default React.createClass({ //ContentAuthorsComp
+
+	/*
+		Properties
+		1. contentId (mandatory)
+		2. data (result of VO_Content::getContent())
+	*/
+
+	getDefaultProps: function() {
+		return {
+			data: {},
+			contentId: '',
+			editable: false
+		};
+	},
+
+	getInitialState: function() {
+		return { 
+			data: {},
+			loading: false,
+			showAddButton: true,
+			showAuthorForm: false
+		}
+	},
+
+	onPlusClick: function() {
+		this.setState({ 
+			showAuthorForm: true,
+			showAddButton: false
+		});  
+	},
+
+	componentDidMount: function() {
+		if(Object.keys(this.props.data).length === 0) {
+			var data = {
+				id: this.props.contentId
+			};
+			VOICE.ajaxCall(VOICE.linkPrefix('api/contents/getContent'), 'POST', data, this, this.handleGetContent);
+			return {
+				loading: false,
+				data: {}
+			}	
+		}
+		else {
+			return {
+				loading: false,
+				data: this.props.data
+			}
+		}
+		
+	},
+
+	handleGetContent: function(result) {
+		if(result.getContentOk) {
+			this.setState({
+				data: result.getContent.authors
+			});
+		}
+	},
+
+	handleCancelClick: function() {
+		this.setState({
+			showAuthorForm: false,
+			showAddButton: true
+		});
+	},
+
+	showNewData: function(data, flags) {
+		this.setState({
+			res: data,
+			showAddButton: flags.showAddButton,
+			showAuthorForm: flags.showAuthorForm
+		});
+	},
+
+    render: function() {
+	  	var results = this.state.res || this.props.data;
+	  	console.log('CONTENT AUTHORS: ', results);
+	  	var self = this;
+		//var memberSince = moment.utc(result.IDE_effectiveDate, 'YYYYMMDDhhmmss').fromNow();
+	  	return (
+			<div>
+				<RB.Row>
+					<span>
+						{ 
+							this.state.showAddButton && this.props.editable ? 
+								<center>
+									<a href="javascript:void(0)" onClick={this.onPlusClick}>
+										<i className="fa fa-plus-circle"></i> Add Author
+									</a><br/><br/>
+								</center> : null 
+						}
+					</span>
+				</RB.Row>
+				<RB.Row>
+					{
+						results.map(function(result) {
+							return (
+								<Author editable={self.props.editable} actionEdit={false} ref="author" onActionReturn={self.showNewData} contentId={self.props.contentId} key={result.id} result={result}></Author>
+							);
+						})
+					}
+				</RB.Row>
+				<RB.Row>
+					<RB.Col md={12}>
+						{ this.state.showAuthorForm ? <AuthorForm key={0} onActionReturn={self.showNewData} authorAction="add" contentId={this.props.contentId} onCancelClick={this.handleCancelClick} /> : null }
+					</RB.Col>
+				</RB.Row>
+			</div>
+	    );
+    }
+}); //ContentAuthorsComp
+
+var Author = React.createClass({
+	
+	getInitialState: function() {
+		return {};
+	},
+
+	componentWillReceiveProps: function(nextProps) {
+		this.setState({
+			edit: nextProps.actionEdit
+		});
+	},
+
+	onBanClick: function(authorData, event) {
+		VOICE.ajaxCall(VOICE.linkPrefix('api/content/author/delete'), 'POST', authorData, this, this.cbHandleDelete);
+		//TODO - update view
+	},
+
+	cbHandleDelete: function(result) {
+		if(result.actionOk) {
+	  		this.refs.msgBox.clearErrors();
+			this.refs.msgBox.addSuccess('Author deleted successully!', false);
+		  	//setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+		  
+	 		var url = VOICE.linkPrefix('api/content/authors/get/'+this.props.contentId);
+
+		    VOICE.ajaxCall(url, 'GET', {}, this, this.cbHandleDeleteAuthor);
+	  	}
+	  	else {
+			this.refs.msgBox.addError(result.errors);
+	  	}
+	},
+
+	cbHandleDeleteAuthor: function(result) {
+		if(result.actionOk) {
+			this.props.onActionReturn(result.data, {
+				showAuthorForm: false,
+				showAddButton: true
+			});
+		}
+		else {
+			this.refs.msgBox.addError(result.errors);
+		}
+	},
+
+	onEditClick: function(authorData, event) {
+		this.setState({
+			edit: true
+		});
+	},
+
+	handleCancelClick: function(data) {
+		this.setState({
+			edit: false
+		});
+	},
+
+	render: function() {
+		var data = this.props.result;
+		
+		return (
+			<span>
+				{
+					!this.state.edit ? 
+						<span>
+							{
+							
+								this.props.editable ? 
+									<a href="javascript:void(0)">
+										<i className="fa fa-pencil smallFa" data-author-id={data.id} onClick={this.onEditClick.bind(null, data)}></i>
+									</a> : null
+							}
+							<b>
+								<img src={data.logoURL} />
+								<span> {data.name} </span>
+								<span> {data.email} </span>
+								<a href={data.webURL}> {data.webURL} </a>
+							</b>
+							{
+							
+								this.props.editable ?
+									<a href="javascript:void(0)">
+										<i className="fa fa-ban smallFa" data-author-id={data.id} onClick={this.onBanClick.bind(null, data)}></i>
+									</a> : null
+							}
+							<br/><br/>
+						</span> : 
+						<RB.Row>
+							<RB.Col md={12}>
+								<AuthorForm {...this.props} key={data.id+'FRM'} contentId={this.props.contentId} authorAction="edit" onCancelClick={this.handleCancelClick} />
+							</RB.Col><br/>
+						</RB.Row>
+				}
+				<br/>
+				<RB.Row>
+					<RB.Col md={12}>
+						<MessagesBoxComp ref="msgBox"/>
+					</RB.Col>
+				</RB.Row>
+			</span>
+		);
+	}
+});
+
+var AuthorForm = React.createClass({
+
+  getInitialState: function() {
+  	 return {
+  	 	loading: false
+  	 }
+  },
+
+  handleSubmit: function(e) {
+	e.preventDefault();
+	
+	var name = this.refs.name.getValue() || '';
+    var description = this.refs.description.getValue() || '';
+    var email = this.refs.email.getValue() || '';
+    var logoURL = this.refs.logoURL.getValue() || '';
+    var webURL = this.refs.webURL.getValue() || '';
+
+    if (!name) {
+    	alert('Please fill all the required input fields!');
+        return;
+    }
+
+    var data = {
+    	contentId: this.props.contentId,
+    	name: name,
+		description: description,
+		email: email,
+		logoURL: logoURL,
+		webURL: webURL
+    };
+
+    if(this.props.authorAction === 'edit') {
+    	data.id = this.props.result.id;
+    }
+
+    console.log('AUTHOR SAVE: ', data);
+    //ajax call to save/author
+    VOICE.ajaxCall(VOICE.linkPrefix('api/content/author/save'), 'POST', data, this, this.cbHandleSave);
+
+    this.setState({
+		loading: true
+    });
+  },
+
+  cbHandleSave: function(result) {
+  	console.log('RESULT SAVE AUTHOR: ', result);
+  	if(result.actionOk) {
+  		this.refs.msgBox.clearErrors();
+		this.refs.msgBox.addSuccess('Author saved successully!', false);
+	  	//setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+	  
+ 		var url = VOICE.linkPrefix('api/content/authors/get/'+this.props.contentId);
+
+	    VOICE.ajaxCall(url, 'GET', {}, this, this.cbHandleSaveAuthor);
+  	}
+  	else {
+		this.refs.msgBox.addError(result.errors);
+  	}
+  	this.setState({
+		loading: false
+	});
+  },
+
+  cbHandleSaveAuthor: function(result) {
+  	if(result.actionOk) {
+  		this.props.onActionReturn(result.data, {
+  			showAuthorForm: false,
+			showAddButton: true
+  		});
+  	}
+	else {
+		this.refs.msgBox.addError(result.errors);
+	}
+  },
+  
+  handleCancel: function() {
+	this.props.onCancelClick({
+		showAuthorForm: false,
+		showAddButton: true
+	});
+	
+	return;
+  },
+  
+  render: function() {
+  	if(this.props.authorAction === 'add') {
+  		var data = '';
+  	}
+  	else {
+  		var data = this.props.result;
+  	}
+
+    return (
+	  <form className="authorForm">
+		<RB.Row>
+			<RB.Col md={6}>
+				<RB.Input type="text" defaultValue={data.name} ref="name" name="name" addonBefore="Author Name (*)" placeholder="Author's Name..." />
+			</RB.Col>
+			<RB.Col md={6}>
+				<RB.Input type="text" addonBefore="Description" placeholder="Description..." defaultValue={data.description} ref="description" name="description" />
+			</RB.Col>
+		</RB.Row><br/>
+		<RB.Row>
+			<RB.Col md={6}>
+				<RB.Input type="text" addonBefore="Author Email" placeholder="Author's Email..." defaultValue={data.email} ref="email" name="email" />
+			</RB.Col>
+			<RB.Col md={6}>
+				<RB.Input type="text" addonBefore="Logo URL" placeholder="Logo URL..." defaultValue={data.logoURL} ref="logoURL" name="logoURL" />
+			</RB.Col>
+		</RB.Row><br/>
+		<RB.Row>
+			<RB.Col md={12}>
+				<RB.Input type="text" addonBefore="Web URL" placeholder="Web URL..." defaultValue={data.webURL} ref="webURL" name="webURL" />
+			</RB.Col>
+		</RB.Row><br/>
+		<div className="row">
+			<center>
+	            	{
+               			this.state.loading === false ?
+                  			<div className="col-md-1 col-md-offset-5">
+								<button type="button" className="btn btn-success" onClick={this.handleSubmit}><i className="glyphicon glyphicon-ok-sign"></i> Save</button>
+							</div> :
+                  			<LoadingComp loadingText="Saving Author..."></LoadingComp>
+             	    }
+            </center>
+			<div className="col-md-1">
+				<button type="button" onClick={this.handleCancel} className="btn btn-danger">Cancel</button>
+			</div>
+		</div><br/>
+		<RB.Row>
+			<RB.Col md={12}>
+				<MessagesBoxComp ref="msgBox"/>
+			</RB.Col>
+		</RB.Row>
+      </form>
+    );
+  } 
+});	// AuthorForm

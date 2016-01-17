@@ -1,0 +1,82 @@
+DROP TABLE IF EXISTS `_load_tags`;
+CREATE TABLE `_load_tags` (
+  `tagPhrase` varchar(100) NOT NULL,
+  `tagBelongsTo` varchar(100) NOT NULL,
+  `id` varchar(10) NOT NULL,
+  `belongsToTagId` varchar(10) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+/*
+	Files:
+		'C:\\Docs\\AIT\\VOICE\\organizations.csv' 
+		'/storage/VOICE_Docs/_Technical/UNIROMA/Data/organizations.csv'
+		'/tmp/organizations.csv'
+*/
+
+
+LOAD DATA INFILE 'C:\\xampp568\\htdocs\\voice\\_docs\\Loads\\tags\\ict_terms.txt' 
+INTO TABLE _load_tags
+COLUMNS TERMINATED BY ','
+OPTIONALLY ENCLOSED BY '"'
+(
+  tagPhrase
+  /*,tagBelongsTo*/
+)
+;
+
+update _load_tags set tagBelongsTo = 'ICT';
+
+
+insert into _load_tags
+select distinct tagBelongsTo, null, null, null
+from _load_tags;
+
+update _load_tags
+set id =  substr(MD5(RAND()),1,10)
+;
+
+
+/* Check this and repeat as many times as necessary */
+
+	select id
+	from _load_tags
+	group by id
+	having count(*) > 1;
+  
+  select a.id from _load_tags a, tags b where b.id = a.id;
+
+drop table _load_tags_parents;
+create table _load_tags_parents
+as
+	select id, tagPhrase
+	from _load_tags
+	where tagBelongsTo = ''
+;
+
+update _load_tags a
+set a.belongsToTagId = (
+	select
+		b.id 
+	from
+		_load_tags_parents b
+	where
+		b.tagPhrase = a.tagBelongsTo
+)
+where a.tagBelongsTo != '';
+
+
+insert into tags(
+	id, tagPhrase, 
+	categoryType, belongsToTagId,
+	createdDateTime
+)
+select
+	id, tagPhrase,
+	'ICT', belongsToTagId,
+	DATE_FORMAT( UTC_TIMESTAMP(), '%Y%m%d%H%i%S')
+from
+	_load_tags
+where
+	1=1
+;

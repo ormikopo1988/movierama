@@ -1,0 +1,291 @@
+<?php
+
+//TODO - ORGANISATION INFORMATION
+
+class VO_OrganisationData {
+	const _ECP = 'ORD';	// Error Code Prefix
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $orgId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getMainInfo( WOOOF $wo, $orgId)
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place: [$orgId]" );
+	
+		$organisation = $wo->db->getRow('organisations', $orgId); //fernei olo to row
+		if($organisation === FALSE || $organisation === NULL) { return false; }
+		$main['organisationId'] = $organisation['id'];
+		
+		$voiceUser = $wo->db->getRow('voice_users', $wo->app->userId); //fernei olo to row
+		if($voiceUser === FALSE || $organisation === NULL) { return false; }
+		
+		//if the user is member of the organisation
+		if($organisation['id'] === $voiceUser['organisationId']) {
+			//check if the user is the admin
+			$main['isAdminOfThisOrg'] = $voiceUser['isOrganisationAdmin'];
+		}
+		
+		$main['isType'] = 'ORG';
+		
+		$mainElems = ['name', 'logoImage', 'orgURL', 'orgDomain', 'description', 'createdDateTime', 'updatedDateTime', 'orgTypeDVId', 'isReallyInVOICE', 'logoURL', 'addressText'];
+		
+		WOOOF_Util::filterOnKeys($main, $mainElems, $organisation);
+		
+		//GET SERVICES FROM ORGANISATION_SERVICES
+		
+		$v_orgServices = new WOOOF_dataBaseTable($wo->db, 'organisation_services');
+		if ( !$v_orgServices->constructedOk ) { return false; }
+		
+		$res = $v_orgServices->getResult(
+			[
+				'organisationId' => $orgId
+			],
+			'tagId',
+			'', '', '',
+			true, false
+		);
+		if ( $res === FALSE ) { return false; }
+		
+		if ( $res['totalRows'] != 0 ) {
+			foreach($v_orgServices->resultRows as $v_service) {
+				$main['services'][] = $v_service['tagId'];
+				$srvDesc = $wo->db->getRow('tags', $v_service['tagId']);
+				if($srvDesc === FALSE) { return false; }
+		
+				$main['srvDesc'][] = $srvDesc['tagPhrase'];
+			}
+			$main['services'] = implode(',', $main['services']);
+		}
+		
+		return $main;
+	} //getMainInfo
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $orgId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getServices( WOOOF $wo, $orgId)
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place: [$orgId]" );
+		
+		$organisation = $wo->db->getRow('organisations', $orgId); //fernei olo to row
+		if($organisation === FALSE) { return false; }
+		
+		$services = []; //array to be sent to react element
+		$serviceElems = ['id', 'organisationId', 'tagId'];
+		
+		$v_organisation_services = new WOOOF_dataBaseTable($wo->db, 'organisation_services');
+		if ( !$v_organisation_services->constructedOk ) { return false; }
+		
+		$res = $v_organisation_services->getResult(
+			[
+				'organisationId' => $organisation['id']
+			],
+			'tagId',
+			'', '', '',
+			true, false
+		);
+		if ( $res === FALSE ) { return false; }
+		
+		if ( $res['totalRows'] != 0 ) {
+			foreach($v_organisation_services->resultRows as $v_org) {
+				$service = [];
+				WOOOF_Util::filterOnKeys($service, $serviceElems, $v_org);
+				
+				$tag = $wo->db->getRow('tags', $service['tagId']); //fernei olo to row
+				if($tag === FALSE) { return false; }
+				$service['name'] = $tag['tagPhrase'];
+				$service['categoryTypeVal'] = $tag['categoryType'];
+				
+				array_push($services, $service);
+			}
+		}
+	
+		return $services;
+	} //getServices
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $orgId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getAccounts( WOOOF $wo, $orgId)
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  [$orgId]" );
+	
+		$organisation = $wo->db->getRow('organisations', $orgId); //fernei olo to row
+		if($organisation === FALSE) { return false; }
+	
+		$socialAccounts = []; //array to be sent to react element
+		$socialAccountElems = ['id', 'socialAccountDVId', 'url', 'organisationId'];
+	
+		$orgSocialTbl = new WOOOF_dataBaseTable($wo->db, 'organisation_social_accounts');
+		if ( !$orgSocialTbl->constructedOk ) { return false; }
+	
+		$res = $orgSocialTbl->getResult(
+			[
+				'organisationId' => $organisation['id'],
+				'isDeleted'		 => '0'
+			],
+			'socialAccountDVId',
+			'', '', '',
+			true, false
+		);
+		if ( $res === FALSE ) { return false; }
+	
+		if ( $res['totalRows'] != 0 ) {
+			foreach($orgSocialTbl->resultRows as $v_social) {
+				$social = [];
+				WOOOF_Util::filterOnKeys($social, $socialAccountElems, $v_social);
+	
+				$accountType = $wo->db->getRow('__domain_values', $social['socialAccountDVId']); //fernei olo to row
+				$social['socialAccountDesc'] = $accountType['description'];
+				$social['socialAccountIcon'] = $accountType['iconFont'];
+	
+				array_push($socialAccounts, $social);
+			}
+		}
+	
+		return $socialAccounts;
+	} //getAccounts
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $orgId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getTags( WOOOF $wo, $orgId)
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  [$orgId]" );
+		
+		// TODO: Create and use v_organisation_tags view
+	
+		$tags = []; //array to be sent to react element
+		$tagElems = ['id', 'tagId', 'organisationId'];
+	
+		$organisationTagsTbl = new WOOOF_dataBaseTable($wo->db, 'organisation_tags');
+		if ( !$organisationTagsTbl->constructedOk ) { return false; }
+		
+		$res = $organisationTagsTbl->getResult(
+			[
+				'organisationId' => $orgId
+			],
+			'tagId',
+			'', '', '',
+			true, false
+		);
+		
+		if ( $res === FALSE ) { return false; }
+		
+		if ( $res['totalRows'] != 0 ) {
+			foreach($organisationTagsTbl->resultRows as $v_tag) {
+				
+				$tag = [];
+				WOOOF_Util::filterOnKeys($tag, $tagElems, $v_tag);
+				
+				$tagRow = $wo->db->getRow('tags', $tag['tagId']); //fernei olo to row
+				if($tagRow === FALSE) { return false; }
+				
+				$tag['name'] = $tagRow['tagPhrase'];
+				$tag['categoryTypeVal'] = $tagRow['categoryType'];
+	
+				array_push($tags, $tag);
+			}
+		}
+	
+		return $tags;
+	} //getTags
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $orgId
+	 * @return false | array[ ]
+	 */
+	public static
+	function getAddressesInfo( WOOOF $wo, $orgId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  $orgId" );
+	
+		$organisation = $wo->db->getRow('organisations', $orgId); //fernei olo to row
+		if($organisation === FALSE) { return false; }
+	
+		$addresses = []; //array to be sent to react element
+		$addresses['genericType'] = 'ORG';
+		$addresses['genericId'] = $organisation['id'];
+		$addresses['list'] = [];
+		$addressElems = ['id', 'areaId', 'addressTypeDVId', 'addressText', 'fromYear', 'toYear'];
+	
+		$v_org = new WOOOF_dataBaseTable($wo->db, 'address_generic');
+		if ( !$v_org->constructedOk ) { return false; }
+		
+		$res = $v_org->getResult(
+			[
+				'genericId' => $organisation['id']
+			],
+			'',
+			'', '', '',
+			true, false
+		);
+		if ( $res === FALSE ) { return false; }
+	
+		if ( $res['totalRows'] != 0 ) {
+			foreach($v_org->resultRows as $v_address) {
+				$address = [];
+				
+				$areas = new WOOOF_dataBaseTable($wo->db, 'areas');
+				if ( !$areas->constructedOk ) { return false; }
+				
+				$v_area = $areas->getRow($v_address['areaId']);
+				
+				$address['areaText'] = $v_area['name'];
+				
+				$domVal = new WOOOF_dataBaseTable($wo->db, '__domain_values');
+				if ( !$domVal->constructedOk ) { return false; }
+				
+				$v_addressType = $domVal->getRow($v_address['addressTypeDVId']);
+				
+				$address['addressTypeDesc'] = $v_addressType['description'];
+				
+				WOOOF_Util::filterOnKeys($address, $addressElems, $v_address);
+				$addresses['list'][] = $address;
+			}
+		}
+	
+		return $addresses;
+	} //getAddressesInfo
+	
+}	// VO_OrganisationData

@@ -1,0 +1,57 @@
+<?php
+class VO_PostBox
+{
+	const _ECP = 'PoB';
+
+	public static function handlePostInsert(WOOOF $wo, $postBoxId)
+	{
+
+	}
+
+	public static function handlePostEdit(WOOOF $wo, $postBoxId)
+	{
+		
+	}
+
+	public static function handleComment(WOOOF $wo, $postBoxId)
+	{
+		
+	}
+
+	public static function handleThumbsUp(WOOOF $wo, $postBoxId)
+	{
+		
+	}
+
+	public static function handleThumbsDown(WOOOF $wo, $postBoxId)
+	{
+		
+	}
+
+	public static function getBoxPosts(WOOOF $wo, $postBoxId)
+	{
+		
+	}
+
+	public static function getPostComments(WOOOF $wo, $postBoxId)
+	{
+		
+	}
+
+	public static function canUserReadFromBox()
+	{
+
+	}
+
+	public static function canUserPostToBox()
+	{
+
+	}
+
+	public static function canUserEditPost()
+	{
+
+	}
+}
+
+?>

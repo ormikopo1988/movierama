@@ -1,0 +1,365 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import DatePicker from 'react-datepicker';
+import Moment from 'moment';
+import $ from 'jquery';
+import MessagesBoxComp from './MessagesBoxComp';
+// AddressesBoxComp
+
+export default React.createClass({	
+	
+  getInitialState: function() {
+  	  Moment().format('YYYYMMDD000000');
+  	  console.log('Initial State: ');
+  	  console.log(this.props.data.list);
+	  var tmp = {}; //for reseting purposes
+	  for(var i=0; i<this.props.data.list.length; i++) {
+		  var temp = this.props.data.list[i];
+		  temp._status = 'R';
+		  tmp[ this.props.data.list[i].id ] = temp;
+	  }
+	  
+	  this.initialState = JSON.stringify(tmp);
+
+	  return {
+		  addresses: tmp,
+		  showAddressForm: false,
+		  showAddButton: true,
+		  showSaveAddrButton: true,
+		  startDate: Moment()
+	  };
+  },
+  
+  handleSave: function(e) {
+	  e.preventDefault();
+	  
+	  //TAKE OUT the TRASH ("_status = T") before send to server
+	  for (var key in this.state.addresses) {
+		  if (this.state.addresses.hasOwnProperty(key)) {
+		  //Now, this.state.addresses[key] is the current value of the address object
+			  if (this.state.addresses[key]._status === 'T') {
+				  delete this.state.addresses[key]
+			  }
+		  }
+	  }
+	  
+	  //console.log(this.state.addresses); //this will be send to server via AJAX (all except the trash - T which are inserted and deleted at once without being saved)
+	  var url = VOICE.linkPrefix('api/addresses/save');
+	  //data to send to server!
+	  VOICE.ajaxCall(url, 'POST', {genericType: this.props.data.genericType, genericId: this.props.data.genericId, list: this.state.addresses}, this, this.cbHandleSave);
+  },
+
+  cbHandleSave: function(result) {
+  	console.log(result);
+  	if(result.saveOk === true) {
+  		this.refs.msgBox.clearErrors();
+	  	this.refs.msgBox.addSuccess('Your addresses were saved successully!', false);
+	  	setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+
+	  	for (var key in this.state.addresses) {
+		  if (this.state.addresses.hasOwnProperty(key)) {
+		  //Now, this.state.addresses[key] is the current value of the address object
+			  if (this.state.addresses[key]._status === 'D') {
+				  delete this.state.addresses[key]
+			  }
+		  }
+	    }
+
+	    //After send to server update the status of all inserted to "R" from "I"
+  	    for (var addr in this.state.addresses) {
+	     if (this.state.addresses.hasOwnProperty(addr)) {
+	         var obj = this.state.addresses[addr];
+	          for (var prop in obj) {
+	            // important check that this is objects own property 
+	            // not from prototype prop inherited
+	            if(obj.hasOwnProperty(prop)){
+	            	obj['_status'] = 'R';  	
+	            }
+	         }
+	      }
+	    }
+	  
+	    this.initialState = JSON.stringify(this.state.addresses);
+	    this.setState({addresses: this.state.addresses});
+  	}
+  	else {
+
+  		this.refs.msgBox.addError(result.errors);
+  	}
+  },
+  
+  handleReset: function() {
+	  var resetView = JSON.parse(this.initialState);
+	  this.setState({addresses: resetView});
+  },
+  
+  handleAddressSubmit: function(newAddress) {
+	var addresses = this.state.addresses;
+	var id = Math.floor((Math.random() * 10000000000) + 1000000000);
+	newAddress.id = id;
+	addresses[id] = newAddress;
+	
+	this.setState({
+		addresses: addresses,
+		showAddressForm: false,
+		showAddButton: true,
+		showSaveAddrButton: true
+	});
+  },
+  
+  handleChange: function(addressId, event) {
+  	  // addressId is passed from caller!
+	  //var addressId = $(event.target).attr("data-address-id"); //get id of the address changed
+	  console.log(addressId);
+	  console.log(event);
+	  var exists = false, 
+	  	  newAddresses = this.state.addresses;
+	  
+	  exists = this.state.addresses.hasOwnProperty(addressId);
+	  if(exists) {
+		   newAddresses[addressId][event.target.name] = event.target.value;
+	  }
+	  else {
+		  var tempObj = {};
+		  tempObj['id'] = addressId;
+		  tempObj[event.target.name] = event.target.value;
+		  
+		  newAddresses[addressId] = tempObj;
+	  }
+	  
+	  if(newAddresses[addressId]._status !== 'I') {
+	      // Insertions remain insertions even after (re)editing them.
+		  newAddresses[addressId]._status = 'U';
+	  }
+	  
+	  this.setState({
+		  addresses: newAddresses
+	  });
+  },
+  
+  onPlusClick: function() {
+	  this.setState({ 
+		  showAddressForm: true,
+		  showAddButton: false,
+		  showSaveAddrButton: false
+	  });  
+  },
+  
+  onDeleteClick: function(addressId, event) {
+  	  // addressId is passed from caller!
+	  //var addressId = $(event.target).attr("data-address-id"); //get id of the address you want to delete
+	  
+	  if(this.state.addresses[addressId]._status === 'I') {
+		  this.state.addresses[addressId]._status = 'T'; //trash status (inserted and then updated)
+	  }
+	  else {
+		  this.state.addresses[addressId]._status = 'D'; //update status
+	  }
+	  
+	  this.setState({
+		  addresses: this.state.addresses
+	  }); //update view
+	  
+  },
+  
+  handleCancelClick: function(newView) {
+    this.setState(newView);
+  },
+
+  render: function() {
+	var tds = [];
+	var keys = Object.keys(this.state.addresses);
+	console.log('Rendering with: ');
+	console.log(this.state.addresses);
+	var m = Moment('20140404000000', 'YYYYMMDD000000')
+	for(var i=0; i < keys.length; i++ ) {
+		var addr = this.state.addresses[keys[i]];
+
+		// partial call to callback. Pass addr.id as parameter
+		// (this helps us avoid the need for the hack: 'data-address-id="123" and corresponding: var addressId = $(event.target).attr("data-address-id");')
+		var cb1  = this.handleChange.bind(null,addr.id);	
+
+		tds.push(
+			<tr key={addr.id} id={addr.id} className={(addr._status === 'D' || addr._status === 'T') ? 'hidden' : null}>
+				<td>
+					<select className="form-control" value={addr.addressTypeDVId} ref="addressTypeDVId" name="addressTypeDVId" onChange={cb1} >
+					    {VOICE.renderOptions(this.props.lookUps.ADDRESS_TYPE)}
+				    </select>
+				</td>
+				<td>
+					<select className="form-control" value={addr.areaId} ref="areaId" name="areaId" onChange={cb1} >
+					    {VOICE.renderOptions(this.props.lookUps.AREA)}
+				    </select>
+				</td>
+				<td>
+					<input type="text" className="form-control" value={addr.addressText} ref="addressText" name="addressText" onChange={cb1} />
+				</td>
+				<td>
+					<input type="text" className="form-control" value={addr.fromDate} ref="fromDate" name="fromDate" onChange={cb1} /><br/>
+					<DatePicker selected={m} dateFormat="YYYYMMDD000000" dateFormatCalendar="YYYY/MM/DD" ref="fromDate" name="fromDate" onChange={cb1} />
+				</td>
+				<td>
+					<input type="text" className="form-control" value={addr.toDate} ref="toDate" name="toDate" onChange={cb1} /><br/>
+					<DatePicker dateFormat="YYYYMMDD000000" dateFormatCalendar="YYYY/MM/DD" ref="toDate" name="toDate" onChange={cb1} />
+				</td>
+				<td><a href="javascript:void(0)"><i className="fa fa-ban" data-address-id={addr.id} onClick={this.onDeleteClick.bind(null, addr.id)}></i></a></td>
+			</tr>
+		);
+	}
+	
+    return (
+      <div className="well well-large formInlineStyle">
+	  	<div className="panel panel-default">
+		  <div className="panel-heading">
+		  	My Addresses 
+		  	<span id="addAddress">{ this.state.showAddButton ? <a href="javascript:void(0)"><i className="fa fa-plus-circle" onClick={this.onPlusClick}></i></a> : null }</span>
+		  </div>
+	  		  <div className="table-responsive">
+				  <table className="table table-hover">
+					<thead>
+						<tr>
+						    <th>Address Type</th>
+						    <th>Area</th>
+						    <th>Address Text</th>
+						    <th>From Date</th>
+						    <th>To Date</th>
+						    <th>Options</th>
+					    </tr>
+					</thead>
+					<tbody>
+					    {tds}
+					</tbody>
+				  </table>
+			  </div>
+		  </div>
+		  <div className="row">
+			  <div className="col-md-1 col-md-offset-5">
+			    { this.state.showSaveAddrButton ? <button type="button" className="btn btn-success" onClick={this.handleSave}><i className="glyphicon glyphicon-ok-sign"></i> Save</button> : null }
+			  </div>
+			  <div className="col-md-1">
+			    { this.state.showSaveAddrButton ? <button type="button" className="btn btn-default" onClick={this.handleReset}><i className="glyphicon glyphicon-repeat"></i> Reset</button> : null }
+			  </div>
+		  </div><br/>
+		  <div className="row">
+		  	<div className="col-md-12">
+		  		<MessagesBoxComp ref="msgBox"/>
+		  	</div>
+		  </div>
+		  <div className="row">
+		  	<div className="col-md-12">
+		  		{ this.state.showAddressForm ? <AddressForm {...this.props} onAddressSubmit={this.handleAddressSubmit} onCancelClick={this.handleCancelClick} /> : null }
+		  	</div>
+		  </div>
+      </div>
+	  
+    );
+  }
+});	// AddressesBoxComp
+
+
+/*************************************************************************************************************/
+
+var AddressForm = React.createClass({  
+  handleSubmit: function(e) {
+    e.preventDefault();
+    var addressTypeForm = ReactDOM.findDOMNode(this.refs.addressTypeForm).value.trim();
+    var areaForm = ReactDOM.findDOMNode(this.refs.areaForm).value.trim();
+    var addressTextForm = ReactDOM.findDOMNode(this.refs.addressTextForm).value.trim();
+    var fromDateForm = ReactDOM.findDOMNode(this.refs.fromDateForm).value.trim();
+    var toDateForm = ReactDOM.findDOMNode(this.refs.toDateForm).value.trim();
+    
+    if (!addressTypeForm || !areaForm) {
+    	alert('Please fill all the input fields!');
+        return;
+    }
+    
+	this.props.onAddressSubmit({
+		//id: 'newAddress',
+		addressTypeDVId: addressTypeForm,
+		areaId: areaForm,
+		addressText: addressTextForm,
+		fromDate: fromDateForm,
+		toDate: toDateForm,
+		_status: 'I'
+	});
+	
+    // TODO: send request to the server
+    ReactDOM.findDOMNode(this.refs.addressTypeForm).value = '';
+    ReactDOM.findDOMNode(this.refs.areaForm).value = '';
+    ReactDOM.findDOMNode(this.refs.addressTextForm).value = '';
+    ReactDOM.findDOMNode(this.refs.fromDateForm).value = '';
+    ReactDOM.findDOMNode(this.refs.toDateForm).value = '';
+    return;
+  },
+  
+  handleCancel: function() {
+	ReactDOM.findDOMNode(this.refs.addressTypeForm).value = '';
+	ReactDOM.findDOMNode(this.refs.areaForm).value = '';
+	ReactDOM.findDOMNode(this.refs.addressTextForm).value = '';
+	ReactDOM.findDOMNode(this.refs.fromDateForm).value = '';
+	ReactDOM.findDOMNode(this.refs.toDateForm).value = '';
+	
+	this.props.onCancelClick({
+		showAddressForm: false,
+		showAddButton: true,
+		showSaveAddrButton: true
+	});
+	
+	return;
+  },
+  
+  render: function() {
+    return (
+	  <form className="addressForm">
+	    <div className="row">
+			<div className="col-md-4">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-5">Address Type</span>
+					<select className="form-control" aria-describedby="basic-addon-5" ref="addressTypeForm">
+						<option value="">- Please Choose -</option>
+					    {VOICE.renderOptions(this.props.lookUps.ADDRESS_TYPE)}
+				    </select>
+			    </div>
+			</div>
+			<div className="col-md-4">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-10">Area</span>
+					<select className="form-control" aria-describedby="basic-addon-5" ref="areaForm">
+						<option value="">- Please Choose -</option>
+					    {VOICE.renderOptions(this.props.lookUps.AREA)}
+				    </select>
+				</div>
+			</div>
+			<div className="col-md-4">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-13">Address Text</span>
+					<input type="text" className="form-control" placeholder="Address Text..." aria-describedby="basic-addon-13" ref="addressTextForm" />
+				</div>
+			</div>
+		</div><br/>
+		<div className="row">
+			<div className="col-md-6">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-14">From Date</span>
+					<input type="text" className="form-control" placeholder="From Date..." aria-describedby="basic-addon-14" ref="fromDateForm" />
+				</div>
+			</div>
+			<div className="col-md-6">
+				<div className="input-group">
+					<span className="input-group-addon" id="basic-addon-15">To Date</span>
+					<input type="text" className="form-control" placeholder="To Date..." aria-describedby="basic-addon-15" ref="toDateForm" />
+				</div>
+			</div>
+		</div><br/>
+		<div className="row">
+			<div className="col-md-1 col-md-offset-5">
+				<button type="button" className="btn btn-default" onClick={this.handleSubmit}>Add to List</button>
+			</div>
+			<div className="col-md-1">
+				<button type="button" onClick={this.handleCancel} className="btn btn-default">Cancel</button>
+			</div>
+		</div>
+      </form>
+    );
+  } 
+});	// AddressForm

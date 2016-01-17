@@ -1,0 +1,263 @@
+<?php
+
+class VO_Accounts {
+	const _ECP = 'ACC';	// Error Code Prefix
+	
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param $obj
+	 * @param $type ('PRS' || 'ORG')
+	 * @param bool $fetchBack
+	 * @param array $account
+	 * @return false | id
+	 * Returns actually saved $obj if $fetchBack is set to true
+	 */
+	public static 
+	function save( WOOOF $wo, &$obj, $type, $fetchBack=true )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	    
+		if ( !$wo->hasContent($obj->socialAccountDVId) ) {
+			$wo->logError(self::_ECP."0455 No value provided for [socialAccountDVId]" );
+			return false;
+		}
+		
+		if($type === 'PRS') {
+			$tblAccountGeneric = new WOOOF_dataBaseTable($wo->db, 'person_profile_social_accounts');
+			if($tblAccountGeneric === FALSE) { return false; }
+		}
+		
+		else if($type === 'ORG') {
+			$tblAccountGeneric = new WOOOF_dataBaseTable($wo->db, 'organisation_social_accounts');
+			if($tblAccountGeneric === FALSE) { return false; }
+		}
+		
+		if ( $wo->hasContent($obj->id) ) {
+			// update
+			$res = $tblAccountGeneric->updateRowFromArraySimple( $obj->toArray() );
+			if ( $res === FALSE ) { return FALSE; }
+		}
+		else {
+			// insert
+			$newId = $tblAccountGeneric->insertRowFromArraySimple( $obj->toArray() );
+			if ( $newId === FALSE ) { return false; }
+			$obj->id = $newId;
+		}
+
+		if ( $fetchBack ) {
+			// Get back into $obj based on id
+			// TODO:
+		}
+	  
+		return $obj->id;
+	}	// save
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param string $id
+	 * @param string $type
+	 * @return bool
+	 */
+	public static
+	function delete( WOOOF $wo, $id, $type )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+			
+		if ( !$wo->hasContent($id) ) {
+			$wo->logError(self::_ECP."0499 No value provided for [id]" );
+			return false;
+		}
+	
+		if($type === 'PRS') {
+			$tblAccountGeneric = new WOOOF_dataBaseTable($wo->db, 'person_profile_social_accounts');
+			if($tblAccountGeneric === FALSE) { return false; }
+		}
+		
+		else if($type === 'ORG') {
+			$tblAccountGeneric = new WOOOF_dataBaseTable($wo->db, 'organisation_social_accounts');
+			if($tblAccountGeneric === FALSE) { return false; }
+		}
+	
+		$res = $tblAccountGeneric->deleteRow($id);
+		if($res === FALSE) { return false; }
+			
+		return true;
+	}	// delete
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | no of affectedRows
+	 * Returns actually saved $obj
+	 */
+	public static
+	function saveAccounts( WOOOF $wo, $in, $personProfileId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	
+		if(!$wo->hasContent($in)) {
+			$wo->logError(self::_ECP."0129 No value provided for accounts");
+			return false;
+		}
+		
+		$affectedRows = 0;
+		
+		foreach ($in as $account) {
+			$status = $account['_status'];
+		
+			if($status === 'R') {
+				continue;
+			}
+			
+			$affectedRows++;
+		
+			//find specific row for cases 'U' and 'D'
+			if($status === 'U') {
+				$oldAccount = $wo->db->getRow('person_profile_social_accounts', $account['id']);
+				if($oldAccount === FALSE) { return false; }
+				if($oldAccount === NULL) {
+					$wo->logError(self::_ECP."0588 No row with id [$account] found!");
+					return false;
+				}
+			}
+		
+			//case 'I'
+			if($status === 'I') {
+				$tblAccountInsert = new VO_TblAccountGeneric($account);
+				$tblAccountInsert->id = '';
+				$tblAccountInsert->personProfileId = $personProfileId;
+		
+				$res = self::save($wo, $tblAccountInsert, 'PRS');
+				if($res === FALSE) { return false; }
+			}
+		
+			//case 'U'
+			elseif($status === 'U') {
+				$tblAccountUpdate = new VO_TblAccountGeneric($oldAccount);
+		
+				$tblAccountUpdate->socialAccountDVId = $account['socialAccountDVId'];
+				$tblAccountUpdate->url = $account['url'];
+				$tblAccountUpdate->credentials = $account['credentials'];
+		
+				$res = self::save($wo, $tblAccountUpdate, 'PRS');
+				if($res === FALSE) { return false; }
+			}
+		
+			//case 'D'
+			elseif($status === 'D') {
+				$res = self::delete($wo, $account['id'], 'PRS');
+				if($res === FALSE) { return false; }
+			}
+		
+			else {
+				$wo->logError(self::_ECP."0593 Wrong status [$status]");
+				return false;
+			}
+		
+		}
+		
+		if ( $affectedRows > 0 ) {
+			$usActId = VO_Users::saveAction( $wo, 'PR1', null, null, 'accounts' );
+		}
+			
+		return $affectedRows;
+	}	// saveAccounts
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param array $in
+	 * @return false | id
+	 * Returns actually saved $obj
+	 */
+	public static
+	function saveOrgAccounts( WOOOF $wo, $in, $orgId )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		$wo->debug( "$place:  " );
+	
+		if(!$wo->hasContent($in)) {
+			$wo->logError(self::_ECP."0139 No value provided for accounts");
+			return false;
+		}
+	
+		foreach ($in as $account) {
+			$status = $account['_status'];
+	
+			//find specific row for cases 'U' and 'D'
+			if($status === 'U') {
+				$oldAccount = $wo->db->getRow('organisation_social_accounts', $account['id']);
+				if($oldAccount === FALSE) { return false; }
+				if($oldAccount === NULL) {
+					$wo->logError(self::_ECP."0590 No row with id [$account] found!");
+					return false;
+				}
+			}
+	
+			//if status === 'R'
+			if($status === 'R') {
+				continue;
+			}
+	
+			//if status !== 'R'
+			//case 'I'
+			if($status === 'I') {
+				$tblAccountInsert = new VO_TblOrgAccountGeneric($account);
+				$tblAccountInsert->id = '';
+				$tblAccountInsert->organisationId = $orgId;
+	
+				$res = self::save($wo, $tblAccountInsert, 'ORG');
+				if($res === FALSE) { return false; }
+			}
+	
+			//case 'U'
+			elseif($status === 'U') {
+				$tblAccountUpdate = new VO_TblOrgAccountGeneric($oldAccount);
+	
+				$tblAccountUpdate->socialAccountDVId = $account['socialAccountDVId'];
+				$tblAccountUpdate->url = $account['url'];
+	
+				$res = self::save($wo, $tblAccountUpdate, 'ORG');
+				if($res === FALSE) { return false; }
+			}
+	
+			//case 'D'
+			elseif($status === 'D') {
+				$res = self::delete($wo, $account['id'], 'ORG');
+				if($res === FALSE) { return false; }
+			}
+	
+			else {
+				$wo->logError(self::_ECP."0589 Wrong status [$status]");
+				return false;
+			}
+	
+		}
+	
+		return $res;
+	}	// saveOrgAccounts
+	
+}	// VO_Accounts

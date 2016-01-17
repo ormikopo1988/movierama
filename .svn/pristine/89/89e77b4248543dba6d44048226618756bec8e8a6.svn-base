@@ -1,0 +1,159 @@
+<?php 
+
+	
+	/********************************************************************/
+	// Post Box
+
+	/********************************************************************/
+	// Post Box
+	
+	$router->map(
+			'GET',
+			'/feed/[a:postBoxId]',
+			function($postBoxId) use($wo) {
+				VO_CtrlSocial::getFeed($wo, $postBoxId, FALSE);
+			}
+			, 'timeline'
+					);
+
+	$router->map(
+			'GET',
+			'/messages/[a:recipientGroupId]',
+			function($recipientGroupId) use($wo) {
+				VO_CtrlSocial::getPrivateMessages($wo, $recipientGroupId);
+			}
+			, 'privateMessagesExchange'
+					);
+	$router->map(
+			'GET',
+			'/newMessageTo/[a:userId]',
+			function($userId) use($wo) {
+				VO_CtrlSocial::getNewMessageTo($wo, $userId);
+			}
+			, 'newMessageTo'
+					);
+	
+	$router->map(
+			'GET',
+			'/privateMessageExchanges/',
+			function() use($wo) {
+				VO_CtrlSocial::getPrivateConversations($wo);
+			}
+			, 'privateMessageExchanges'
+					);
+	
+	// Copy of the above!
+	$router->map(
+		'GET',
+		'/conversations',
+		function() use($wo) {
+			VO_CtrlSocial::getPrivateConversations($wo);
+		}
+		, 'conversations'
+	);
+	
+	$router->map(
+			'GET',
+			'/post/[a:postId]',
+			function($postId) use($wo) {
+				VO_CtrlSocial::getPost($wo, $postId);
+			}
+			, 'post'
+					);
+	
+	$router->map(
+			'GET',
+			'/timeline/[a:userId]',
+			function($userId) use($wo) {
+				VO_CtrlSocial::getTimeline($wo, $userId);
+			}
+			, 'feed'
+	);
+	
+	/**************************** API calls ****************************************/
+	
+	// /api/postBox/saveNewPost -> [postBoxId]
+	$router->map('POST', '/api/postBox/saveNewPost', function() use($wo) {
+		try {
+			$res = VO_PostBox::handlePostInsert($wo, $_REQUEST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/postBox/thumbsUp -> [postId]
+	$router->map('POST', '/api/postBox/thumbsUp', function() use($wo) {
+		try {
+			$res = VO_PostBox::handleReputationChange($wo, $_REQUEST['postId']);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/postBox/thumbsDown -> [postId]
+	$router->map('POST', '/api/postBox/thumbsDown', function() use($wo) {
+		try {
+			$res = VO_PostBox::handleReputationChange($wo, $_REQUEST['postId'], TRUE);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/postBox/saveNewComment -> [parentPostId]
+	$router->map('POST', '/api/postBox/saveNewComment', function() use($wo) {
+		try {
+			$res = VO_PostBox::handleCommentInsert($wo, $_REQUEST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/timeline/[a:userId] -> [postBoxId]
+	$router->map('GET', '/api/timeline/[a:userId]', function($userId) use($wo) {
+		try {
+			$res = VO_CtrlSocial::getTimeline($wo, $userId, TRUE);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/feed/[a:postBoxId] -> [postBoxId]
+	$router->map('GET', '/api/feed/[a:postBoxId]', function($postBoxId) use($wo) {
+		try {
+			$res = VO_CtrlSocial::getFeed($wo, $postBoxId, TRUE);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/timelinePart/[a:postBoxId]/[a:currentPostsNumber] -> [postBoxId]-> [currentPostsNumber]
+	$router->map('GET', '/api/timelinePart/[a:postBoxId]/[a:currentPostsNumber]', function($postBoxId,$currentPostsNumber) use($wo) {
+		try {
+			$res = VO_CtrlSocial::getTimeline($wo, $postBoxId, TRUE, $currentPostsNumber);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/postBox/insertPersonalMessage
+	$router->map('POST', '/api/postBox/insertPersonalMessage', function() use($wo) {
+		try {
+			$res = VO_PostBox::insertPersonalMessage($wo, $_REQUEST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// /api/postBox/getChat/[a:recipientGroupId]/[a:lastDateTime]
+	$router->map('POST', '/api/postBox/getChat/[a:recipientGroupId]/[a:lastDateTime]', function($recipientGroupId, $lastDateTime) use($wo) {
+		try {
+			$res = VO_PostBox::getPrivateMessages($wo, $recipientGroupId, $lastDateTime);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	
+
+/* End of file posts.php */
+

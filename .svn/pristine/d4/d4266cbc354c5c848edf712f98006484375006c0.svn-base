@@ -1,0 +1,93 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import VOICE from './voice.js';
+import UserSelector from './AutoCompleteCompMulti2.jsx';
+import PersonalExchange from './PersonalExchange.jsx';
+
+var RB = require('react-bootstrap');
+
+export default React.createClass(
+	{ //PersonalMessages
+		getInitialState: function()
+		{
+			return {title: '', message:'', recipientsList: [], exchanges: this.props.data, newEntryVisible: false};
+		},
+
+		render: function()
+		{
+			var exchangesList = [];
+
+			this.state.exchanges.forEach(function (exchange)
+			{		
+				exchangesList.push(<PersonalExchange data = {exchange} key={exchange.id}/>)
+			});
+
+			return (
+			<div>
+				{ this.state.newEntryVisible ? <RB.Panel collapsible header="New Messge" expanded={this.state.newEntryVisible}>
+					<RB.Panel header="Recipients">
+						<UserSelector ref="userSelector" value="" isType="PRS" url={VOICE.linkPrefix('api/autoComplete/users')} placeholder="Search Users..." customCallBackOnChange={this.changeInUsersOccured}/>
+    				</RB.Panel>
+					<RB.Panel header="Subject">
+						<RB.Input type="text" placeholder="Enter your message subject..." name="title" ref="title" onChange={this.handleChange} value={this.state.title}/> 
+    				</RB.Panel>
+					<RB.Panel header="Message">
+						<RB.Input type="textarea" bsSize="medium" rows="6" placeholder="Enter your message text..." name="message" ref="message" onChange={this.handleChange} value={this.state.message}/>
+    				</RB.Panel>
+					<RB.Button bsStyle="primary" bsSize="small" onClick={this.submitClicked}>Submit Message</RB.Button>
+    			</RB.Panel> 
+    			: <RB.Button bsStyle="primary" bsSize="small" onClick={this.newClicked}>New Message</RB.Button> }
+    			{exchangesList}
+    		</div>
+				);
+		},
+
+		submitClicked: function() 
+		{
+			var url = VOICE.linkPrefix('api/postBox/insertPersonalMessage');
+			var data = {};
+
+			data.recipientsList = this.state.recipientsList ;
+			data.title = this.state.title ;
+			data.content = this.state.message ;
+			
+			VOICE.ajaxCall(url, 'POST', data, this, this.handleSubmitionResults);
+		},
+
+		handleChange: function(event) 
+		{
+	  		var tmp = this.state;
+
+	  		tmp[event.target.name] = event.target.value;
+	  
+	  		this.setState(tmp);
+	  	},
+
+	  	handleSubmitionResults: function(data)
+	  	{
+	  		var tmp = this.state;
+
+	  		tmp.exchanges.unshift(data);
+	  		tmp.title = '';
+  			tmp.message = '';
+	  		
+	  		this.setState(tmp);
+	  	},
+
+		changeInUsersOccured: function(value)
+		{
+			console.log(value);
+			var tmp = this.state;
+			tmp.recipientsList = value
+			this.setState(tmp);
+		},
+
+		newClicked: function()
+		{
+			var tmp = this.state;
+
+	  		tmp.newEntryVisible = true;
+
+	  		this.setState(tmp);
+		},
+	});

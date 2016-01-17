@@ -1,0 +1,28 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+
+export default React.createClass({
+  
+  render: function() { 
+  	/*console.log('Sidebar.render: props:', this.props);
+  	var userData = this.props.userData || null;
+  	var userId = userData.voiceUserId || null;
+
+
+  	if(userData.voiceUserId != null) {
+  		var avatarImg = userData.avatarImg || '$profile_none.png';
+  	}*/
+
+    return (
+      <div className="pull-right socialPostHolder"> 
+          <ul className="socialPost">
+              <li><a href="" className="articleSocial"><i className="fa fa-facebook"></i></a></li>
+              <li><a href="" className="articleSocial"><i className="fa fa-twitter"></i></a></li>
+              <li><a href="" className="articleSocial"><i className="fa fa-google-plus"></i></a></li>
+              <li><a href="" className="articleSocial"><i className="fa fa-pinterest-p"></i></a></li>
+          </ul>
+      </div>
+    );
+  }
+  
+});

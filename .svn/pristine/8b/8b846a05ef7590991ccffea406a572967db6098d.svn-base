@@ -1,0 +1,158 @@
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var React = require('react');
+var ReactDOM = require('react-dom');
+var Formsy = require('formsy-react');
+var FRC = require('formsy-react-components');
+//var OrgProfileEditOptions = require('./org-profile-edit-options');
+
+var Checkbox = FRC.Checkbox;
+var CheckboxGroup = FRC.CheckboxGroup;
+var Input = FRC.Input;
+var RadioGroup = FRC.RadioGroup;
+var Row = FRC.Row;
+var Select = FRC.Select;
+var File = FRC.File;
+var Textarea = FRC.Textarea;
+
+export default React.createClass({ //OrganizationEdit
+    displayName: 'Edit Organization Profile',
+
+    getInitialState: function getInitialState() {
+        return {
+            layout: 'horizontal',
+            validatePristine: false,
+            disabled: false,
+			data: {
+				name: 'Athens Information Technology',
+				shortName: 'AIT',
+				logoImage: 'ait.jpg',
+				description: 'Athens Information Technology (AIT) is an internationally-renowned nonprofit education and research center in the fields of information technology, telecommunications, and innovation management',
+				orgTypeDVId: 'a'
+			}
+        };
+    },
+
+    resetForm: function resetForm() {
+        this.refs.form.reset();
+    },
+
+    submitForm: function submitForm(data) {
+        console.log(data);
+    },
+
+    changeLayout: function changeLayout(layout) {
+        this.setState({ layout: layout });
+    },
+
+    changeOption: function changeOption(name, value) {
+        var newState = {};
+        newState[name] = value;
+        this.setState(newState);
+    },
+
+    render: function render() {
+
+        var radioOptions = [{ value: 'a', label: 'Type A' }, { value: 'b', label: 'Type B' }];
+		
+        var selectOptions = radioOptions.slice(0);
+        selectOptions.unshift({ value: '', label: 'Organization Type' });
+
+        var formClassName = '';
+        if (this.state.layout === 'horizontal') {
+            formClassName = 'form-horizontal';
+        }
+
+        var sharedProps = {
+            layout: this.state.layout,
+            validatePristine: this.state.validatePristine,
+            disabled: this.state.disabled,
+			data: this.state.data
+        };
+		
+		console.log(this.state.data);
+
+        return React.createElement(
+            'div',
+            { className: 'row well' },
+            React.createElement(
+                'div',
+                { className: 'page-header' },
+                React.createElement(
+                    'h1',
+                    null,
+                    'Edit Organization Profile'
+                )
+            ),
+            React.createElement(
+                Formsy.Form,
+                { className: formClassName, onSubmit: this.submitForm, ref: 'form' },
+                React.createElement(
+                    'fieldset',
+                    null,
+                    /*React.createElement(
+                        'legend',
+                        null,
+                        'Input types'
+                    ),*/
+                    React.createElement(Input, _extends({}, sharedProps, {
+                        name: 'name',
+                        id: 'name',
+                        value: sharedProps.data.name,
+                        label: 'Organization Name',
+                        type: 'text',
+                        placeholder: 'Organization Name...',
+                        help: 'This is the Organization Name.',
+                        required: true
+                    })),
+                    React.createElement(Input, _extends({}, sharedProps, {
+                        name: 'shortName',
+						id: 'shortName',
+                        value: sharedProps.data.shortName,
+                        label: 'Short Name',
+                        type: 'text',
+                        placeholder: 'Short Name...',
+						help: 'This is the Organization Short Name.',
+                        required: true
+                    })),
+                    React.createElement(Textarea, _extends({}, sharedProps, {
+						rows: 3,
+						cols: 40,
+						name: 'description',
+						label: 'Description',
+						value: sharedProps.data.description,
+						placeholder: 'Description...',
+						help: 'This is the Organization Description.',
+						validations: 'minLength:10',
+						validationErrors: {
+							minLength: 'Please provide at least 10 characters.'
+						},
+						required: false
+					})),
+                    React.createElement(File, _extends({}, sharedProps, {
+                        name: 'logoImage',
+                        label: 'Logo Image',
+                        help: 'This is the Organization Logo.',
+						defaultValue: sharedProps.data.logoImage,
+                        multiple: true
+                    })),
+					React.createElement(Select, _extends({}, sharedProps, {
+                        name: 'orgTypeDVId',
+                        label: 'Organization Type',
+                        help: 'This is the Organization Type.',
+						value: sharedProps.data.orgTypeDVId,
+                        options: selectOptions,
+                        required: false
+                    }))
+                ),
+                React.createElement(
+                    Row,
+                    { layout: this.state.layout },
+					React.createElement('button', { className: 'btn btn-success', formNoValidate: true, type: 'submit' }, React.createElement('i', { className: 'glyphicon glyphicon-ok-sign' }), ' Save'),
+                    ' ',
+					React.createElement('button', { type: 'button', className: 'btn btn-default', onClick: this.resetForm }, React.createElement('i', { className: 'glyphicon glyphicon-repeat' }), ' Reset')
+                )
+            )
+        );
+    }
+});

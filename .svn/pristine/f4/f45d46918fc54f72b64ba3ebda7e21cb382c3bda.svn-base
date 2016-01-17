@@ -1,0 +1,89 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import Reputation from './PostReputationComp.jsx';
+import PostInput from './PostInputComp.jsx';
+
+var RB = require('react-bootstrap');
+
+export default React.createClass({
+	getInitialState: function()
+	{
+		var reputation = {thumbsUp: this.props.data.thumbsUp, thumbsDown: this.props.data.thumbsDown, postId: this.props.data.id};
+		return { 
+				commentsVisible: false,
+				commentsNumber: this.props.data.comments.length,
+				comments: this.props.data.comments,
+				reputation: reputation
+				};
+	},
+
+	render: function()
+	{
+		return (
+				<RB.Well key={this.props.data.id}>
+					<RB.Panel header={this.props.data.title}>
+				      {this.props.data.content}
+				      <Reputation data = {this.state.reputation} /> {this.props.data.visibilityLiteral}
+				    </RB.Panel>
+				    { !this.state.commentsVisible ? <RB.Button onClick={this.displayComments}>{this.state.commentsNumber} Comments</RB.Button> : null}
+				    <RB.Panel collapsible expanded={this.state.commentsVisible}>
+				    	<CommentsBlock data = { {comments: this.state.comments, postId: this.props.data.id} } />
+			        </RB.Panel>
+				</RB.Well>
+			);
+	},
+
+	displayComments: function()
+	{
+		var tmp = this.state;
+		tmp.commentsVisible = true;
+		this.setState(tmp);
+	}
+});
+
+var CommentsBlock = React.createClass({
+	
+	getInitialState: function()
+	{
+		return {comments: this.props.data.comments};
+	},
+
+	render: function()
+	{
+		console.log(this.state.comments);
+		var comments = [];
+		this.state.comments.forEach(function (comment)
+		{
+			var reputation = {thumbsUp: comment.thumbsUp, thumbsDown: comment.thumbsDown, postId: comment.id};
+			comments.push(
+				<RB.Panel key={comment.id}>
+				{comment.content}
+				<Reputation data = {reputation} />
+				</RB.Panel>
+			);
+		});
+
+		var inputData = {
+							parentPostId: this.props.data.postId,
+							postBoxId: null,
+							showPrivacy: false,
+						};
+		var inputLookUps = 	{ 
+								POST_PRIVACY_CHOICES: null, 
+							};
+		return(
+			<div>
+			{comments}
+			<PostInput data={inputData} lookUps = {inputLookUps} newInsertCallBack = {this.handleCommentInsert}/>
+			</div>
+			);
+	},
+
+	handleCommentInsert: function(responseData)
+	{
+		var tmp = this.state;
+		tmp.comments.push(responseData);
+		this.setState(tmp);
+	},
+
+});

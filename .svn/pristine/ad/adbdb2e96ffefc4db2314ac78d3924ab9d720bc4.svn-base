@@ -1,0 +1,85 @@
+// The Offline Matchmaking API (VCON) (Called by VCEN)
+// 
+// API URI prefix: api/match/
+
+
+/*
+	All results are JSON encoded.
+	(for brevity, double quotes are/may be omitted below)
+	
+	All results are of the form:
+		{ ok: bool, errors: string[], data }
+	
+	If 'ok' is false
+		'errors' will contain one or more error messages (strings).
+		'data' will be NULL (or absent).
+	Otherwise errors will be empty (or NULL or absent ?).
+	
+	
+*/
+
+/*
+	All the URLs are supposed to be get with optionally the possibility to specify userId as query parameter
+
+	query?searchCriteria=....  (general content search) --> <resultData>
+
+	user/<id>/ --> <resultData>
+		users  (for proposing connections to users) --> [<vcenResult>]
+		voice_content --> [<vcenResult>]
+		web_content --> [<vconResult>]
+		ideas --> [<vcenResult>]
+		tasks (for outsourcing) --> [<vcenResult>]
+
+	idea/<id>/ --> <resultData>
+		users (find potential teamates) --> [<vcenResult>]
+		voice_content --> [<vcenResult>]
+		web_content --> [<vconResult>]
+		idea (find similar ideas) --> [<vcenResult>]
+
+	task/<id>/users --> [<vcenResult>]
+
+	content/<id>/
+		voice_content (for relevant content) --> [<vcenResult>]
+		web_content --> [<vconResult>]
+*/
+
+//<resultData>
+//Some of the section can be missing for certain methods according to the above specification
+
+[
+	voice_contents:[<vcenResult>]
+	web_contents:[<vconResult>]
+	users:[<vcenResult>]
+	tasks:[<vcenResult>]
+	ideas:[<vcenResult>]
+]
+
+//<vcenResult>
+
+{
+	id, score, motivation
+}
+
+//<vconResult>
+
+	mainData: {
+		id, title,
+		URL,
+		description, longDescription,
+		discoveredDateTime, updatedDateTime,
+		creationDateTime,
+		sourceId,
+		thumbnail_url,
+		authors[{name,voice_user_id}], //voice_user_id is an optional identification number referring to the user ids in VCEN
+		score,
+		motivation
+	}
+	classificationData: {
+		mediaFormatId,
+		originId,
+		thematicSubjectIds[],
+		fetchTypeId,
+		incubationPhaseIds[],
+		contentTypeIds[],
+		lifeSpanId
+	}

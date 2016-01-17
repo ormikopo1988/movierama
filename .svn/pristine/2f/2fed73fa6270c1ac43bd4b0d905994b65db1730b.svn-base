@@ -1,0 +1,38 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var moment = require('moment');
+
+import AutoCompleteComp from './AutoCompleteComp';
+import BookmarkComp from './BookmarkComp';
+import ContentComp from './ContentComp';
+
+export default React.createClass({ //ContentView
+  getDefaultProps: function() {
+  	return {
+	    showEditLink: false,
+	 };
+  },
+
+  render: function() {
+  	console.log( 'ContentView.render: props:', this.props );
+
+  	return (
+      <div classNameName="container">
+		<div className="row">
+			{ 
+				this.props.showEditLink === true ?
+					<span>
+						<i className="fa fa-pencil"></i> 
+						<a href={VOICE.linkPrefix('content/edit/'+this.props.contentId)}>Edit Content</a>
+						<br/><br/>
+					</span>
+				:
+				null
+			}
+	        <ContentComp {...this.props} editable={false}></ContentComp>
+	    </div>
+      </div>
+    );
+  } 
+}); //ContentView
+

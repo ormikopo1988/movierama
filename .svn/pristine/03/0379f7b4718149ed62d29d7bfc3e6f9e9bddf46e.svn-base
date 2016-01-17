@@ -1,0 +1,183 @@
+// Synch API (VCEN) (Called by VCON)
+// API URI prefix: api/synch/
+
+
+/*
+	All results are JSON encoded.
+	(for brevity, double quotes are/may be omitted below)
+	
+	All results are of the form:
+		{ ok: bool, errors: string[], data }
+	
+	If 'ok' is false
+		'errors' will contain one or more error messages (strings).
+		'data' will be NULL (or absent).
+	Otherwise errors will be empty (or NULL or absent ?).
+	
+	
+*/
+
+/*
+
+	Get all VOICE Central Content Metadata
+	
+	metadata
+	-->
+		{
+			mediaFormats: [ <triple>, ... ]
+			origins: [ <triple>, ... ]
+			thematicSubjects: [ <triple>, ... ]
+			fetchTypes: [ <triple>, ... ]
+			incubationPhase:  [ <triple>, ... ]
+			contentTypes: [ <triple>, ... ]
+			lifeSpans: [ <triple>, ... ]
+		}
+		
+	where <triple> is:
+		{ id: <id>, name: string, parentId: <id> }
+
+*/
+
+/*
+	Get newly created/updated objects
+	
+	users/getNewSince/<someDateTime>
+	orgs/getNewSince/<someDateTime>
+	ideas/getNewSince/<someDateTime>
+	content/getNewSince/<someDateTime>
+	tasks/getNewSince/<someDateTime>
+		<someDateTime> format: YYYYMMDDHHMISS
+
+	Similarly we will have calls for updated objects:
+
+	users/getUpdatedSince/<someDateTime>
+	orgs/getUpdatedSince/<someDateTime>
+	ideas/getUpdatedSince/<someDateTime>
+	content/getUpdatedSince/<someDateTime>
+	tasks/getUpdatedSince/<someDateTime>
+
+	All calls return a list of object IDs (ten alphanumeric chars).
+	These are the objects that were created/updated (and thus need to be synched) since <someDateTime>.
+	Results are ordered so that objects created/updated futher into the past appear first in the list.
+	
+	Example:
+		users/getNewSince/20151025153000
+		-->
+		{ ok: true, data: [ '1abcswd1xy', '2abcswd1xy', '3abcswd1xy', '4abcswd1xy' ] }
+
+	Example 2:
+		users/getNewSince/20151dsds3000
+		-->
+		{ ok: false, errors: [ 'Bad <someDateTime> value "20151dsds3000" was provided' ] }
+
+*/
+
+/*
+	Get full data for each Object by its ID
+
+	users/get/<id>		--> <userData>
+	orgs/get/<id>		--> <orgData>
+	ideas/get/<id>		--> <ideaData>
+	content/get/<id>	--> <contentData>
+	task/get/<id>		--> <taskData>
+		<id> format: ten alphanumeric chars. As returned by the getNewSince and getUpdatedSince calls.
+
+	Each get call returns a structure as described below.
+	
+	Example:
+		users/get/2abcswd1xy
+		-->
+		{ ok: true, data: <userData> }
+		
+*/
+
+/*
+	Common expressions
+	
+	<id>		: 10 alphanumeric
+	<dateTime>	: 14 digits, format: YYYYMMDDHHMISS
+	<date>		:  8 digits, format: YYYYMMDD
+	<url>		: an absolute URL
+	TBD			: to be determined
+*/
+
+
+// <address>
+{
+	areaId, areaText,
+	addressType (one of 'livesIn', 'worksIn', 'bornIn', 'headquarters' ),
+	addressText,
+	fromDate, toDate
+}
+
+
+// users/get/<id>
+// =================
+
+// <userData> 
+{
+	mainData: {
+		id, lastName, firstName, birthYear (4 digits),
+		gender (F or M),
+		avatarImg (<url>), 	//  Is it really required?
+		aboutMe (longtext), //  can be trimmed to a length
+		createdDateTime, updatedDateTime,
+		isActive (bool), isDeleted (bool),
+	},
+	skills		: [ <skill>, ... ],
+	experience	: [ <experience>, ... ],
+	education	: [ <education>, ... ],
+	addresses	: [ <address>, ... ],
+	connections	: [ <id>, ... ],	// userId of each user connected with this one.
+}
+
+// <skill>
+{
+	tagId, name, fromDate,
+	proficiencyType (one of TBD),
+	orgId, orgName
+}
+
+// <experience>
+{
+	position, relationType (one of TBD),
+	fromDate, toDate,
+	orgId, orgName
+}
+
+// education
+{
+	title, degreeType (one of TBD),
+	fromDate, toDate,
+	orgId, orgName
+}
+
+
+
+// organisations/get/<id>
+// ======================
+
+// <orgData>
+{
+	mainData: {
+		id, name, shortName, logoImage,
+		orgURL,
+		description, longDescription,
+		orgType, legalForm, stakeholder, stakeholderSegment,
+		createdDateTime, updatedDateTime
+	},
+	services	: [ <service>, ... ],
+	tags		: [ <tag>, ... ]
+}
+
+// <service>
+{
+	tagId, name
+}
+
+// <tags>
+{
+	tagId, name
+}
+
+

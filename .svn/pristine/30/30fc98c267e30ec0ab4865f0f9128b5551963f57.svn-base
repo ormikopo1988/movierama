@@ -1,0 +1,66 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import $ from 'jquery';
+var RB = require('react-bootstrap');
+
+export default React.createClass({ //ProfileCompletenessComp
+  getInitialState: function() {
+  	return {
+		data: this.props.data
+    };
+  },
+  
+  render: function() { //function that returns a tree of React components that will eventually render to HTML
+  	var myPoints = 0;
+
+  	if(this.state.data.hasUploadedImage) {
+  		myPoints = myPoints + 15;
+  	}
+
+  	if(this.state.data.hasFilledMainInfo) {
+  		myPoints = myPoints + 10;
+  	}
+
+  	if(this.state.data.hasFilledServices) {
+  		myPoints = myPoints + 15;
+  	}
+
+  	if(this.state.data.hasUploadedCV) {
+  		myPoints = myPoints + 15;
+  	}
+
+  	if(this.state.data.hasFilledAddresses) {
+  		myPoints = myPoints + 10;
+  	}
+
+  	if(this.state.data.hasFilledEducations) {
+  		myPoints = myPoints + 5;
+  	}
+
+  	if(this.state.data.hasFilledSkills) {
+  		myPoints = myPoints + 10;
+  	}
+
+  	if(this.state.data.hasFilledExperiences) {
+  		myPoints = myPoints + 10;
+  	}
+
+  	if(this.state.data.hasFilledAccounts) {
+  		myPoints = myPoints + 10;
+  	}
+
+  	var maximumPoints = 100;
+  	var percentage = (myPoints * maximumPoints) / 100;
+
+  	var divStyle = {
+  		width: percentage+'%'
+  	}
+
+    return (
+    	<div className="percentageBar">
+		    <div className="completeness" style={divStyle}></div>
+		</div>
+    );
+  }
+  
+});

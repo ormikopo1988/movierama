@@ -1,0 +1,323 @@
+<?php 
+
+	// index.php
+	
+	$executionTimers['wooof_1'][0] = microtime(true);
+
+	require_once '../setup.inc.php';
+	
+	$wo = new WOOOF(true, null, null, false);
+  	if ( !$wo->constructedOk ) { $wo->handleShowStopperError( "1000 Failed to init WOOOF." ); }
+
+  	wooofTimerStop('wooof_1');
+  	
+	$router = new AltoRouter();
+	$router->setBasePath( substr( $wo->getConfigurationFor('siteBaseURL') . $wo->getConfigurationFor('publicSite'), 0, -1 ) );
+	
+	/*
+	// CAUTION
+	// For tests only
+	$router->map(
+		'GET',
+		'/[a:p1]/[a:p2]?/[i:p3]?',
+		function($p1,$p2,$p3) use($wo) { 
+			echo '<h1>Nice route!</h1>'; var_dump($p1,$p2,$p3); var_dump($_GET); 
+		},
+		'testRoute'
+	);
+	echo $router->generate('testRoute', ['p1'=>'1stParam']); die();
+	$router->run($wo);
+	die('Finished');
+	*/
+	
+	/*******************************************************************/
+	
+	// the start/home
+	//
+	$router->map(
+		'GET',
+		'/',
+		function() use($wo) {
+			//header('Location: home.php');
+			//require_once 'home.php';
+			VO_CtrlSite::home($wo);
+		}
+		, 'home'
+	);
+	
+	/*******************************************************************/
+	// register
+	//
+	$router->map(
+		'GET',
+		'/register',
+		function() use($wo) {
+			VO_CtrlRegistration::register($wo);
+		}
+		, 'register'
+	);
+	
+	$router->map(
+		'GET',
+		'/register/verify',
+		function() use($wo) {
+			VO_CtrlRegistration::registerVerify($wo);
+		}
+		, 'registerVerify'
+	);
+	
+	// about, terms, privacy
+	//
+	foreach( [ 'about', 'terms', 'privacy'] as $aTextPage ) {
+		$router->map(
+			'GET',
+			'/'.$aTextPage,
+			function() use($wo, $aTextPage) {
+				VO_CtrlSite::showText($wo, $aTextPage);
+			}
+			, $aTextPage
+		);
+	}	
+	
+	/*******************************************************************/
+	// login
+	//
+	$router->map(
+		'GET',
+		'/login',
+		function() use($wo) {
+			VO_CtrlSite::login($wo);
+		}
+		, 'login'
+	);
+	
+	/*******************************************************************/
+	// login
+	//
+	$router->map(
+		'GET',
+		'/logout',
+		function() use($wo) {
+			VO_CtrlSite::logout($wo);
+		}
+		, 'logout'
+	);
+	
+	/*******************************************************************/
+	// Profile
+	//
+	// profile/edit
+	$router->map(
+		'GET',
+		'/profile/edit',
+		function() use($wo) {
+			VO_CtrlProfile::profileEdit($wo);
+		}
+		, 'profileEdit'
+	);
+	
+	// profile/view
+	$router->map(
+		'GET',
+		'/profile/view',
+		function() use($wo) {
+			VO_CtrlProfile::profileView($wo);
+		}
+		, 'profileView'
+	);
+	
+	// profile/view
+	$router->map(
+		'GET',
+		'/profile/view/[a:id]',
+		function($id) use($wo) {
+			VO_CtrlProfile::profileView($wo, $id);
+		}
+		, 'profileViewPerson'
+	);
+	
+	/*******************************************************************/
+	// Organisation
+	//
+	// organisation/edit
+	$router->map(
+		'GET',
+		'/organisation/edit',
+		function() use($wo) {
+			VO_CtrlSite::organisationEdit($wo);
+		}
+		, 'organisationEdit'
+	);
+	
+	/*******************************************************************/
+	// Organisation
+	//
+	// organisation/edit
+	$router->map(
+		'GET',
+		'/users/list',
+		function() use($wo) {
+			VO_CtrlSite::userList($wo);
+		}
+		, 'userList'
+	);
+	
+	//TODO - For testing purposes
+	$router->map(
+		'GET',
+		'/autoComplete',
+		function() use($wo) {
+			VO_CtrlSite::autoCompleteUrl($wo);
+		}
+		, 'autoComplete'
+	);
+	
+	/*******************************************************************/
+	
+	
+	/* 
+	==========================================================================
+	*/
+	
+	// API (JSON)
+	//
+	// api/registation/checkEmail
+	$router->map('GET', '/api/registration/checkEmail/[**:email]', function($email) use($wo) {
+		try {
+			$res = VO_CtrlRegistration::checkOrgByEmail($wo, $email);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// api/registration/save
+	$router->map('POST', '/api/registration/do', function() use($wo) {
+		try {
+			$res = VO_CtrlRegistration::saveRegistration($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// api/login/do
+	$router->map('POST', '/api/login/do', function() use($wo) {
+		try {
+			$res = VO_CtrlRegistration::loginDo($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+		
+	// api/profile/mainInfoSave
+	$router->map('POST', '/api/profile/mainInfoSave', function() use($wo) {
+		try {
+			$res = VO_CtrlProfile::mainInfoSave($wo, json_decode($_POST['data'], true));
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// api/profile/saveAddresses
+	$router->map('POST', '/api/addresses/save', function() use($wo) {
+		try {
+			$res = VO_CtrlProfile::saveAddresses($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// api/profile/saveEducations
+	$router->map('POST', '/api/profile/saveEducations', function() use($wo) {
+		try {
+			$res = VO_CtrlProfile::saveEducations($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// api/profile/saveAccounts
+	$router->map('POST', '/api/profile/saveAccounts', function() use($wo) {
+		try {
+			$res = VO_CtrlProfile::saveAccounts($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	// api/profile/saveSkills
+	$router->map('POST', '/api/profile/saveSkills', function() use($wo) {
+		try {
+			$res = VO_CtrlProfile::saveSkills($wo, $_POST);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	$router->map('GET', '/api/profile/getFullInfo', function() use($wo) {
+		try {
+			$res = VO_Users::getFull($wo, $wo->app->userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	$router->map('GET', '/api/profile/getMainInfo', function() use($wo) {
+		try {
+			$res = VO_ProfileData::getMainInfo($wo, $wo->app->userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	$router->map('GET', '/api/profile/getAddresses', function() use($wo) {
+		try {
+			$res = VO_ProfileData::getAddressesInfo($wo, $wo->app->userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+		
+	$router->map('GET', '/api/profile/getEducations', function() use($wo) {
+		try {
+			$res = VO_ProfileData::getEducationInfo($wo, $wo->app->userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	$router->map('GET', '/api/profile/getSocialAccounts', function() use($wo) {
+		try {
+			$res = VO_ProfileData::getSocialAccounts($wo, $wo->app->userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	$router->map('GET', '/api/profile/getSkills', function() use($wo) {
+		try {
+			$res = VO_ProfileData::getSkills($wo, $wo->app->userId);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+	
+	$router->map('GET', '/api/autoComplete/[a:type]', function($type) use($wo) {
+		try {
+			$res = VO_CtrlSite::autoComplete($wo, $type);
+		}
+		catch ( Exception $e ) { $res = false; $wo->logError($e->getMessage()); }
+		WOOOF_Util::returnJSON2($wo, $res);
+	});
+		
+		
+	/*
+	 ==========================================================================
+	 */
+
+	// Find and follow route based on URL
+	// Handling of no matches, etc. inside the 'run' function.
+	 
+	$router->run($wo);
+
+/* End of file index.php */
+

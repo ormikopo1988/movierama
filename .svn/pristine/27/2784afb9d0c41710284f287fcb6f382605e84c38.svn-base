@@ -1,0 +1,204 @@
+<?php
+
+class VO_CtrlSocial {
+	const _ECP = 'CSO';	// Error Code Prefix
+  
+	/**
+	 * 
+	 * @param WOOOF $wo
+	 * @param id $in (userId to follow)
+	 * @return [ 'followOk' => bool, 'followingRecId' => id, 'errors' => array ]
+	 */
+	public static 
+	function followUser( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+		
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+		
+		$res =  VO_Social::userFollows($wo, $wo->app->userId, $in);
+		
+		if ( $res === FALSE ) {
+			$out = [
+				'followOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+		
+		else {
+			$out = [
+				'followOk'			=> true,
+				'followingRecId'	=> $res
+			];
+			$wo->db->commit();
+		}
+		
+		return $out;
+	}	// followUser
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $in (userId to unfollow)
+	 * @return [ 'unFollowOk' => bool, 'unFollowingRecId' => id, 'errors' => array ]
+	 */
+	public static
+	function unFollowUser( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$res =  VO_Social::userUnFollows($wo, $wo->app->userId, $in);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'unFollowOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'unFollowOk'			=> true,
+				'unFollowingRecId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// followUser
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $in (userId to request friendship)
+	 * @return [ 'requestOk' => bool, 'requestId' => id, 'errors' => array ]
+	 */
+	public static
+	function requestFriendship( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$res =  VO_Social::userRequestFriendShip($wo, $wo->app->userId, $in);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'requestOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'requestOk'			=> true,
+				'requestId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// requestFriendship
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $in (id of friend request)
+	 * @param string $reply (reply to the request -> 'A' or 'R')
+	 * @return [ 'requestAnsweredOk' => bool, 'requestAnsweredId' => id, 'errors' => array ]
+	 */
+	public static
+	function answerFriendship( WOOOF $wo, $in, $reply )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$res =  VO_Social::userAnswerFriendShip($wo, $in, $reply);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'requestAnsweredOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'requestAnsweredOk'	=> true,
+				'requestAnsweredId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// answerFriendship
+	
+	/***************************************************************************/
+	//
+	/***************************************************************************/
+	
+	/**
+	 *
+	 * @param WOOOF $wo
+	 * @param id $in (id of user to delete the friendship you have with)
+	 * @return [ 'friendshipDeletedOk' => bool, 'friendshipDeletedId' => id, 'errors' => array ]
+	 */
+	public static
+	function deleteFriendship( WOOOF $wo, $in )
+	{
+		$place = __CLASS__ . '::' . __FUNCTION__;
+	
+		if ( $wo->userData['id'] == '0123456789' ) {
+			$wo->handleShowStopperError('505');
+		}
+	
+		$res =  VO_Social::userDeleteFriendShip($wo, $wo->app->userId, $in);
+	
+		if ( $res === FALSE ) {
+			$out = [
+				'friendshipDeletedOk' => false,
+				'errors' => $wo->getErrorsAsArrayAndClear()
+			];
+			$wo->db->rollback();
+		}
+	
+		else {
+			$out = [
+				'friendshipDeletedOk'	=> true,
+				'friendshipDeletedId'	=> $res
+			];
+			$wo->db->commit();
+		}
+	
+		return $out;
+	}	// deleteFriendship
+	
+	
+}	// VO_CtrlSocial

@@ -1,0 +1,42 @@
+<?php 
+
+extract( $parametersArray, EXTR_PREFIX_ALL, '_param' );	//  an underscore is added at the end of prefix :-(
+
+// 		<b>$_param_someParam</b>
+
+// CAUTION: The corresponding $_param_ values must be one of the keys of the following array
+$_preFragmentsArray = 
+	array(
+	);
+
+	
+$_fragmentsArray = 
+	array(
+	'cancel' => <<<EOH
+		<ul>
+			<li>
+				Registration is transferable only to candidates who fulfill the program prerequisites and their CVs have been submitted timely for evaluation.
+			</li>
+			<li>	
+				100% of the registration fee will be refunded if the participant submits a written cancellation request by June 2, 2015.
+			</li>
+			<li>
+				50% of the registration fee will be refunded if the participant submits a written cancellation request by June 8, 2015.
+			</li>
+			<li>
+				No refund will be made after the start of the educational program.
+			</li>
+		</ul>
+EOH
+	,
+	'payByBankTransfer' => <<<EOH
+		Μπορείτε να πληρώσετε με κατάθεση του ποσού στον λογαριασμό GR29 0140 1120 1120 0232 0006 540 της Alpha Bank.
+EOH
+	,
+	'payAlternative' => <<<EOH
+		<br>ή εναλλακτικά με πιστωτική κάρτα<br>
+EOH
+	);
+	
+return $_fragmentsArray;
+

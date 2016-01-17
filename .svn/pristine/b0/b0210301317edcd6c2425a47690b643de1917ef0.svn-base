@@ -1,0 +1,107 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+var RB = require('react-bootstrap');
+import $ from 'jquery';
+
+import MessagesBoxComp from './MessagesBoxComp';
+
+export default React.createClass({ //SocialActionsComp
+
+  getInitialState: function() {
+  	return {
+  		data: {
+  			id: this.props.userId,
+  		},
+      following: 'false'
+  	};
+  },
+
+  makeFriendRequest: function() {
+    var url = VOICE.linkPrefix('api/social/requestFriendship/'+this.state.data.id);
+  	VOICE.ajaxCall(url, 'POST', {}, this, this.cbHandleReq);
+  },
+
+  followUser: function() {
+    var url = VOICE.linkPrefix('api/social/followUser/'+this.state.data.id);
+    VOICE.ajaxCall(url, 'POST', this.state.data, this, this.cbHandleFol);
+  },
+
+  unFollowUser: function() {
+    var url = VOICE.linkPrefix('api/social/unFollowUser/'+this.state.data.id);
+    VOICE.ajaxCall(url, 'POST', this.state.data, this, this.cbHandleUnFol);
+  },
+
+  cbHandleReq: function(result) {
+  	console.log(result);
+    if(result.requestOk) {
+      this.refs.msgBox.clearErrors();
+      this.refs.msgBox.addSuccess('Your friend request was sent!', false);
+      setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+    }
+
+    else {
+      this.refs.msgBox.addError(result.errors);
+      setTimeout(this.refs.msgBox.clearErrors, 5000);
+    }
+  },
+
+  cbHandleFol: function(result) {
+    console.log(result);
+    if(result.followOk) {
+      this.refs.msgBox.clearErrors();
+      this.refs.msgBox.addSuccess('Your follow request was successful!', false);
+      setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+      this.setState({
+        following: 'true'
+      });
+    }
+
+    else {
+      this.refs.msgBox.addError(result.errors);
+      setTimeout(this.refs.msgBox.clearErrors, 5000);
+    }
+  },
+
+  cbHandleUnFol: function(result) {
+    console.log(result);
+    if(result.unFollowOk) {
+      this.refs.msgBox.clearErrors();
+      this.refs.msgBox.addSuccess('Your unfollow request was successful!', false);
+      setTimeout(this.refs.msgBox.clearSuccesses, 3000);
+      this.setState({
+        following: 'false'
+      });
+    }
+
+    else {
+      this.refs.msgBox.addError(result.errors);
+      setTimeout(this.refs.msgBox.clearErrors, 5000);
+    }
+  },
+
+  render: function() {
+
+  	 return (
+        <div className="socialActionsDiv">
+            {
+              this.state.following === 'false' ? 
+              <button type="button" className="btn btn-default btn-sm btn-link" 
+                onClick={this.followUser}>
+                  <span><i className="fa fa-share fa-lg"></i> Follow</span>
+              </button> :
+              <button type="button" className="btn btn-default btn-sm btn-link" 
+                onClick={this.unFollowUser}>
+                  <span><i className="fa fa-undo"></i> Unfollow</span>
+              </button>
+            }  
+            <button type="button" className="btn btn-default btn-sm btn-link" 
+            	onClick={this.makeFriendRequest}>
+            	<span className="agency-facebook">
+            		<i className="fa fa-plus fa-lg"></i> Send Friend Request
+            	</span>
+        	  </button><br/><br/>
+            <MessagesBoxComp ref="msgBox"/>
+         </div>   
+      );
+  }
+}); //SocialActionsComp

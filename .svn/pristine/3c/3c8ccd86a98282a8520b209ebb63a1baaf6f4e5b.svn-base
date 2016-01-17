@@ -1,0 +1,131 @@
+import React from 'react';
+import ReactDom from 'react-dom';
+import ReactBootstrap from 'react-bootstrap';
+
+export default React.createClass({
+	  
+  render: function() {
+  	var f6s = VOICE.imgPrefix('$social/f6s_footer.png');
+  	var linkedIn = VOICE.imgPrefix('$social/linkedin_footer.png');
+  	var twitter = VOICE.imgPrefix('$social/twitter_footer.png');
+  	var facebook = VOICE.imgPrefix('$social/facebook_footer.png');
+  	var eur = VOICE.imgPrefix('$europ_commission.png');
+    return (
+        <footer>
+		    <div className="container-fluid">
+		        <div className="col-xs-1 col-sm-1 col-md-1">
+		            <img src={eur} className="euFlag" /> 
+		        </div>
+		        <div className="col-xs-6 col-sm-6 col-md-6 left">
+		            <p className="footer_condensed hidden-xs"><span className="euStatement">This project has been funded with the support from the European Commission.</span><br/>
+		                <span className="smaller">This publication reflects the views only of the author, and the Commission cannot be held responsible for any use which may be made of the information contained therein.</span></p>
+		        </div>
+		        <div className="col-xs-5 col-sm-5 col-md-5">
+		            <div> 
+		                <img height="16" className="pull-right sSpace" src={f6s} alt="img" />
+		                <img height="16" className="pull-right sSpace" src={linkedIn} alt="img" />
+		                <img height="16" className="pull-right sSpace" src={twitter} alt="img" />
+		                <img height="16" className="pull-right sSpace" src={facebook} alt="img" />
+		                <br/>
+		            </div>
+		            <p className="smaller pull-right sSpace"><span className="copyr">Copyright &copy; 2015 </span><span className="disclaim hidden-xs">innovVoice Consortium | Disclaimer</span></p>
+		        </div>
+		    </div>
+		</footer>
+    );
+  }
+  
+});
+
+
+/*
+<nav className="navbar navbar-default navbar-fixed-bottom">
+        	<footer>
+	            <div className="container-fluid">
+	            	<div className="navbar-footer">
+						<button type="button" className="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-2" data-aria-expanded="false">
+							<span className="sr-only">Toggle navigation</span>
+				            <span className="icon-bar"></span>
+				            <span className="icon-bar"></span>
+				            <span className="icon-bar"></span>
+						</button>
+					</div>
+					<div className="collapse navbar-collapse" id="bs-example-navbar-collapse-2">
+						<ul className="nav navbar-nav">
+							<li>
+				                <div className="col-xs-1 col-sm-1 col-md-1">
+				                    <img src={eur} className="euFlag" /> 
+				                </div>
+			                </li>
+			                <li>
+				                <div className="col-xs-6 col-sm-6 col-md-6">
+				                    <p className="footer_condensed hidden-xs"><span className="euStatement">This project has been funded with the support from the European Commission.</span><br/>
+				                        <span className="smaller">This publication reflects the views only of the author, and the Commission cannot be held responsible for any use which may be made of the information contained therein.</span></p>
+				                </div>
+				            </li>
+		                	<li>
+				                <div className="col-xs-5 col-sm-5 col-md-5">
+				                    <li> 
+				                        <img height="16" className="pull-right sSpace" src={f6s} alt="img" />
+				                        <img height="16" className="pull-right sSpace" src={linkedIn} alt="img" />
+				                        <img height="16" className="pull-right sSpace" src={twitter} alt="img" />
+				                        <img height="16" className="pull-right sSpace" src={facebook} alt="img" />
+				                        <br/>
+				                    	<p className="smaller pull-right sSpace"><span className="copyr">Copyright &copy; 2015 </span><span className="disclaim hidden-xs">innovVoice Consortium | Disclaimer</span></p>
+				                	</li>
+				                </div>
+				            </li>
+		                </ul>
+	                </div>
+	            </div>
+            </footer>
+        </nav>
+
+
+<footer>
+    <div className="container-fluid">
+        <div className="col-xs-1 col-sm-1 col-md-1">
+            <img src={eur} className="euFlag" /> 
+        </div>
+        <div className="col-xs-6 col-sm-6 col-md-6 left">
+            <p className="footer_condensed hidden-xs"><span className="euStatement">This project has been funded with the support from the European Commission.</span><br/>
+                <span className="smaller">This publication reflects the views only of the author, and the Commission cannot be held responsible for any use which may be made of the information contained therein.</span></p>
+        </div>
+        <div className="col-xs-5 col-sm-5 col-md-5">
+            <div> 
+                <img height="16" className="pull-right sSpace" src={f6s} alt="img" />
+                <img height="16" className="pull-right sSpace" src={linkedIn} alt="img" />
+                <img height="16" className="pull-right sSpace" src={twitter} alt="img" />
+                <img height="16" className="pull-right sSpace" src={facebook} alt="img" />
+                <br/>
+            </div>
+            <p className="smaller pull-right sSpace"><span className="copyr">Copyright &copy; 2015 </span><span className="disclaim hidden-xs">innovVoice Consortium | Disclaimer</span></p>
+        </div>
+    </div>
+</footer>
+
+
+
+<nav className="navbar navbar-default navbar-fixed-bottom">
+	<div className="container">
+		<div className="navbar-footer">
+			<button type="button" className="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-2" data-aria-expanded="false">
+				<span className="sr-only">Toggle navigation</span>
+	            <span className="icon-bar"></span>
+	            <span className="icon-bar"></span>
+	            <span className="icon-bar"></span>
+			</button>
+		</div>
+		<div className="collapse navbar-collapse" id="bs-example-navbar-collapse-2">
+	        <ul className="nav navbar-nav">
+	            <li><a href={VOICE.linkPrefix('about')}>About Voice</a></li>
+	            <li><a href={VOICE.linkPrefix('privacy')}>Privacy</a></li>
+	            <li><a href={VOICE.linkPrefix('terms')}>Terms of use</a></li>
+	        </ul>
+	        <ul className="nav navbar-nav navbar-right">
+	            <li><a>Voice is not responsible for user-posted content</a></li>
+	        </ul>
+	    </div>
+	</div>
+</nav>
+*/

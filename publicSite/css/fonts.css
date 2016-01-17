@@ -1,0 +1,28 @@
+@font-face {
+    font-family: Roboto-Medium;
+    src: url('webfonts/Roboto-Medium_0.ttf');
+}
+
+@font-face {
+    font-family: Roboto-Light;
+    src: url('webfonts/Roboto-Light_0.ttf');
+}
+
+@font-face {
+    font-family: Lato-Medium;
+    src: url('webfonts/Lato-Medium.ttf');
+}
+
+@font-face {
+    font-family: Lato-Light;
+    src: url('webfonts/Lato-Light.ttf');
+}
+@font-face {
+    font-family: Lato-LightItalic;
+    src: url('webfonts/Lato-LightItalic.ttf');
+}
+
+@font-face {
+    font-family: ShadowsIntoLight;
+    src: url('webfonts/ShadowsIntoLight.ttf');
+}

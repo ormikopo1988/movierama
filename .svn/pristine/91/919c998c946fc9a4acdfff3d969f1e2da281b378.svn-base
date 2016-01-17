@@ -1,0 +1,17 @@
+<?php
+/* Class [VO_TblSkillGeneric] for table [person_profile_skills] */
+
+class VO_TblSkillGeneric extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'person_profile_skills';
+
+    public $id;
+    public $isDeleted;
+    public $personProfileId;
+    public $tagId;
+    public $fromYear;
+    public $proficiencyTypeDVId;
+    public $comments;
+    public $organisationId;
+
+}  // VO_TblSkillGeneric

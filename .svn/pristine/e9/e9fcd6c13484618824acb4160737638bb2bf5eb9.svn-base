@@ -1,0 +1,22 @@
+<?php
+/* Class [VO_TblUserAction] for table [voice_user_actions] */
+
+class VO_TblUserAction extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'voice_user_actions';
+
+    public $id;
+    public $isDeleted;
+    public $userId;
+    public $whenDateTime;
+    public $relevantUserId;
+    public $relevantOrganisationId;
+    public $infoText;
+    public $isConsumedInBadge;
+    public $whatDVCode;
+    public $relevantContentId;
+    public $relevantIdeaId;
+    public $relevantPostId;
+    public $relevantGroupId;
+
+}  // VO_TblUserAction

@@ -1,0 +1,21 @@
+<?php
+/* Class [VO_TblPost] for table [posts] */
+
+class VO_TblPosts extends VO_TblAbstract { 
+
+    const TABLE_NAME = 'posts';
+
+    public $id;
+    public $isDeleted;
+    public $entryDate;
+    public $parentPostId;
+    public $title;
+    public $content;
+    public $thumbsUp;
+    public $thumbsDown;
+    public $attachmentSetId;
+    public $vidibilityType;
+    public $isOpenToEvaluations;
+    public $noOfChildren;
+
+}  // VO_TblPost
