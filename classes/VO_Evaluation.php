@@ -146,6 +146,8 @@ class VO_Evaluation {
 			JOIN ( 
 			        SELECT MAX(ev.roundNumber) AS max_roundNumber
 			        FROM evaluations ev
+			        WHERE whatId='$whatId' AND whatType='$whatType' AND userId='$movieramaUserId'
+					AND evalTemplateId='$evalTemplateId' AND isDeleted='0'
 			     ) eval
 			    ON eval.max_roundNumber = e.roundNumber
 			WHERE whatId='$whatId' AND whatType='$whatType' AND userId='$movieramaUserId'
