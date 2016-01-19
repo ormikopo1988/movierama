@@ -486,10 +486,26 @@ class VO_Evaluation {
 		//first get the evaluation
 		$evalRow = $wo->db->getRow('evaluations', $evaluationId);
 		
-		$sql = "SELECT SUM(evr.theValue * evc.weight) as finalScore, MAX(evr.theCount) as finalCount
-				FROM evaluation_results evr
-				INNER JOIN evaluation_criteria evc
-				ON evr.evaluationCriteriaId=evc.id";
+		$sql = "
+			select
+				sum(
+					evr.theValue 
+					* 
+					evc.weight 
+					/ 
+					(	
+						select sum(evc2.weight) 
+						from  evaluation_criteria evc2 
+						where evc2.evaluationId = '$evaluationId'
+					) 
+				) * 10 as finalScore, MAX(evr.theCount) as finalCount
+			from
+				evaluation_results evr,
+				evaluation_criteria evc
+			where
+				evr.evaluationId = '$evaluationId' and
+				evc.id = evr.evaluationCriteriaId		
+		";
 		
 		$succ = $wo->db->getResultByQuery( $sql, true, false );
 		if ( $succ === FALSE ) { return FALSE; }
@@ -680,7 +696,8 @@ class VO_Evaluation {
 		$sql = "SELECT evc.label, evc.description, evc.weight, evr.theValue, evr.theCount
 				FROM evaluation_results evr
 				INNER JOIN evaluation_criteria evc
-				ON evr.evaluationCriteriaId=evc.id";
+				ON evr.evaluationCriteriaId=evc.id
+				WHERE evr.evaluationId='$evaluationId'";
 		
 		$succ = $wo->db->getResultByQuery( $sql, true, false );
 		if ( $succ === FALSE ) { return FALSE; }
